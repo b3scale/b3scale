@@ -72,6 +72,12 @@ type Meeting struct {
 	Mux      sync.Mutex
 }
 
+// MeetingInfo contains getMeetingInfo details
+type MeetingInfo struct {
+	Meeting
+	XMLName xml.Name `xml:"response"`
+}
+
 // Update meeting fields
 func (m *Meeting) Update(meeting *Meeting) {
 	m.Mux.Lock()
@@ -107,3 +113,9 @@ func (m *Meeting) Update(meeting *Meeting) {
 	m.SyncedAt = time.Now()
 }
 
+func (m *Meeting) String() string {
+	return fmt.Sprintf(
+		"[Meeting id: %v, pc: %v, mc: %v, running: %v]",
+		m.MeetingID, m.ParticipantCount, m.ModeratorCount, m.Running,
+	)
+}
