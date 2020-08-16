@@ -1,7 +1,7 @@
 package config
 
 import (
-	"gitlab.com/infra.run/public/b3scale/cluster"
+	"gitlab.com/infra.run/public/b3scale/lib/cluster"
 )
 
 // A FrontendsConfig points to a config file
