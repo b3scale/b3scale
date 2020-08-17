@@ -1,9 +1,8 @@
 *.swo
 *.swp
 
-
 cmd/b3scaled/b3scaled
 cmd/b3scalectl/b3scalectl
 
-etc/bbb_scaled/nodes.conf
-etc/bbb_scaled/frontends.conf
+etc/b3scale/backends.conf
+etc/b3scale/frontends.conf
