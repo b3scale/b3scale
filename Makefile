@@ -20,5 +20,6 @@ test:
 	cd pkg/bbb && go test -v
 
 clean:
-	rm -f $(ODIR)/*.o
+	rm -f cmd/b3scaled/b3scaled
+	rm -f cmd/b3scalectl/b3scalectl
 
