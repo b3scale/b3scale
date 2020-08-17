@@ -4,12 +4,20 @@
 # @created     : Sunday Aug 16, 2020 19:24:54 CEST
 ######################################################################
 
+all: b3scaled b3scalectl
 
-test:
-	cd lib/config && go test -v
+b3scaled:
+	cd cmd/b3scaled && go build
 
+b3scalectl:
+	cd cmd/b3scalectl && go build
 
 .PHONY: clean test
+
+test:
+	cd pkg/cluster && go test -v
+	cd pkg/config && go test -v
+	cd pkg/bbb && go test -v
 
 clean:
 	rm -f $(ODIR)/*.o

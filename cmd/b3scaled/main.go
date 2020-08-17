@@ -4,8 +4,8 @@ import (
 	"log"
 	"time"
 
-	"gitlab.com/infra.run/public/b3scale/mod/cluster"
-	"gitlab.com/infra.run/public/b3scale/mod/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
 func main() {

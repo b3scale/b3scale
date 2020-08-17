@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	"gitlab.com/infra.run/public/b3scale/mod/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
 const (

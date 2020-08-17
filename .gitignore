@@ -1,6 +1,7 @@
 *.swo
 *.swp
 
+
 cmd/b3scaled/b3scaled
 cmd/b3scalectl/b3scalectl
 

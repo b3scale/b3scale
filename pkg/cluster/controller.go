@@ -5,7 +5,7 @@ package cluster
 import (
 	"log"
 
-	"gitlab.com/infra.run/public/b3scale/mod/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
 // A Controller manages the back- and frontends.
