@@ -25,6 +25,8 @@ func NewController(
 	frontendsConfig config.FrontendsConfig,
 ) *Controller {
 	return &Controller{
+		frontends:       []*Frontend{},
+		backends:        []*Backend{},
 		backendsConfig:  backendsConfig,
 		frontendsConfig: frontendsConfig,
 	}
@@ -73,6 +75,22 @@ func (c *Controller) reloadFrontends() {
 		return
 	}
 	_ = configs
+}
+
+// addFrontend adds a frontend to the cluster
+func (c *Controller) addFrontend(frontend *Frontend) {
+	c.frontends = append(c.frontends, frontend)
+	log.Println("Registered frontend:", frontend.config.Key)
+}
+
+func (c *Controller) removeFrontend(frontend *Frontend) error {
+	return nil
+}
+
+// GetFrontendByKey retrievs a frontend identified by
+// its key from our list of frontends.
+func GetFrontendByID(id string) *Frontend {
+	return nil
 }
 
 // LogStatus collects cluster information and writes

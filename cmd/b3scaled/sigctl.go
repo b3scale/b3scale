@@ -12,7 +12,8 @@ import (
 // When receiving a SIGUSR1 signal, we trigger
 // a reload. For now this is a pragmatic solution
 // over providing a control socket.
-// The drawback is that it is async.
+// The drawback is that it is async. However this is
+// already the way we are dealing with configs.
 
 // SigCtl is a signal handler for a cluster controller
 type SigCtl struct {
@@ -37,6 +38,7 @@ func (ctl *SigCtl) Start() {
 		<-c // Await signal
 		log.Println("Reloading configuration...")
 		ctl.controller.Reload()
+		ctl.controller.LogStatus()
 	}
 
 }

@@ -15,6 +15,7 @@ test:
 	cd pkg/cluster && go test -v
 	cd pkg/config && go test -v
 	cd pkg/bbb && go test -v
+	cd pkg/iface/http && go test -v
 
 clean:
 	rm -f cmd/b3scaled/b3scaled
