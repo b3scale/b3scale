@@ -3,10 +3,10 @@ package main
 import (
 	"log"
 	"os"
-	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
 )
 
 // Get configuration from environment with
@@ -23,11 +23,13 @@ func main() {
 	banner() // Most important.
 	log.Println("Starting b3scaled.")
 
-	// Parse flags
+	// Config
 	frontendsConfigFilename := getopt(
 		"B3SCALE_FRONTENDS", "etc/b3scale/frontends.conf")
 	backendsConfigFilename := getopt(
 		"B3SCALE_BACKENDS", "etc/b3scale/backends.conf")
+	listenHTTP := getopt(
+		"B3SCALE_LISTEN_HTTP", "127.0.0.1:42353") // B3S
 
 	log.Println("Using frontends from:", frontendsConfigFilename)
 	log.Println("Using backends from:", backendsConfigFilename)
@@ -43,14 +45,17 @@ func main() {
 		backendsConfig, frontendsConfig)
 	go controller.Start()
 
-	// Start cluster router
-	router := cluster.NewRouter(controller)
-	go router.Start()
+	// Start cluster request handler
+	gateway := cluster.NewGateway(controller)
+	go gateway.Start()
 
 	// Start ctrl interface
 
 	// Start HTTP interface
+	ifaceHTTP := http.NewInterface(
+		listenHTTP,
+		controller,
+		gateway)
 
-	// Just for testing...
-	time.Sleep(1 * time.Second)
+	ifaceHTTP.Start()
 }
