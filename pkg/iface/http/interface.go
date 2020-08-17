@@ -32,7 +32,9 @@ func NewInterface(
 	e.HideBanner = true
 
 	// Middlewares
-	e.Use(middleware.Logger())
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "${time_rfc3339} ${method} ${uri} ${status}, ${remote_ip}, ${latency_human}\n",
+	}))
 	e.Use(middleware.Recover())
 
 	// Prometheus Middleware
