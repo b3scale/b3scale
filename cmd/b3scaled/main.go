@@ -49,7 +49,9 @@ func main() {
 	gateway := cluster.NewGateway(controller)
 	go gateway.Start()
 
-	// Start ctrl interface
+	// Start control signal handler
+	ctl := NewSigCtl(controller)
+	go ctl.Start()
 
 	// Start HTTP interface
 	ifaceHTTP := http.NewInterface(
