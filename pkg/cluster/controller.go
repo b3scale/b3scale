@@ -4,6 +4,7 @@ package cluster
 
 import (
 	"log"
+	"sync"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
@@ -16,6 +17,8 @@ type Controller struct {
 
 	backendsConfig  config.BackendsConfig
 	frontendsConfig config.FrontendsConfig
+
+	mtx sync.Mutex
 }
 
 // NewController creates a new cluster controller
@@ -45,6 +48,9 @@ func (c *Controller) Start() {
 
 // Reload all configurations
 func (c *Controller) Reload() {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
 	c.reloadBackends()
 	c.reloadFrontends()
 }
@@ -74,23 +80,84 @@ func (c *Controller) reloadFrontends() {
 		log.Println("Error while loading frontends:", err)
 		return
 	}
-	_ = configs
+
+	// Register all frontends from the config
+	registeredIDs := []string{}
+	for _, config := range configs {
+		// Registering is idempotent
+		f := NewFrontend(config)
+		c.AddFrontend(f)
+		registeredIDs = append(registeredIDs, f.ID)
+	}
+
+	// Remove all frontends not longer in the config
+	for _, frontend := range c.frontends {
+		present := false
+		for _, id := range registeredIDs {
+			if frontend.ID == id {
+				present = true
+				break
+			}
+		}
+		if !present {
+			log.Println("Unregistering frontend:", frontend.ID)
+			c.removeFrontend(frontend)
+		}
+	}
+
 }
 
-// addFrontend adds a frontend to the cluster
+// AddFrontend adds a frontend to the cluster.
+// This is an idempotent operation. If the frontend id
+// is already registered, it will be replaced with
+// the new frontend.
+func (c *Controller) AddFrontend(frontend *Frontend) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	c.addFrontend(frontend)
+}
+
+// Unsafe interal add frontend
 func (c *Controller) addFrontend(frontend *Frontend) {
+	c.removeFrontend(frontend)
 	c.frontends = append(c.frontends, frontend)
 	log.Println("Registered frontend:", frontend.config.Key)
 }
 
-func (c *Controller) removeFrontend(frontend *Frontend) error {
+// RemoveFrontend removes a frontend from the cluster
+func (c *Controller) RemoveFrontend(frontend *Frontend) {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	c.removeFrontend(frontend)
+}
+
+// Unsafe internal removeFrontend without locking
+func (c *Controller) removeFrontend(frontend *Frontend) {
+	frontends := make([]*Frontend, 0, len(c.frontends))
+	for _, f := range c.frontends {
+		if f.ID == frontend.ID {
+			continue
+		}
+		frontends = append(frontends, f)
+	}
+
+	c.frontends = frontends
+}
+
+// GetFrontendByID retrievs a frontend identified by
+// its key from our list of frontends.
+func (c *Controller) GetFrontendByID(id string) *Frontend {
+	for _, f := range c.frontends {
+		if f.ID == id {
+			return f
+		}
+	}
 	return nil
 }
 
-// GetFrontendByKey retrievs a frontend identified by
-// its key from our list of frontends.
-func GetFrontendByID(id string) *Frontend {
-	return nil
+// GetFrontends retrievs all frontends in the controller
+func (c *Controller) GetFrontends() []*Frontend {
+	return c.frontends
 }
 
 // LogStatus collects cluster information and writes
