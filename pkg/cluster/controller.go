@@ -36,45 +36,63 @@ func NewController(
 }
 
 // Start the cluster
-func (c *Controller) Start() {
+func (ctrl *Controller) Start() {
 	log.Println("Starting cluster controller.")
 
 	// Load configurations
-	c.Reload()
+	ctrl.Reload()
 
 	// Log initial status
-	c.LogStatus()
+	ctrl.LogStatus()
 }
 
 // Reload all configurations
-func (c *Controller) Reload() {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
+func (ctrl *Controller) Reload() {
+	ctrl.mtx.Lock()
+	defer ctrl.mtx.Unlock()
 
-	c.reloadBackends()
-	c.reloadFrontends()
+	ctrl.reloadBackends()
+	ctrl.reloadFrontends()
 }
 
-func (c *Controller) reloadBackends() {
-	configs, err := c.backendsConfig.Load()
+func (ctrl *Controller) reloadBackends() {
+	configs, err := ctrl.backendsConfig.Load()
 	if err != nil {
 		// Log the error but keep on going.
 		log.Println("Error while loading backends:", err)
 		return
 	}
 
-	_ = configs
-	// Update our backend instances: Create new
-	// instances if the backend identified by it's
-	// host URL is unknown.
+	// Add all instances to our cluster.
+	registeredBackends := []string{}
+	for _, c := range configs {
+		// Create new backend instance
+		b := NewBackend(c)
+		ctrl.addBackend(b)
+		registeredBackends = append(registeredBackends, c.Host)
+	}
+
 	//
 	// Remove node instances, no longer present
 	// in the configuration.
-
 }
 
-func (c *Controller) reloadFrontends() {
-	configs, err := c.frontendsConfig.Load()
+// GetBackendByID retrieves a backend by it's ID
+func (ctrl *Controller) GetBackendByID(id string) *Backend {
+	for _, b := range ctrl.backends {
+		if b.ID == id {
+			return b
+		}
+	}
+	return nil
+}
+
+func (ctrl *Controller) addBackend(backend *Backend) {
+	current := ctrl.GetBackendByID(backend.ID)
+}
+
+func (ctrl *Controller) reloadFrontends() {
+	configs, err := ctrl.frontendsConfig.Load()
 	if err != nil {
 		// Log the error but keep on going.
 		log.Println("Error while loading frontends:", err)
@@ -83,15 +101,15 @@ func (c *Controller) reloadFrontends() {
 
 	// Register all frontends from the config
 	registeredIDs := []string{}
-	for _, config := range configs {
+	for _, c := range configs {
 		// Registering is idempotent
-		f := NewFrontend(config)
-		c.AddFrontend(f)
+		f := NewFrontend(c)
+		ctrl.addFrontend(f)
 		registeredIDs = append(registeredIDs, f.ID)
 	}
 
 	// Remove all frontends not longer in the config
-	for _, frontend := range c.frontends {
+	for _, frontend := range ctrl.frontends {
 		present := false
 		for _, id := range registeredIDs {
 			if frontend.ID == id {
@@ -101,7 +119,7 @@ func (c *Controller) reloadFrontends() {
 		}
 		if !present {
 			log.Println("Unregistering frontend:", frontend.ID)
-			c.removeFrontend(frontend)
+			ctrl.removeFrontend(frontend)
 		}
 	}
 
@@ -111,43 +129,43 @@ func (c *Controller) reloadFrontends() {
 // This is an idempotent operation. If the frontend id
 // is already registered, it will be replaced with
 // the new frontend.
-func (c *Controller) AddFrontend(frontend *Frontend) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.addFrontend(frontend)
+func (ctrl *Controller) AddFrontend(frontend *Frontend) {
+	ctrl.mtx.Lock()
+	defer ctrl.mtx.Unlock()
+	ctrl.addFrontend(frontend)
 }
 
 // Unsafe interal add frontend
-func (c *Controller) addFrontend(frontend *Frontend) {
-	c.removeFrontend(frontend)
-	c.frontends = append(c.frontends, frontend)
+func (ctrl *Controller) addFrontend(frontend *Frontend) {
+	ctrl.removeFrontend(frontend)
+	ctrl.frontends = append(ctrl.frontends, frontend)
 	log.Println("Registered frontend:", frontend.config.Key)
 }
 
 // RemoveFrontend removes a frontend from the cluster
-func (c *Controller) RemoveFrontend(frontend *Frontend) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.removeFrontend(frontend)
+func (ctrl *Controller) RemoveFrontend(frontend *Frontend) {
+	ctrl.mtx.Lock()
+	defer ctrl.mtx.Unlock()
+	ctrl.removeFrontend(frontend)
 }
 
 // Unsafe internal removeFrontend without locking
-func (c *Controller) removeFrontend(frontend *Frontend) {
-	frontends := make([]*Frontend, 0, len(c.frontends))
-	for _, f := range c.frontends {
+func (ctrl *Controller) removeFrontend(frontend *Frontend) {
+	frontends := make([]*Frontend, 0, len(ctrl.frontends))
+	for _, f := range ctrl.frontends {
 		if f.ID == frontend.ID {
 			continue
 		}
 		frontends = append(frontends, f)
 	}
 
-	c.frontends = frontends
+	ctrl.frontends = frontends
 }
 
 // GetFrontendByID retrievs a frontend identified by
 // its key from our list of frontends.
-func (c *Controller) GetFrontendByID(id string) *Frontend {
-	for _, f := range c.frontends {
+func (ctrl *Controller) GetFrontendByID(id string) *Frontend {
+	for _, f := range ctrl.frontends {
 		if f.ID == id {
 			return f
 		}
@@ -156,12 +174,12 @@ func (c *Controller) GetFrontendByID(id string) *Frontend {
 }
 
 // GetFrontends retrievs all frontends in the controller
-func (c *Controller) GetFrontends() []*Frontend {
-	return c.frontends
+func (ctrl *Controller) GetFrontends() []*Frontend {
+	return ctrl.frontends
 }
 
 // LogStatus collects cluster information and writes
 // them to the log.
-func (c *Controller) LogStatus() {
+func (ctrl *Controller) LogStatus() {
 	log.Println("Cluster controller status...")
 }

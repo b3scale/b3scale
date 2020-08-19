@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"log"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
@@ -22,6 +24,7 @@ type BackendState int
 // It has a host and a secret for request authentication.
 // It syncs it's state with the bbb instance.
 type Backend struct {
+	ID        string
 	State     BackendState
 	LastError string
 
@@ -30,5 +33,13 @@ type Backend struct {
 
 // NewBackend creates a cluster node.
 func NewBackend(config *config.Backend) *Backend {
-	return &Backend{config: config}
+	return &Backend{
+		ID:     config.Host,
+		config: config,
+	}
+}
+
+// Start the backend
+func (b *Backend) Start() {
+	log.Println("Starting backend:", b.config.Host)
 }
