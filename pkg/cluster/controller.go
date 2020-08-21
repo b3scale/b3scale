@@ -213,7 +213,6 @@ func (ctrl *Controller) RemoveFrontend(frontend *Frontend) {
 
 // Unsafe internal removeFrontend without locking
 func (ctrl *Controller) removeFrontend(frontend *Frontend) {
-	log.Println("Unregistering frontend:", frontend.ID)
 	frontends := make([]*Frontend, 0, len(ctrl.frontends))
 	for _, f := range ctrl.frontends {
 		if f.ID == frontend.ID {
@@ -221,7 +220,6 @@ func (ctrl *Controller) removeFrontend(frontend *Frontend) {
 		}
 		frontends = append(frontends, f)
 	}
-
 	ctrl.frontends = frontends
 }
 
