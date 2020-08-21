@@ -88,6 +88,8 @@ func TestAddBackend(t *testing.T) {
 		Host:   "host1",
 		Secret: "secret1",
 	})
+
+	// Let's just add the host
 	ctrl.AddBackend(backend1)
 
 	// This should do nothing:
