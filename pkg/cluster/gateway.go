@@ -7,12 +7,12 @@ import (
 // The Gateway accepts bbb cluster requests and dispatches
 // it to the cluster nodes.
 type Gateway struct {
-	controller *Controller
+	state *State
 }
 
 // NewGateway sets up a new cluster router instance.
-func NewGateway(controller *Controller) *Gateway {
-	return &Gateway{controller: controller}
+func NewGateway(state *State) *Gateway {
+	return &Gateway{state: state}
 }
 
 // Start initializes the router

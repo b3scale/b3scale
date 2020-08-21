@@ -40,18 +40,24 @@ func main() {
 	frontendsConfig := config.NewFrontendsFileConfig(
 		frontendsConfigFilename)
 
+	// Initialize cluster
+	state := cluster.NewState()
+	go state.Start()
+
 	// Start cluster controller
 	controller := cluster.NewController(
-		backendsConfig, frontendsConfig)
+		state,
+		backendsConfig,
+		frontendsConfig)
 	go controller.Start()
-
-	// Start cluster request handler
-	gateway := cluster.NewGateway(controller)
-	go gateway.Start()
 
 	// Start control signal handler
 	ctl := NewSigCtl(controller)
 	go ctl.Start()
+
+	// Start cluster request handler
+	gateway := cluster.NewGateway(state)
+	go gateway.Start()
 
 	// Start HTTP interface
 	ifaceHTTP := http.NewInterface(

@@ -36,9 +36,6 @@ func (ctl *SigCtl) Start() {
 
 	for {
 		<-c // Await signal
-		log.Println("Reloading configuration...")
 		ctl.controller.Reload()
-		ctl.controller.LogStatus()
 	}
-
 }
