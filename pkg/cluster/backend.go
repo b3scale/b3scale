@@ -41,5 +41,10 @@ func NewBackend(config *config.Backend) *Backend {
 
 // Start the backend
 func (b *Backend) Start() {
-	log.Println("Starting backend:", b.config.Host)
+	log.Println("Starting backend:", b.ID)
+}
+
+// Stop shuts down the backend process
+func (b *Backend) Stop() {
+	log.Println("Shutting down backend:", b.ID)
 }

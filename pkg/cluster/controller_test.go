@@ -45,3 +45,65 @@ func TestGetFrontendByID(t *testing.T) {
 	}
 
 }
+
+func TestGetBackendByID(t *testing.T) {
+	backends := []*Backend{
+		NewBackend(&config.Backend{Host: "host1"}),
+		NewBackend(&config.Backend{Host: "host2"}),
+	}
+	ctrl := &Controller{backends: backends}
+	be := ctrl.GetBackendByID("host1")
+	if be == nil {
+		t.Error("Expected host1 to be present")
+	}
+
+	be = ctrl.GetBackendByID("tsoh1")
+	if be != nil {
+		t.Error("Host tsoh1 should not be present")
+	}
+}
+
+func TestRemoveBackend(t *testing.T) {
+	backend := NewBackend(&config.Backend{Host: "host2"})
+	backends := []*Backend{
+		NewBackend(&config.Backend{Host: "host1"}),
+		backend,
+	}
+	ctrl := &Controller{backends: backends}
+	ctrl.RemoveBackend(backend)
+
+	if len(ctrl.backends) != 1 {
+		t.Error("Expected 1 backend.")
+	}
+}
+
+func TestAddBackend(t *testing.T) {
+	ctrl := &Controller{backends: []*Backend{}}
+
+	backend1 := NewBackend(&config.Backend{
+		Host:   "host1",
+		Secret: "secret1",
+	})
+	backend1a := NewBackend(&config.Backend{
+		Host:   "host1",
+		Secret: "secret1",
+	})
+	ctrl.AddBackend(backend1)
+
+	// This should do nothing:
+	ctrl.AddBackend(backend1a)
+	if ctrl.backends[0] != backend1 {
+		t.Error("Expected operation to be idempotent.")
+	}
+
+	// This should replace the host
+	backend1b := NewBackend(&config.Backend{
+		Host:   "host1",
+		Secret: "secret2",
+	})
+	ctrl.AddBackend(backend1b)
+	if ctrl.backends[0] != backend1b {
+		t.Error("Expected new cluster node.")
+	}
+
+}

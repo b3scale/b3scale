@@ -69,12 +69,24 @@ func (ctrl *Controller) reloadBackends() {
 		// Create new backend instance
 		b := NewBackend(c)
 		ctrl.addBackend(b)
-		registeredBackends = append(registeredBackends, c.Host)
+		registeredBackends = append(registeredBackends, b.ID)
 	}
 
-	//
 	// Remove node instances, no longer present
 	// in the configuration.
+	for _, b := range ctrl.backends {
+		present := false
+		for _, beID := range registeredBackends {
+			if beID == b.ID {
+				present = true
+				break
+			}
+		}
+		if !present {
+			ctrl.removeBackend(b)
+		}
+	}
+
 }
 
 // GetBackendByID retrieves a backend by it's ID
@@ -87,8 +99,59 @@ func (ctrl *Controller) GetBackendByID(id string) *Backend {
 	return nil
 }
 
+// AddBackend adds and starts a backend in the cluster. Thread safe.
+func (ctrl *Controller) AddBackend(backend *Backend) {
+	ctrl.mtx.Lock()
+	defer ctrl.mtx.Unlock()
+	ctrl.addBackend(backend)
+}
+
+// Unsafe addBackend to cluster
 func (ctrl *Controller) addBackend(backend *Backend) {
 	current := ctrl.GetBackendByID(backend.ID)
+	if current == nil {
+		// Just add the backend and start the instance
+		ctrl.backends = append(ctrl.backends, backend)
+		go backend.Start()
+		return
+	}
+
+	// Replace instance when config changed
+	if *(current.config) != *(backend.config) {
+		backends := make([]*Backend, 0, len(ctrl.backends))
+		for _, b := range ctrl.backends {
+			if b == current {
+				log.Println("Restarting backend:", b.ID)
+				b.Stop()
+				backends = append(backends, backend)
+				go backend.Start()
+			} else {
+				backends = append(backends, b)
+			}
+		}
+		ctrl.backends = backends
+	}
+	// Noting else to do here
+}
+
+// RemoveBackend removes a backend from the cluster. Thread safe.
+func (ctrl *Controller) RemoveBackend(backend *Backend) {
+	ctrl.mtx.Lock()
+	defer ctrl.mtx.Unlock()
+	ctrl.removeBackend(backend)
+}
+
+// Unsafe remove backends from the controller.
+func (ctrl *Controller) removeBackend(backend *Backend) {
+	backends := make([]*Backend, 0, len(ctrl.backends))
+	for _, b := range ctrl.backends {
+		if b == backend {
+			b.Stop()
+			continue
+		}
+		backends = append(backends, b)
+	}
+	ctrl.backends = backends
 }
 
 func (ctrl *Controller) reloadFrontends() {
@@ -118,7 +181,6 @@ func (ctrl *Controller) reloadFrontends() {
 			}
 		}
 		if !present {
-			log.Println("Unregistering frontend:", frontend.ID)
 			ctrl.removeFrontend(frontend)
 		}
 	}
@@ -151,6 +213,7 @@ func (ctrl *Controller) RemoveFrontend(frontend *Frontend) {
 
 // Unsafe internal removeFrontend without locking
 func (ctrl *Controller) removeFrontend(frontend *Frontend) {
+	log.Println("Unregistering frontend:", frontend.ID)
 	frontends := make([]*Frontend, 0, len(ctrl.frontends))
 	for _, f := range ctrl.frontends {
 		if f.ID == frontend.ID {
