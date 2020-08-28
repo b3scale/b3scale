@@ -2,24 +2,17 @@ package bbb
 
 import (
 	"encoding/xml"
-	"fmt"
-	netURL "net/url"
-	"strings"
 	"sync"
 	"time"
 )
 
-// Params for the BBB API
-type Params map[string]interface{}
+// A Response from the server
+type Response struct{}
 
-// Encode query parameters
-func (p Params) Encode() string {
-	var q []string
-	for k, v := range p {
-		vStr := netURL.QueryEscape(fmt.Sprintf("%v", v))
-		q = append(q, fmt.Sprintf("%s=%s", k, vStr))
-	}
-	return strings.Join(q, "&")
+// GetMeetingsResponse contains a list of meetings.
+type GetMeetingsResponse struct {
+	Response
+	Meetings []*Meeting `xml:"data"`
 }
 
 // Attendees collection
