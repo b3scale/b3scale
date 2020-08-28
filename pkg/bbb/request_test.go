@@ -115,4 +115,13 @@ func TestString(t *testing.T) {
 		t.Error("Unexpected request URL:", reqURL)
 	}
 
+	// No params
+	req.Params = Params{}
+	reqURL = req.String()
+	expected = "https://bbbackend/create" +
+		"?checksum=8a21c9b7e3b18541974c9e78c0d0bfa790c665eb"
+	if reqURL != expected {
+		t.Error("Unexpected request URL:", reqURL)
+	}
+
 }
