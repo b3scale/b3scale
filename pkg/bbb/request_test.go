@@ -85,3 +85,34 @@ func TestValidate(t *testing.T) {
 		t.Error("Expected a checksum error.")
 	}
 }
+
+func TestString(t *testing.T) {
+	// Request create to backend
+	req := &Request{
+		Backend: &config.Backend{
+			Host:   "https://bbbackend",
+			Secret: "639259d4-9dd8-4b25-bf01-95f9567eaf4b",
+		},
+		Resource: "create",
+		Params: Params{
+			"name":        "Test Meeting",
+			"meetingID":   "abc123",
+			"attendeePW":  "111222",
+			"moderatorPW": "333444",
+		},
+	}
+
+	// This will call implicit
+	t.Log("Req:", req)
+
+	// Explicit call
+	reqURL := req.String()
+	expected := "https://bbbackend/create" +
+		"?attendeePW=111222&meetingID=abc123" +
+		"&moderatorPW=333444&name=Test+Meeting&" +
+		"checksum=0b89c2ebcfefb76772cbcf19386c33561f66f6ae"
+	if reqURL != expected {
+		t.Error("Unexpected request URL:", reqURL)
+	}
+
+}
