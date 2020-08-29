@@ -7,12 +7,38 @@ import (
 	"time"
 )
 
-// A Response from the server
-type Response struct{}
+// A XMLResponse from the server
+type XMLResponse struct {
+	XMLName    xml.Name `xml:"response"`
+	Returncode string   `xml:"returncode"`
+	Message    string   `xml:"message"`
+	MessageKey string   `xml:"messageKey"`
+}
+
+// IsMeetingRunningResponse is a meeting status response
+type IsMeetingRunningResponse struct {
+	*XMLResponse
+	Running bool `xml:"running"`
+}
+
+// UnmarshalIsMeetingRunningResponse decodes the XML data.
+func UnmarshalIsMeetingRunningResponse(
+	data []byte,
+) (*IsMeetingRunningResponse, error) {
+	resp := &IsMeetingRunningResponse{}
+	err := xml.Unmarshal(data, resp)
+	return resp, err
+}
+
+// Marshal a IsMeetingRunningResponse to XML
+func (res *IsMeetingRunningResponse) Marshal() ([]byte, error) {
+	data, err := xml.Marshal(res)
+	return data, err
+}
 
 // GetMeetingsResponse contains a list of meetings.
 type GetMeetingsResponse struct {
-	Response
+	*XMLResponse
 	Meetings []*Meeting `xml:"data"`
 }
 
