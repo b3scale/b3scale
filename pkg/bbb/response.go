@@ -15,6 +15,25 @@ type XMLResponse struct {
 	MessageKey string   `xml:"messageKey"`
 }
 
+// CreateResponse is the response for the `create` API resource.
+type CreateResponse struct {
+	*XMLResponse
+	*Meeting
+}
+
+// UnmarshalCreateResponse decodes the response XML data.
+func UnmarshalCreateResponse(data []byte) (*CreateResponse, error) {
+	resp := &CreateResponse{}
+	err := xml.Unmarshal(data, resp)
+	return resp, err
+}
+
+// Marshal a CreateResponse to XML
+func (res *CreateResponse) Marshal() ([]byte, error) {
+	data, err := xml.Marshal(res)
+	return data, err
+}
+
 // IsMeetingRunningResponse is a meeting status response
 type IsMeetingRunningResponse struct {
 	*XMLResponse
@@ -75,18 +94,18 @@ type Meeting struct {
 	MeetingName           string    `xml:"meetingName"`
 	MeetingID             string    `xml:"meetingID"`
 	InternalMeetingID     string    `xml:"internalMeetingID"`
-	CreateTime            uint64    `xml:"createTime"`
+	CreateTime            Timestamp `xml:"createTime"`
 	CreateDate            string    `xml:"createDate"`
 	VoiceBridge           string    `xml:"voiceBridge"`
 	DialNumber            string    `xml:"dialNumber"`
 	AttendeePW            string    `xml:"attendeePW"`
 	ModeratorPW           string    `xml:"moderatorPW"`
 	Running               string    `xml:"running"`
-	Duration              int16     `xml:"duration"`
+	Duration              int       `xml:"duration"`
 	Recording             string    `xml:"recording"`
 	HasBeenForciblyEnded  string    `xml:"hasBeenForciblyEnded"`
-	StartTime             uint64    `xml:"startTime"`
-	EndTime               uint64    `xml:"endTime"`
+	StartTime             Timestamp `xml:"startTime"`
+	EndTime               Timestamp `xml:"endTime"`
 	ParticipantCount      uint32    `xml:"participantCount"`
 	ListenerCount         uint32    `xml:"listenerCount"`
 	VoiceParticipantCount uint32    `xml:"voiceParticipantCount"`
@@ -99,12 +118,6 @@ type Meeting struct {
 
 	SyncedAt time.Time
 	Mux      sync.Mutex
-}
-
-// MeetingInfo contains getMeetingInfo details
-type MeetingInfo struct {
-	Meeting
-	XMLName xml.Name `xml:"response"`
 }
 
 // Update meeting fields

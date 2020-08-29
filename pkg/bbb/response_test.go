@@ -18,6 +18,17 @@ func readTestResponse(name string) []byte {
 	return data
 }
 
+func TestUnmarshalCreateResponse(t *testing.T) {
+	data := readTestResponse("createSuccess.xml")
+	response, err := UnmarshalCreateResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if response.MeetingID != "Test" {
+		t.Error("Unexpected meeting id")
+	}
+}
+
 func TestUnmarshalIsMeetingRunningResponse(t *testing.T) {
 	data := readTestResponse("isMeetingRunningSuccess.xml")
 	response, err := UnmarshalIsMeetingRunningResponse(data)
@@ -43,6 +54,5 @@ func TestMarshalIsMeetingRunningResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
 	t.Log(string(data1))
 }
