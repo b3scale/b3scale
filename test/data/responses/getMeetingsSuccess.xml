@@ -1,0 +1,32 @@
+<response>
+    <returncode>SUCCESS</returncode>
+    <meetings>
+        <meeting>
+            <meetingName>Demo Meeting</meetingName>
+            <meetingID>Demo Meeting</meetingID>
+            <internalMeetingID>183f0bf3a0982a127bdb8161e0c44eb696b3e75c-1531241258036</internalMeetingID>
+            <createTime>1531241258036</createTime>
+            <createDate>Tue Jul 10 16:47:38 UTC 2018</createDate>
+            <voiceBridge>70066</voiceBridge>
+            <dialNumber>613-555-1234</dialNumber>
+            <attendeePW>ap</attendeePW>
+            <moderatorPW>mp</moderatorPW>
+            <running>false</running>
+            <duration>0</duration>
+            <hasUserJoined>false</hasUserJoined>
+            <recording>false</recording>
+            <hasBeenForciblyEnded>false</hasBeenForciblyEnded>
+            <startTime>1531241258074</startTime>
+            <endTime>0</endTime>
+            <participantCount>0</participantCount>
+            <listenerCount>0</listenerCount>
+            <voiceParticipantCount>0</voiceParticipantCount>
+            <videoCount>0</videoCount>
+            <maxUsers>0</maxUsers>
+            <moderatorCount>0</moderatorCount>
+            <attendees />
+            <metadata />
+            <isBreakout>false</isBreakout>
+        </meeting>
+    </meetings>
+</response>

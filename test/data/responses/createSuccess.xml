@@ -1,0 +1,17 @@
+<response>
+    <returncode>SUCCESS</returncode>
+    <meetingID>Test</meetingID>
+    <internalMeetingID>640ab2bae07bedc4c163f679a746f7ab7fb5d1fa-1531155809613</internalMeetingID>
+    <parentMeetingID>bbb-none</parentMeetingID>
+    <attendeePW>ap</attendeePW>
+    <moderatorPW>mp</moderatorPW>
+    <createTime>1531155809613</createTime>
+    <voiceBridge>70757</voiceBridge>
+    <dialNumber>613-555-1234</dialNumber>
+    <createDate>Mon Jul 09 17:03:29 UTC 2018</createDate>
+    <hasUserJoined>false</hasUserJoined>
+    <duration>0</duration>
+    <hasBeenForciblyEnded>false</hasBeenForciblyEnded>
+    <messageKey>duplicateWarning</messageKey>
+    <message>This conference was already in existence and may currently be in progress.</message>
+</response>
