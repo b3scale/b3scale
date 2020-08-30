@@ -29,6 +29,29 @@ func TestUnmarshalCreateResponse(t *testing.T) {
 	}
 }
 
+func TestMarshalCreateResponse(t *testing.T) {
+	data := readTestResponse("createSuccess.xml")
+	response, err := UnmarshalCreateResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	data1, err := response.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(data1))
+}
+
+func TestUnmarshalJoinResponse(t *testing.T) {
+	data := readTestResponse("joinSuccess.xml")
+	response, err := UnmarshalJoinResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(response)
+}
+
 func TestUnmarshalIsMeetingRunningResponse(t *testing.T) {
 	data := readTestResponse("isMeetingRunningSuccess.xml")
 	response, err := UnmarshalIsMeetingRunningResponse(data)
@@ -55,4 +78,16 @@ func TestMarshalIsMeetingRunningResponse(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log(string(data1))
+}
+
+func TestUnmarshalEndResponse(t *testing.T) {
+	data := readTestResponse("endSuccess.xml")
+	response, err := UnmarshalEndResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if response.XMLResponse.MessageKey != "sentEndMeetingRequest" {
+		t.Error("Unexpected MessageKey:", response.XMLResponse.MessageKey)
+	}
 }

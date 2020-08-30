@@ -15,17 +15,17 @@ type XMLResponse struct {
 	MessageKey string   `xml:"messageKey"`
 }
 
-// CreateResponse is the response for the `create` API resource.
+// CreateResponse is the resonse for the `create` API resource.
 type CreateResponse struct {
 	*XMLResponse
 	*Meeting
 }
 
-// UnmarshalCreateResponse decodes the response XML data.
+// UnmarshalCreateResponse decodes the resonse XML data.
 func UnmarshalCreateResponse(data []byte) (*CreateResponse, error) {
-	resp := &CreateResponse{}
-	err := xml.Unmarshal(data, resp)
-	return resp, err
+	res := &CreateResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
 }
 
 // Marshal a CreateResponse to XML
@@ -34,7 +34,29 @@ func (res *CreateResponse) Marshal() ([]byte, error) {
 	return data, err
 }
 
-// IsMeetingRunningResponse is a meeting status response
+// JoinResponse of the join resource
+type JoinResponse struct {
+	*XMLResponse
+	MeetingID    string `xml:"meeting_id"`
+	UserID       string `xml:"user_id"`
+	AuthToken    string `xml:"auth_token"`
+	SessionToken string `xml:"session_token"`
+	URL          string `xml:"url"`
+}
+
+// UnmarshalJoinResponse decodes the serialized XML data
+func UnmarshalJoinResponse(data []byte) (*JoinResponse, error) {
+	res := &JoinResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal encodes a JoinResponse as XML
+func (res *JoinResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
+}
+
+// IsMeetingRunningResponse is a meeting status resonse
 type IsMeetingRunningResponse struct {
 	*XMLResponse
 	Running bool `xml:"running"`
@@ -44,15 +66,51 @@ type IsMeetingRunningResponse struct {
 func UnmarshalIsMeetingRunningResponse(
 	data []byte,
 ) (*IsMeetingRunningResponse, error) {
-	resp := &IsMeetingRunningResponse{}
-	err := xml.Unmarshal(data, resp)
-	return resp, err
+	res := &IsMeetingRunningResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
 }
 
 // Marshal a IsMeetingRunningResponse to XML
 func (res *IsMeetingRunningResponse) Marshal() ([]byte, error) {
-	data, err := xml.Marshal(res)
-	return data, err
+	return xml.Marshal(res)
+}
+
+// EndResponse is the resonse of the end resource
+type EndResponse struct {
+	*XMLResponse
+}
+
+// UnmarshalEndResponse decodes the xml resonse
+func UnmarshalEndResponse(data []byte) (*EndResponse, error) {
+	res := &EndResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal EndResponse to XML
+func (res *EndResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
+}
+
+// GetMeetingInfoResponse contains detailed meeting information
+type GetMeetingInfoResponse struct {
+	*XMLResponse
+	*Meeting
+}
+
+// UnmarshalGetMeetingInfoResponse decodes the xml response
+func UnmarshalGetMeetingInfoResponse(
+	data []byte,
+) (*GetMeetingInfoResponse, error) {
+	res := &GetMeetingInfoResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal GetMeetingInfoResponse to XML
+func (res *GetMeetingInfoResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
 }
 
 // GetMeetingsResponse contains a list of meetings.
