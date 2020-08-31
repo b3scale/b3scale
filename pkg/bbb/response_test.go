@@ -91,3 +91,12 @@ func TestUnmarshalEndResponse(t *testing.T) {
 		t.Error("Unexpected MessageKey:", response.XMLResponse.MessageKey)
 	}
 }
+
+func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
+	data := readTestResponse("getMeetingInfoSuccess.xml")
+	response, err := UnmarshalGetMeetingInfoResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(response)
+}

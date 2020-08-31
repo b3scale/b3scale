@@ -119,10 +119,18 @@ type GetMeetingsResponse struct {
 	Meetings []*Meeting `xml:"data"`
 }
 
-// Attendees collection
-type Attendees struct {
-	XMLName   xml.Name   `xml:"attendees"`
-	Attendees []Attendee `xml:"attendee"`
+// BreakoutRooms is a collection of breakout room ids
+type BreakoutRooms struct {
+	XMLName     xml.Name `xml:"breakoutRooms"`
+	BreakoutIDs []string `xml:"breakout"`
+}
+
+// Breakout info
+type Breakout struct {
+	XMLName         xml.Name `xml:"breakout"`
+	ParentMeetingID string   `xml:"parentMeetingID"`
+	Sequence        int      `xml:"sequence"`
+	FreeJoin        bool     `xml:"freeJoin"`
 }
 
 // Attendee of a meeting
@@ -130,10 +138,11 @@ type Attendee struct {
 	XMLName         xml.Name `xml:"attendee"`
 	UserID          string   `xml:"userID"`
 	FullName        string   `xml:"fullName"`
-	IsPresenter     string   `xml:"isPresenter"`
-	IsListeningOnly string   `xml:"isListeningOnly"`
-	HasJoinedVoice  string   `xml:"hasJoinedVoice"`
-	HasVideo        string   `xml:"hasVideo"`
+	Role            string   `xml:"role"`
+	IsPresenter     bool     `xml:"isPresenter"`
+	IsListeningOnly bool     `xml:"isListeningOnly"`
+	HasJoinedVoice  bool     `xml:"hasJoinedVoice"`
+	HasVideo        bool     `xml:"hasVideo"`
 	ClientType      string   `xml:"clientType"`
 }
 
@@ -148,31 +157,34 @@ type Metadata struct {
 
 // Meeting information
 type Meeting struct {
-	XMLName               xml.Name  `xml:"meeting"`
-	MeetingName           string    `xml:"meetingName"`
-	MeetingID             string    `xml:"meetingID"`
-	InternalMeetingID     string    `xml:"internalMeetingID"`
-	CreateTime            Timestamp `xml:"createTime"`
-	CreateDate            string    `xml:"createDate"`
-	VoiceBridge           string    `xml:"voiceBridge"`
-	DialNumber            string    `xml:"dialNumber"`
-	AttendeePW            string    `xml:"attendeePW"`
-	ModeratorPW           string    `xml:"moderatorPW"`
-	Running               string    `xml:"running"`
-	Duration              int       `xml:"duration"`
-	Recording             string    `xml:"recording"`
-	HasBeenForciblyEnded  string    `xml:"hasBeenForciblyEnded"`
-	StartTime             Timestamp `xml:"startTime"`
-	EndTime               Timestamp `xml:"endTime"`
-	ParticipantCount      uint32    `xml:"participantCount"`
-	ListenerCount         uint32    `xml:"listenerCount"`
-	VoiceParticipantCount uint32    `xml:"voiceParticipantCount"`
-	VideoCount            uint32    `xml:"videoCount"`
-	MaxUsers              uint32    `xml:"maxUsers"`
-	ModeratorCount        uint32    `xml:"moderatorCount"`
-	Attendees             Attendees `xml:"attendees"`
-	Metadata              Metadata  `xml:"metadata"`
-	IsBreakout            string    `xml:"isBreakout"`
+	XMLName               xml.Name    `xml:"meeting"`
+	MeetingName           string      `xml:"meetingName"`
+	MeetingID             string      `xml:"meetingID"`
+	InternalMeetingID     string      `xml:"internalMeetingID"`
+	CreateTime            Timestamp   `xml:"createTime"`
+	CreateDate            string      `xml:"createDate"`
+	VoiceBridge           string      `xml:"voiceBridge"`
+	DialNumber            string      `xml:"dialNumber"`
+	AttendeePW            string      `xml:"attendeePW"`
+	ModeratorPW           string      `xml:"moderatorPW"`
+	Running               string      `xml:"running"`
+	Duration              int         `xml:"duration"`
+	Recording             string      `xml:"recording"`
+	HasBeenForciblyEnded  string      `xml:"hasBeenForciblyEnded"`
+	StartTime             Timestamp   `xml:"startTime"`
+	EndTime               Timestamp   `xml:"endTime"`
+	ParticipantCount      int         `xml:"participantCount"`
+	ListenerCount         int         `xml:"listenerCount"`
+	VoiceParticipantCount int         `xml:"voiceParticipantCount"`
+	VideoCount            int         `xml:"videoCount"`
+	MaxUsers              int         `xml:"maxUsers"`
+	ModeratorCount        int         `xml:"moderatorCount"`
+	Attendees             []*Attendee `xml:"attendees"`
+	Metadata              Metadata    `xml:"metadata"`
+	IsBreakout            bool        `xml:"isBreakout"`
+
+	*BreakoutRooms
+	*Breakout
 
 	SyncedAt time.Time
 	Mux      sync.Mutex
