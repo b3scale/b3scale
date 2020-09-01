@@ -101,7 +101,7 @@ type GetMeetingInfoResponse struct {
 func UnmarshalGetMeetingInfoResponse(
 	data []byte,
 ) (*GetMeetingInfoResponse, error) {
-	res := &GetMeetingInfoResponse{} // Meeting: &Meeting{AttendeesCollection: &AttendeesCollection{}}}
+	res := &GetMeetingInfoResponse{}
 	err := xml.Unmarshal(data, res)
 	return res, err
 }
@@ -114,7 +114,21 @@ func (res *GetMeetingInfoResponse) Marshal() ([]byte, error) {
 // GetMeetingsResponse contains a list of meetings.
 type GetMeetingsResponse struct {
 	*XMLResponse
-	Meetings []*Meeting `xml:"data"`
+	MeetingsCollection *MeetingsCollection `xml:"meetings"`
+}
+
+// UnmarshalGetMeetingsResponse decodes the xml response
+func UnmarshalGetMeetingsResponse(
+	data []byte,
+) (*GetMeetingsResponse, error) {
+	res := &GetMeetingsResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal serializes the response as XML
+func (res *GetMeetingsResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
 }
 
 // BreakoutRooms is a collection of breakout room ids
@@ -154,8 +168,15 @@ type Attendee struct {
 // specified in the docs.
 type Metadata interface{}
 
+// MeetingsCollection is a serialization wrapper for a list of meetings
+type MeetingsCollection struct {
+	XMLName  xml.Name   `xml:"meetings"`
+	Meetings []*Meeting `xml:"meeting"`
+}
+
 // Meeting information
 type Meeting struct {
+	XMLName               xml.Name  `xml:"meeting"`
 	MeetingName           string    `xml:"meetingName"`
 	MeetingID             string    `xml:"meetingID"`
 	InternalMeetingID     string    `xml:"internalMeetingID"`

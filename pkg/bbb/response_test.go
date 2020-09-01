@@ -169,13 +169,44 @@ func TestUnmarshalGetMeetingInfoResponsBreakoutParent(t *testing.T) {
 	}
 }
 
-func TestMarshalGetMeetingInfoRequest(t *testing.T) {
+func TestMarshalGetMeetingInfoResponse(t *testing.T) {
 	data := readTestResponse("getMeetingInfoSuccess.xml")
 	response, err := UnmarshalGetMeetingInfoResponse(data)
 	if err != nil {
 		t.Error(err)
 	}
 	// Serialize
+	data1, err := response.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(data1))
+}
+
+func TestUnmarshalGetMeetingsResponse(t *testing.T) {
+	data := readTestResponse("getMeetingsSuccess.xml")
+	response, err := UnmarshalGetMeetingsResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(response.MeetingsCollection.Meetings) != 1 {
+		t.Error("Expected 1 meeting, got:",
+			len(response.MeetingsCollection.Meetings))
+	}
+	meeting := response.MeetingsCollection.Meetings[0]
+	if meeting.MeetingID != "Demo Meeting" {
+		t.Error("Unexpected MeetingID",
+			meeting.MeetingID)
+	}
+}
+
+func TestMarshalGetMeetingsResponse(t *testing.T) {
+	data := readTestResponse("getMeetingsSuccess.xml")
+	response, err := UnmarshalGetMeetingsResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
 	data1, err := response.Marshal()
 	if err != nil {
 		t.Error(err)
