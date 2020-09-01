@@ -114,7 +114,7 @@ func (res *GetMeetingInfoResponse) Marshal() ([]byte, error) {
 // GetMeetingsResponse contains a list of meetings.
 type GetMeetingsResponse struct {
 	*XMLResponse
-	MeetingsCollection *MeetingsCollection `xml:"meetings"`
+	Meetings *Meetings `xml:"meetings"`
 }
 
 // UnmarshalGetMeetingsResponse decodes the xml response
@@ -131,6 +131,12 @@ func (res *GetMeetingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// GetRecordingsResponse is the response of the getRecordings resource
+type GetRecordingsResponse struct {
+	*XMLResponse
+	Recordings *Recordings `xml:"recordings"`
+}
+
 // BreakoutRooms is a collection of breakout room ids
 type BreakoutRooms struct {
 	XMLName     xml.Name `xml:"breakoutRooms"`
@@ -145,10 +151,10 @@ type Breakout struct {
 	FreeJoin        bool     `xml:"freeJoin"`
 }
 
-// AttendeesCollection contains a list of attendees
-type AttendeesCollection struct {
-	XMLName   xml.Name    `xml:"attendees"`
-	Attendees []*Attendee `xml:"attendee"`
+// Attendees contains a list of attendees
+type Attendees struct {
+	XMLName xml.Name    `xml:"attendees"`
+	All     []*Attendee `xml:"attendee"`
 }
 
 // Attendee of a meeting
@@ -168,10 +174,10 @@ type Attendee struct {
 // specified in the docs.
 type Metadata interface{}
 
-// MeetingsCollection is a serialization wrapper for a list of meetings
-type MeetingsCollection struct {
-	XMLName  xml.Name   `xml:"meetings"`
-	Meetings []*Meeting `xml:"meeting"`
+// Meetings is a serialization wrapper for a list of meetings
+type Meetings struct {
+	XMLName xml.Name   `xml:"meetings"`
+	All     []*Meeting `xml:"meeting"`
 }
 
 // Meeting information
@@ -202,9 +208,9 @@ type Meeting struct {
 
 	Metadata Metadata `xml:"metadata"`
 
-	AttendeesCollection *AttendeesCollection `xml:"attendees"`
-	BreakoutRooms       *BreakoutRooms       `xml:"breakoutRooms"`
-	Breakout            *Breakout            `xml:"breakout"`
+	Attendees     *Attendees     `xml:"attendees"`
+	BreakoutRooms *BreakoutRooms `xml:"breakoutRooms"`
+	Breakout      *Breakout      `xml:"breakout"`
 }
 
 func (m *Meeting) String() string {
@@ -212,4 +218,63 @@ func (m *Meeting) String() string {
 		"[Meeting id: %v, pc: %v, mc: %v, running: %v]",
 		m.MeetingID, m.ParticipantCount, m.ModeratorCount, m.Running,
 	)
+}
+
+// Recordings wraps a list of recordings
+type Recordings struct {
+	XMLName xml.Name     `xml:"recordings"`
+	All     []*Recording `xml:"recording"`
+}
+
+// Recording is a recorded bbb session
+type Recording struct {
+	XMLName           xml.Name  `xml:"recording"`
+	RecordID          string    `xml:"recordID"`
+	MeetingID         string    `xml:"meetingID"`
+	InternalMeetingID string    `xml:"internalMeetingID"`
+	Name              string    `xml:"name"`
+	IsBreakout        bool      `xml:"isBreakout"`
+	Published         bool      `xml:"published"`
+	State             string    `xml:"state"`
+	StartTime         Timestamp `xml:"startTime"`
+	EndTime           Timestamp `xml:"endTime"`
+	Participants      int       `xml:"participants"`
+	Metadata          Metadata  `xml:"metadata"`
+	Playback          *Playback `xml:"playback"`
+}
+
+// Playback contains format information for a recording
+type Playback struct {
+	XMLName xml.Name  `xml:"playback"`
+	Formats []*Format `xml:"format"`
+}
+
+// Format contains a link to the playable media
+type Format struct {
+	XMLName        xml.Name `xml:"format"`
+	Type           string   `xml:"type"`
+	URL            string   `xml:"url"`
+	ProcessingTime int      `xml:"processingTime"` // No idea. The example is 7177.
+	Length         int      `xml:"length"`
+	Preview        *Preview `xml:"preview"`
+}
+
+// Preview contains a list of images
+type Preview struct {
+	XMLName xml.Name `xml:"preview"`
+	Images  *Images  `xml:"images"`
+}
+
+// Images is a collection of Image
+type Images struct {
+	XMLName xml.Name `xml:"images"`
+	All     []*Image `xml:"image"`
+}
+
+// Image is a preview image of the format
+type Image struct {
+	XMLName xml.Name `xml:"image"`
+	Alt     string   `xml:"alt,attr"`
+	Height  int      `xml:"height,attr"`
+	Width   int      `xml:"width,attr"`
 }

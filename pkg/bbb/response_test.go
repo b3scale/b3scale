@@ -104,16 +104,16 @@ func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
 		t.Error("Unexpected MeetingID:", response.Meeting.MeetingID)
 	}
 
-	if response.Meeting.AttendeesCollection == nil {
-		t.Error("AttendeesCollection is nil")
+	if response.Meeting.Attendees == nil {
+		t.Error("Attendees is nil")
 	}
 
-	if len(response.Meeting.AttendeesCollection.Attendees) != 2 {
+	if len(response.Meeting.Attendees.All) != 2 {
 		t.Error("Unexpected attendees length:",
-			len(response.Meeting.AttendeesCollection.Attendees))
+			len(response.Meeting.Attendees.All))
 	}
 
-	t.Log(response.Meeting.AttendeesCollection.Attendees)
+	t.Log(response.Meeting.Attendees.All)
 	t.Log(response.Meeting.Metadata)
 }
 
@@ -190,11 +190,11 @@ func TestUnmarshalGetMeetingsResponse(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(response.MeetingsCollection.Meetings) != 1 {
+	if len(response.Meetings.All) != 1 {
 		t.Error("Expected 1 meeting, got:",
-			len(response.MeetingsCollection.Meetings))
+			len(response.Meetings.All))
 	}
-	meeting := response.MeetingsCollection.Meetings[0]
+	meeting := response.Meetings.All[0]
 	if meeting.MeetingID != "Demo Meeting" {
 		t.Error("Unexpected MeetingID",
 			meeting.MeetingID)
