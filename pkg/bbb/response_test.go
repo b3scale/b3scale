@@ -168,3 +168,17 @@ func TestUnmarshalGetMeetingInfoResponsBreakoutParent(t *testing.T) {
 			rooms.BreakoutIDs[0])
 	}
 }
+
+func TestMarshalGetMeetingInfoRequest(t *testing.T) {
+	data := readTestResponse("getMeetingInfoSuccess.xml")
+	response, err := UnmarshalGetMeetingInfoResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	// Serialize
+	data1, err := response.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(data1))
+}
