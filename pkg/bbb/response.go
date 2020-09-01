@@ -3,8 +3,6 @@ package bbb
 import (
 	"encoding/xml"
 	"fmt"
-	"sync"
-	"time"
 )
 
 // A XMLResponse from the server
@@ -152,14 +150,9 @@ type Attendee struct {
 	ClientType      string   `xml:"clientType"`
 }
 
-// Metadata about the BBB instance
-type Metadata struct {
-	XMLName             xml.Name `xml:"metadata"`
-	BBBOriginVersion    string   `xml:"bbb-origin-version"`
-	BBBOriginServerName string   `xml:"bbb-origin-server-name"`
-	BBBOrigin           string   `xml:"bbb-origin"`
-	GlListed            string   `xml:"gl-listed"`
-}
+// Metadata about the BBB instance, this is not exactly
+// specified in the docs.
+type Metadata interface{}
 
 // Meeting information
 type Meeting struct {
@@ -184,50 +177,13 @@ type Meeting struct {
 	VideoCount            int       `xml:"videoCount"`
 	MaxUsers              int       `xml:"maxUsers"`
 	ModeratorCount        int       `xml:"moderatorCount"`
-	Metadata              Metadata  `xml:"metadata"`
 	IsBreakout            bool      `xml:"isBreakout"`
 
+	Metadata Metadata `xml:"metadata"`
+
 	AttendeesCollection *AttendeesCollection `xml:"attendees"`
-	*BreakoutRooms
-	*Breakout
-
-	SyncedAt time.Time
-	Mux      sync.Mutex
-}
-
-// Update meeting fields
-func (m *Meeting) Update(meeting *Meeting) {
-	m.Mux.Lock()
-	defer m.Mux.Unlock()
-
-	// This is kind of ugly but does not warrent including
-	// a new dependecy like `mergo`
-	m.MeetingName = meeting.MeetingName
-	m.InternalMeetingID = meeting.InternalMeetingID
-	m.CreateTime = meeting.CreateTime
-	m.CreateDate = meeting.CreateDate
-	m.VoiceBridge = meeting.VoiceBridge
-	m.DialNumber = meeting.DialNumber
-	m.AttendeePW = meeting.AttendeePW
-	m.ModeratorPW = meeting.ModeratorPW
-	m.Running = meeting.Running
-	m.Recording = meeting.Recording
-	m.Duration = meeting.Duration
-	m.HasBeenForciblyEnded = meeting.HasBeenForciblyEnded
-	m.StartTime = meeting.StartTime
-	m.EndTime = meeting.EndTime
-	m.ParticipantCount = meeting.ParticipantCount // This is why we are here
-	m.ListenerCount = meeting.ListenerCount
-	m.VoiceParticipantCount = meeting.VoiceParticipantCount
-	m.VideoCount = meeting.VideoCount
-	m.MaxUsers = meeting.MaxUsers
-	m.ModeratorCount = meeting.ModeratorCount
-	m.AttendeesCollection = meeting.AttendeesCollection
-	m.Metadata = meeting.Metadata
-	m.IsBreakout = meeting.IsBreakout
-
-	// Update sync timestamp
-	m.SyncedAt = time.Now()
+	BreakoutRooms       *BreakoutRooms       `xml:"breakoutRooms"`
+	Breakout            *Breakout            `xml:"breakout"`
 }
 
 func (m *Meeting) String() string {

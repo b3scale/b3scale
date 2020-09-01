@@ -44,6 +44,11 @@
         <clientType>HTML5</clientType>
         </attendee>
     </attendees>
+    <breakoutRooms>
+        <breakout>breakout-room-id-1</breakout>
+        <breakout>breakout-room-id-2</breakout>
+        <breakout>breakout-room-id-3</breakout>
+    </breakoutRooms>
     <metadata />
     <isBreakout>false</isBreakout>
 </response>

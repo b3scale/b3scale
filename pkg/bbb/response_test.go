@@ -112,4 +112,59 @@ func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
 		t.Error("Unexpected attendees length:",
 			len(response.Meeting.AttendeesCollection.Attendees))
 	}
+
+	t.Log(response.Meeting.AttendeesCollection.Attendees)
+	t.Log(response.Meeting.Metadata)
+}
+
+func TestUnmarshalGetMeetingInfoResponsBreakout(t *testing.T) {
+	// We have a breakout room response
+	data := readTestResponse("getMeetingInfoSuccess-breakout.xml")
+	response, err := UnmarshalGetMeetingInfoResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(response)
+
+	if response.Meeting.MeetingID != "Demo Meeting" {
+		t.Error("Unexpected MeetingID:", response.Meeting.MeetingID)
+	}
+
+	if response.Meeting.IsBreakout == false {
+		t.Error("Should be a breakout room")
+	}
+
+	if response.Meeting.Breakout.ParentMeetingID != "ParentMeetingId" {
+		t.Error("Unexpected parentMeetingId:",
+			response.Meeting.Breakout.ParentMeetingID)
+	}
+}
+
+func TestUnmarshalGetMeetingInfoResponsBreakoutParent(t *testing.T) {
+	// We have a breakout parent response
+	data := readTestResponse("getMeetingInfoSuccess-breakoutParent.xml")
+	response, err := UnmarshalGetMeetingInfoResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(response)
+
+	if response.Meeting.MeetingID != "Demo Meeting" {
+		t.Error("Unexpected MeetingID:", response.Meeting.MeetingID)
+	}
+
+	if response.Meeting.IsBreakout == true {
+		t.Error("Should not be a breakout room")
+	}
+
+	// Check breakout info
+	rooms := response.Meeting.BreakoutRooms
+	if len(rooms.BreakoutIDs) != 3 {
+		t.Error("Expected 3 breakout ids. got:", len(rooms.BreakoutIDs))
+	}
+
+	if rooms.BreakoutIDs[0] != "breakout-room-id-1" {
+		t.Error("Unexpected breakout ID:",
+			rooms.BreakoutIDs[0])
+	}
 }
