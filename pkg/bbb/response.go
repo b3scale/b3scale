@@ -103,7 +103,7 @@ type GetMeetingInfoResponse struct {
 func UnmarshalGetMeetingInfoResponse(
 	data []byte,
 ) (*GetMeetingInfoResponse, error) {
-	res := &GetMeetingInfoResponse{}
+	res := &GetMeetingInfoResponse{} // Meeting: &Meeting{AttendeesCollection: &AttendeesCollection{}}}
 	err := xml.Unmarshal(data, res)
 	return res, err
 }
@@ -133,6 +133,12 @@ type Breakout struct {
 	FreeJoin        bool     `xml:"freeJoin"`
 }
 
+// AttendeesCollection contains a list of attendees
+type AttendeesCollection struct {
+	XMLName   xml.Name    `xml:"attendees"`
+	Attendees []*Attendee `xml:"attendee"`
+}
+
 // Attendee of a meeting
 type Attendee struct {
 	XMLName         xml.Name `xml:"attendee"`
@@ -157,32 +163,31 @@ type Metadata struct {
 
 // Meeting information
 type Meeting struct {
-	XMLName               xml.Name    `xml:"meeting"`
-	MeetingName           string      `xml:"meetingName"`
-	MeetingID             string      `xml:"meetingID"`
-	InternalMeetingID     string      `xml:"internalMeetingID"`
-	CreateTime            Timestamp   `xml:"createTime"`
-	CreateDate            string      `xml:"createDate"`
-	VoiceBridge           string      `xml:"voiceBridge"`
-	DialNumber            string      `xml:"dialNumber"`
-	AttendeePW            string      `xml:"attendeePW"`
-	ModeratorPW           string      `xml:"moderatorPW"`
-	Running               string      `xml:"running"`
-	Duration              int         `xml:"duration"`
-	Recording             string      `xml:"recording"`
-	HasBeenForciblyEnded  string      `xml:"hasBeenForciblyEnded"`
-	StartTime             Timestamp   `xml:"startTime"`
-	EndTime               Timestamp   `xml:"endTime"`
-	ParticipantCount      int         `xml:"participantCount"`
-	ListenerCount         int         `xml:"listenerCount"`
-	VoiceParticipantCount int         `xml:"voiceParticipantCount"`
-	VideoCount            int         `xml:"videoCount"`
-	MaxUsers              int         `xml:"maxUsers"`
-	ModeratorCount        int         `xml:"moderatorCount"`
-	Attendees             []*Attendee `xml:"attendees"`
-	Metadata              Metadata    `xml:"metadata"`
-	IsBreakout            bool        `xml:"isBreakout"`
+	MeetingName           string    `xml:"meetingName"`
+	MeetingID             string    `xml:"meetingID"`
+	InternalMeetingID     string    `xml:"internalMeetingID"`
+	CreateTime            Timestamp `xml:"createTime"`
+	CreateDate            string    `xml:"createDate"`
+	VoiceBridge           string    `xml:"voiceBridge"`
+	DialNumber            string    `xml:"dialNumber"`
+	AttendeePW            string    `xml:"attendeePW"`
+	ModeratorPW           string    `xml:"moderatorPW"`
+	Running               string    `xml:"running"`
+	Duration              int       `xml:"duration"`
+	Recording             string    `xml:"recording"`
+	HasBeenForciblyEnded  string    `xml:"hasBeenForciblyEnded"`
+	StartTime             Timestamp `xml:"startTime"`
+	EndTime               Timestamp `xml:"endTime"`
+	ParticipantCount      int       `xml:"participantCount"`
+	ListenerCount         int       `xml:"listenerCount"`
+	VoiceParticipantCount int       `xml:"voiceParticipantCount"`
+	VideoCount            int       `xml:"videoCount"`
+	MaxUsers              int       `xml:"maxUsers"`
+	ModeratorCount        int       `xml:"moderatorCount"`
+	Metadata              Metadata  `xml:"metadata"`
+	IsBreakout            bool      `xml:"isBreakout"`
 
+	AttendeesCollection *AttendeesCollection `xml:"attendees"`
 	*BreakoutRooms
 	*Breakout
 
@@ -217,7 +222,7 @@ func (m *Meeting) Update(meeting *Meeting) {
 	m.VideoCount = meeting.VideoCount
 	m.MaxUsers = meeting.MaxUsers
 	m.ModeratorCount = meeting.ModeratorCount
-	m.Attendees = meeting.Attendees
+	m.AttendeesCollection = meeting.AttendeesCollection
 	m.Metadata = meeting.Metadata
 	m.IsBreakout = meeting.IsBreakout
 

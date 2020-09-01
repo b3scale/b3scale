@@ -99,4 +99,17 @@ func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log(response)
+
+	if response.Meeting.MeetingID != "Demo Meeting" {
+		t.Error("Unexpected MeetingID:", response.Meeting.MeetingID)
+	}
+
+	if response.Meeting.AttendeesCollection == nil {
+		t.Error("AttendeesCollection is nil")
+	}
+
+	if len(response.Meeting.AttendeesCollection.Attendees) != 2 {
+		t.Error("Unexpected attendees length:",
+			len(response.Meeting.AttendeesCollection.Attendees))
+	}
 }
