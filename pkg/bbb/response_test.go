@@ -213,3 +213,13 @@ func TestMarshalGetMeetingsResponse(t *testing.T) {
 	}
 	t.Log(string(data1))
 }
+
+func TestUnmarshalGetRecordingsResponse(t *testing.T) {
+	data := readTestResponse("getRecordingsSuccess.xml")
+	response, err := UnmarshalGetRecordingsResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(response)
+
+}

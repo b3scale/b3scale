@@ -137,6 +137,20 @@ type GetRecordingsResponse struct {
 	Recordings *Recordings `xml:"recordings"`
 }
 
+// UnmarshalGetRecordingsResponse deserializes the response XML
+func UnmarshalGetRecordingsResponse(
+	data []byte,
+) (*GetRecordingsResponse, error) {
+	res := &GetRecordingsResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal a GetRecordingsResponse to XML
+func (res *GetRecordingsResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
+}
+
 // BreakoutRooms is a collection of breakout room ids
 type BreakoutRooms struct {
 	XMLName     xml.Name `xml:"breakoutRooms"`
