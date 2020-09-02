@@ -151,6 +151,28 @@ func (res *GetRecordingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// PublishRecordingsResponse indicates if the recordings
+// were published. This also has the potential for
+// tasks failed successfully.
+type PublishRecordingsResponse struct {
+	*XMLResponse
+	Published bool `xml:"published"`
+}
+
+// UnmarshalPublishRecordingsResponse decodes the XML response
+func UnmarshalPublishRecordingsResponse(
+	data []byte,
+) (*PublishRecordingsResponse, error) {
+	res := &PublishRecordingsResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal a publishRecodingsResponse to XML
+func (res *PublishRecordingsResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
+}
+
 // BreakoutRooms is a collection of breakout room ids
 type BreakoutRooms struct {
 	XMLName     xml.Name `xml:"breakoutRooms"`
@@ -186,7 +208,7 @@ type Attendee struct {
 
 // Metadata about the BBB instance, this is not exactly
 // specified in the docs.
-type Metadata interface{}
+type Metadata map[string]interface{}
 
 // Meetings is a serialization wrapper for a list of meetings
 type Meetings struct {
