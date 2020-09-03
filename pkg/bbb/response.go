@@ -206,10 +206,6 @@ type Attendee struct {
 	ClientType      string   `xml:"clientType"`
 }
 
-// Metadata about the BBB instance, this is not exactly
-// specified in the docs.
-type Metadata map[string]interface{}
-
 // Meetings is a serialization wrapper for a list of meetings
 type Meetings struct {
 	XMLName xml.Name   `xml:"meetings"`
