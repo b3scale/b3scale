@@ -39,6 +39,7 @@ loop:
 				return err
 			}
 			(*meta)[key] = value
+			break
 
 		case xml.EndElement:
 			if t.(xml.EndElement) == start.End() {
