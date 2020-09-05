@@ -15,9 +15,9 @@ import (
 // Params for the BBB API
 type Params map[string]interface{}
 
-// Encode query parameters.
+// String of the query parameters.
 // The order of the parameters is deterministic.
-func (p Params) Encode() string {
+func (p Params) String() string {
 	keys := make([]string, 0, len(p))
 	for key := range p {
 		keys = append(keys, key)
@@ -42,13 +42,13 @@ type Request struct {
 	Backend  *config.Backend
 	Resource string
 	Params   Params
+	Body     []byte
 	Checksum []byte
 }
 
 // Internal calculate checksum with a given secret.
 func (req *Request) calculateChecksum(secret string) []byte {
-	qry := req.Params.Encode()
-
+	qry := req.Params.String()
 	// Calculate checksum with server secret
 	// Basically sign the endpoint + params
 	mac := []byte(req.Resource + qry + secret)
@@ -86,7 +86,7 @@ func (req *Request) String() string {
 	}
 
 	// Sign the request and encode params
-	qry := req.Params.Encode()
+	qry := req.Params.String()
 	chksum := req.Sign()
 
 	// Build request url

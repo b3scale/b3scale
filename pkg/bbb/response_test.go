@@ -98,7 +98,7 @@ func TestMarshalIsMeetingRunningResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(data1) != 120 {
+	if len(data1) != 76 {
 		t.Error("Unexpected data:", string(data1), len(data1))
 	}
 }
@@ -201,7 +201,7 @@ func TestMarshalGetMeetingInfoResponse(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(data1) != 1486 {
+	if len(data1) != 1442 {
 		t.Error("Unexpected data:", string(data1), len(data1))
 	}
 }
@@ -234,7 +234,7 @@ func TestMarshalGetMeetingsResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(data1) != 1005 {
+	if len(data1) != 961 {
 		t.Error("Unexpected data:", len(data1))
 		t.Log(string(data1))
 	}
@@ -272,7 +272,7 @@ func TestMarshalGetRecordingsResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(data1) != 2911 {
+	if len(data1) != 2867 {
 		t.Error("Unexpected data:", string(data1), len(data1))
 	}
 }
@@ -295,7 +295,108 @@ func TestMarshalPublishRecordingsResponse(t *testing.T) {
 		t.Error(err)
 	}
 	data1, err := response.Marshal()
-	if len(data1) != 124 {
+	if len(data1) != 80 {
 		t.Error("Unexpected data:", string(data1), len(data1))
+	}
+}
+
+func TestUnmarshalDeleteRecordingsResponse(t *testing.T) {
+	data := readTestResponse("deleteRecordingsSuccess.xml")
+	response, err := UnmarshalDeleteRecordingsResponse(data)
+	if err != nil {
+		t.Error()
+	}
+	if response.Deleted != true {
+		t.Error("Expected recordings to be deleted.")
+	}
+}
+
+func TestMarshalDeleteRecordingsResponse(t *testing.T) {
+	res := DeleteRecordingsResponse{
+		XMLResponse: &XMLResponse{Returncode: "FAILED"},
+		Deleted:     true,
+	}
+	data, err := res.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data) != 75 {
+		t.Error("Unexpected data:", string(data), len(data))
+	}
+}
+
+func TestUnmarshalUpdateRecordingsResponse(t *testing.T) {
+	data := readTestResponse("updateRecordingsSuccess.xml")
+	response, err := UnmarshalUpdateRecordingsResponse(data)
+	if err != nil {
+		t.Error()
+	}
+	if response.Updated != true {
+		t.Error("Expected recordings to be deleted.")
+	}
+}
+
+func TestMarshalUpdateRecordingsResponse(t *testing.T) {
+	res := UpdateRecordingsResponse{
+		XMLResponse: &XMLResponse{Returncode: "FAILED"},
+		Updated:     true,
+	}
+	data, err := res.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data) != 75 {
+		t.Error("Unexpected data:", string(data), len(data))
+	}
+}
+
+func TestUnmarshalGetDefaultConfigXMLResponse(t *testing.T) {
+	data := readTestResponse("getDefaultConfigXMLSuccess.xml")
+	response, err := UnmarshalGetDefaultConfigXMLResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(response.Config) != len(data) {
+		t.Error("That's unexpected.")
+	}
+}
+
+func TestMarshalGetDefaultConfigXMLResponse(t *testing.T) {
+	res := &GetDefaultConfigXMLResponse{
+		Config: []byte("<config />"),
+	}
+	data, err := res.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(data) != 10 {
+		t.Error("Unexpected data:", string(data), len(data))
+	}
+
+}
+
+func TestUnmarshalSetConfigXMLResponse(t *testing.T) {
+	data := readTestResponse("setConfigXMLSuccess.xml")
+	response, err := UnmarshalSetConfigXMLResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if response.Token != "6lwBf1TX" {
+		t.Error("Unexpected token:", response.Token)
+	}
+}
+
+func TestMarshalSetConfigXMLResponse(t *testing.T) {
+	res := &SetConfigXMLResponse{
+		XMLResponse: &XMLResponse{Returncode: "YAY"},
+		Token:       "t0k3n",
+	}
+	data, err := res.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data) != 69 {
+		t.Error("Unexpected data:", string(data), len(data))
 	}
 }

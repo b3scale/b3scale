@@ -6,7 +6,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
-func TestParamsEncode(t *testing.T) {
+func TestParamsString(t *testing.T) {
 	tests := map[string]Params{
 		// Test parameter ordering
 		"a=23&b=true&c=foo": Params{
@@ -22,7 +22,7 @@ func TestParamsEncode(t *testing.T) {
 	}
 
 	for expected, params := range tests {
-		result := params.Encode()
+		result := params.String()
 		if result != expected {
 			t.Error("Unexpected result:", result)
 		}

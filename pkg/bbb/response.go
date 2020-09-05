@@ -9,8 +9,8 @@ import (
 type XMLResponse struct {
 	XMLName    xml.Name `xml:"response"`
 	Returncode string   `xml:"returncode"`
-	Message    string   `xml:"message"`
-	MessageKey string   `xml:"messageKey"`
+	Message    string   `xml:"message,omitempty"`
+	MessageKey string   `xml:"messageKey,omitempty"`
 }
 
 // CreateResponse is the resonse for the `create` API resource.
@@ -170,6 +170,93 @@ func UnmarshalPublishRecordingsResponse(
 
 // Marshal a publishRecodingsResponse to XML
 func (res *PublishRecordingsResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
+}
+
+// DeleteRecordingsResponse indicates if the recording
+// was correctly deleted. Might fail successfully.
+type DeleteRecordingsResponse struct {
+	*XMLResponse
+	Deleted bool `xml:"deleted"`
+}
+
+// UnmarshalDeleteRecordingsResponse decodes XML resource response
+func UnmarshalDeleteRecordingsResponse(
+	data []byte,
+) (*DeleteRecordingsResponse, error) {
+	res := &DeleteRecordingsResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal encodes the delete recordings response as XML
+func (res *DeleteRecordingsResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
+}
+
+// UpdateRecordingsResponse indicates if the update was successful
+// in the attribute updated. Might be different from Returncode.
+// I guess.
+type UpdateRecordingsResponse struct {
+	*XMLResponse
+	Updated bool `xml:"updated"`
+}
+
+// UnmarshalUpdateRecordingsResponse decodes the XML data
+func UnmarshalUpdateRecordingsResponse(
+	data []byte,
+) (*UpdateRecordingsResponse, error) {
+	res := &UpdateRecordingsResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal UpdateRecordingsResponse to XML
+func (res *UpdateRecordingsResponse) Marshal() ([]byte, error) {
+	return xml.Marshal(res)
+}
+
+// GetDefaultConfigXMLResponse has the raw config xml data
+type GetDefaultConfigXMLResponse struct {
+	Config []byte
+}
+
+// UnmarshalGetDefaultConfigXMLResponse creates a new response
+// from the data.
+func UnmarshalGetDefaultConfigXMLResponse(
+	data []byte,
+) (*GetDefaultConfigXMLResponse, error) {
+	return &GetDefaultConfigXMLResponse{
+		Config: data,
+	}, nil
+}
+
+// Marshal GetDefaultConfigXMLResponse encodes the response
+// body which is just the data.
+func (res *GetDefaultConfigXMLResponse) Marshal() ([]byte, error) {
+	if res.Config == nil {
+		return nil, fmt.Errorf("no config is set in response")
+	}
+	return res.Config, nil
+}
+
+// SetConfigXMLResponse encodes the result of setting the config
+type SetConfigXMLResponse struct {
+	*XMLResponse
+	Token string `xml:"token"`
+}
+
+// UnmarshalSetConfigXMLResponse decodes the XML data
+func UnmarshalSetConfigXMLResponse(
+	data []byte,
+) (*SetConfigXMLResponse, error) {
+	res := &SetConfigXMLResponse{}
+	err := xml.Unmarshal(data, res)
+	return res, err
+}
+
+// Marshal encodes a SetConfigXMLResponse as XML
+func (res *SetConfigXMLResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
