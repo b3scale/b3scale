@@ -50,3 +50,21 @@ loop:
 	}
 	return nil
 }
+
+// MarshalXML encodes Metadata as XML
+func (meta Metadata) MarshalXML(
+	e *xml.Encoder,
+	start xml.StartElement,
+) error {
+	err := e.EncodeToken(start)
+	if err != nil {
+		return err
+	}
+	for k, v := range meta {
+		elem := xml.StartElement{Name: xml.Name{Local: k}}
+		if err := e.EncodeElement(v, elem); err != nil {
+			return err
+		}
+	}
+	return e.EncodeToken(start.End())
+}

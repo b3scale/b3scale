@@ -108,12 +108,12 @@ func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
 		t.Error("Attendees is nil")
 	}
 
-	if len(response.Meeting.Attendees.All) != 2 {
+	if len(response.Meeting.Attendees) != 2 {
 		t.Error("Unexpected attendees length:",
-			len(response.Meeting.Attendees.All))
+			len(response.Meeting.Attendees))
 	}
 
-	t.Log(response.Meeting.Attendees.All)
+	t.Log(response.Meeting.Attendees)
 	t.Log(response.Meeting.Metadata)
 }
 
@@ -159,13 +159,13 @@ func TestUnmarshalGetMeetingInfoResponsBreakoutParent(t *testing.T) {
 
 	// Check breakout info
 	rooms := response.Meeting.BreakoutRooms
-	if len(rooms.BreakoutIDs) != 3 {
-		t.Error("Expected 3 breakout ids. got:", len(rooms.BreakoutIDs))
+	if len(rooms) != 3 {
+		t.Error("Expected 3 breakout ids. got:", len(rooms))
 	}
 
-	if rooms.BreakoutIDs[0] != "breakout-room-id-1" {
+	if rooms[0] != "breakout-room-id-1" {
 		t.Error("Unexpected breakout ID:",
-			rooms.BreakoutIDs[0])
+			rooms[0])
 	}
 }
 
@@ -190,11 +190,11 @@ func TestUnmarshalGetMeetingsResponse(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(response.Meetings.All) != 1 {
+	if len(response.Meetings) != 1 {
 		t.Error("Expected 1 meeting, got:",
-			len(response.Meetings.All))
+			len(response.Meetings))
 	}
-	meeting := response.Meetings.All[0]
+	meeting := response.Meetings[0]
 	if meeting.MeetingID != "Demo Meeting" {
 		t.Error("Unexpected MeetingID",
 			meeting.MeetingID)

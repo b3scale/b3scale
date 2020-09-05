@@ -114,7 +114,7 @@ func (res *GetMeetingInfoResponse) Marshal() ([]byte, error) {
 // GetMeetingsResponse contains a list of meetings.
 type GetMeetingsResponse struct {
 	*XMLResponse
-	Meetings *Meetings `xml:"meetings"`
+	Meetings []*Meeting `xml:"meetings>meeting"`
 }
 
 // UnmarshalGetMeetingsResponse decodes the xml response
@@ -173,24 +173,12 @@ func (res *PublishRecordingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
-// BreakoutRooms is a collection of breakout room ids
-type BreakoutRooms struct {
-	XMLName     xml.Name `xml:"breakoutRooms"`
-	BreakoutIDs []string `xml:"breakout"`
-}
-
 // Breakout info
 type Breakout struct {
 	XMLName         xml.Name `xml:"breakout"`
 	ParentMeetingID string   `xml:"parentMeetingID"`
 	Sequence        int      `xml:"sequence"`
 	FreeJoin        bool     `xml:"freeJoin"`
-}
-
-// Attendees contains a list of attendees
-type Attendees struct {
-	XMLName xml.Name    `xml:"attendees"`
-	All     []*Attendee `xml:"attendee"`
 }
 
 // Attendee of a meeting
@@ -204,12 +192,6 @@ type Attendee struct {
 	HasJoinedVoice  bool     `xml:"hasJoinedVoice"`
 	HasVideo        bool     `xml:"hasVideo"`
 	ClientType      string   `xml:"clientType"`
-}
-
-// Meetings is a serialization wrapper for a list of meetings
-type Meetings struct {
-	XMLName xml.Name   `xml:"meetings"`
-	All     []*Meeting `xml:"meeting"`
 }
 
 // Meeting information
@@ -240,9 +222,9 @@ type Meeting struct {
 
 	Metadata Metadata `xml:"metadata"`
 
-	Attendees     *Attendees     `xml:"attendees"`
-	BreakoutRooms *BreakoutRooms `xml:"breakoutRooms"`
-	Breakout      *Breakout      `xml:"breakout"`
+	Attendees     []*Attendee `xml:"attendees>attendee"`
+	BreakoutRooms []string    `xml:"breakoutRooms>breakout"`
+	Breakout      *Breakout   `xml:"breakout"`
 }
 
 func (m *Meeting) String() string {

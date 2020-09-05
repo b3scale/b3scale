@@ -6,19 +6,37 @@ import (
 )
 
 func TestMetadataUnmarshalXML(t *testing.T) {
-
+	type Nested struct {
+		Meta Metadata `xml:"meta"`
+	}
 	type Foo struct {
 		XMLName xml.Name `xml:"foo"`
-		Meta    Metadata `xml:"meta"`
+		*Nested
 	}
-
 	data := []byte("<foo><meta><a>23</a><b>bar</b><c>true</c></meta></foo>")
-
 	foo := &Foo{}
 	err := xml.Unmarshal(data, foo)
 	if err != nil {
 		t.Error(err)
 	}
+	t.Log(foo.Nested.Meta)
+}
 
-	t.Log(foo)
+func TestMetadataMarshalXML(t *testing.T) {
+	type Foo struct {
+		XMLName xml.Name `xml:"foo"`
+		Meta    Metadata `xml:"metadata"`
+	}
+
+	foo := &Foo{
+		Meta: Metadata{
+			"key":  "value",
+			"test": "42",
+		},
+	}
+	data, err := xml.Marshal(foo)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(data))
 }
