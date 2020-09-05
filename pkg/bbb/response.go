@@ -134,7 +134,7 @@ func (res *GetMeetingsResponse) Marshal() ([]byte, error) {
 // GetRecordingsResponse is the response of the getRecordings resource
 type GetRecordingsResponse struct {
 	*XMLResponse
-	Recordings *Recordings `xml:"recordings"`
+	Recordings []*Recording `xml:"recordings>recording"`
 }
 
 // UnmarshalGetRecordingsResponse deserializes the response XML
@@ -234,12 +234,6 @@ func (m *Meeting) String() string {
 	)
 }
 
-// Recordings wraps a list of recordings
-type Recordings struct {
-	XMLName xml.Name     `xml:"recordings"`
-	All     []*Recording `xml:"recording"`
-}
-
 // Recording is a recorded bbb session
 type Recording struct {
 	XMLName           xml.Name  `xml:"recording"`
@@ -254,13 +248,7 @@ type Recording struct {
 	EndTime           Timestamp `xml:"endTime"`
 	Participants      int       `xml:"participants"`
 	Metadata          Metadata  `xml:"metadata"`
-	Playback          *Playback `xml:"playback"`
-}
-
-// Playback contains format information for a recording
-type Playback struct {
-	XMLName xml.Name  `xml:"playback"`
-	Formats []*Format `xml:"format"`
+	Formats           []*Format `xml:"playback>format"`
 }
 
 // Format contains a link to the playable media

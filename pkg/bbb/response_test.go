@@ -220,20 +220,31 @@ func TestUnmarshalGetRecordingsResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(response)
 
-	/*
-		recordings := response.Recordings.All
-		if len(recordings) != 2 {
-			t.Error("Unexpected recordings:", response.Recordings.All)
-		}
-		t.Log(recordings[0].Metadata)
-	*/
+	recordings := response.Recordings
+	if len(recordings) != 2 {
+		t.Error("Unexpected recordings:", recordings)
+	}
 
+	if recordings[0].Metadata["meetingName"] != "Fred's Room" {
+		t.Error("Unexpected metadata:", recordings[0].Metadata)
+	}
+
+	t.Log(recordings[0].Formats[0])
 }
 
 func TestMarshalGetRecordingsResponse(t *testing.T) {
-	t.Error("Implement Me")
+	data := readTestResponse("getRecordingsSuccess.xml")
+	response, err := UnmarshalGetRecordingsResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	// Marshal response
+	data1, err := response.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(string(data1))
 }
 
 func TestUnmarshalPublishRecordingsResponse(t *testing.T) {
