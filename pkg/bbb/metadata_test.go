@@ -38,5 +38,8 @@ func TestMetadataMarshalXML(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(string(data))
+
+	if len(data) != 63 {
+		t.Error("Unexpected data:", string(data), len(data))
+	}
 }

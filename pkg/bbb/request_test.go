@@ -102,10 +102,7 @@ func TestString(t *testing.T) {
 		},
 	}
 
-	// This will call implicit
-	t.Log("Req:", req)
-
-	// Explicit call
+	// Call stringer
 	reqURL := req.String()
 	expected := "https://bbbackend/create" +
 		"?attendeePW=111222&meetingID=abc123" +
