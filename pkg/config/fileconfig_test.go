@@ -6,7 +6,7 @@ import (
 
 // TestFrontendsFileConfig is getting all frontends from the example config
 func TestFrontendsFileConfig(t *testing.T) {
-	c := NewFrontendsFileConfig("../../test/data/config/frontends.conf")
+	c := NewFrontendsFileConfig("../../testdata/config/frontends.conf")
 
 	frontends, err := c.Load()
 	if err != nil {
@@ -25,7 +25,7 @@ func TestFrontendsFileConfig(t *testing.T) {
 
 // TestBackendsFileConfig is getting all frontends from the example config
 func TestBackendsFileConfig(t *testing.T) {
-	c := NewBackendsFileConfig("../../test/data/config/nodes.conf")
+	c := NewBackendsFileConfig("../../testdata/config/nodes.conf")
 
 	backends, err := c.Load()
 	if err != nil {
