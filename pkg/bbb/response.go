@@ -1,6 +1,7 @@
 package bbb
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 )
@@ -260,6 +261,26 @@ func (res *SetConfigXMLResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// JSONResponse encapsulates a json reponse
+type JSONResponse struct {
+	Response interface{} `json:"response"`
+}
+
+// GetRecordingTextTracksResponse lists all tracks
+type GetRecordingTextTracksResponse struct {
+	Returncode string   `json:"returncode"`
+	Tracks     []*Track `json:"tracks"`
+}
+
+// UnmarshalGetRecordingTextTracksResponse decodes the json
+func UnmarshalGetRecordingTextTracksResponse(
+	data []byte,
+) (*GetRecordingTextTracksResponse, error) {
+	res := &GetRecordingTextTracksResponse{}
+	err := json.Unmarshal(data, res)
+	return res, err
+}
+
 // Breakout info
 type Breakout struct {
 	XMLName         xml.Name `xml:"breakout"`
@@ -366,4 +387,12 @@ type Image struct {
 	Alt     string   `xml:"alt,attr"`
 	Height  int      `xml:"height,attr"`
 	Width   int      `xml:"width,attr"`
+}
+
+// Track (TextTrack) of a Recording
+type Track struct {
+	Href   string `json:"href"`
+	Kind   string `json:"kind"`
+	Label  string `json:"label"`
+	Source string `json:"source"`
 }
