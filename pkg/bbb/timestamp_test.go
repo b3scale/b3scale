@@ -31,8 +31,6 @@ func TestTimestampUnmarshalXML(t *testing.T) {
 	if cTime.Month() != 7 {
 		t.Error("Unexpected Jul:", cTime.Month())
 	}
-
-	t.Log(cTime)
 }
 
 func TestTimestampMarshalXML(t *testing.T) {

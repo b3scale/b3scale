@@ -8,7 +8,7 @@ import (
 
 func readTestResponse(name string) []byte {
 	filename := path.Join(
-		"../../test/data/responses/",
+		"../../testdata/responses/",
 		name)
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -40,7 +40,9 @@ func TestMarshalCreateResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(string(data1))
+	if len(data1) != 1039 {
+		t.Error("Unexpected data:", string(data1), len(data1))
+	}
 }
 
 func TestUnmarshalJoinResponse(t *testing.T) {
@@ -49,7 +51,25 @@ func TestUnmarshalJoinResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(response)
+	if response.UserID != "w_euxnssffnsbs" {
+		t.Error("Unexpected UserID:", response.UserID)
+	}
+}
+
+func TestMarshalJoinResponse(t *testing.T) {
+	data := readTestResponse("joinSuccess.xml")
+	response, err := UnmarshalJoinResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	// Marshal and check result
+	data1, err := response.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data1) < 80 {
+		t.Error("Unexpecetd data:", data1)
+	}
 }
 
 func TestUnmarshalIsMeetingRunningResponse(t *testing.T) {
@@ -60,7 +80,8 @@ func TestUnmarshalIsMeetingRunningResponse(t *testing.T) {
 	}
 
 	if response.XMLResponse.Returncode != "SUCCESS" {
-		t.Error("Unexpected returncode:", response.XMLResponse.Returncode)
+		t.Error("Unexpected returncode:",
+			response.XMLResponse.Returncode)
 	}
 	if response.Running != true {
 		t.Error("Expected running to be true")
@@ -77,7 +98,9 @@ func TestMarshalIsMeetingRunningResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(string(data1))
+	if len(data1) != 120 {
+		t.Error("Unexpected data:", string(data1), len(data1))
+	}
 }
 
 func TestUnmarshalEndResponse(t *testing.T) {
@@ -98,7 +121,6 @@ func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(response)
 
 	if response.Meeting.MeetingID != "Demo Meeting" {
 		t.Error("Unexpected MeetingID:", response.Meeting.MeetingID)
@@ -113,8 +135,9 @@ func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
 			len(response.Meeting.Attendees))
 	}
 
-	t.Log(response.Meeting.Attendees)
-	t.Log(response.Meeting.Metadata)
+	if len(response.Meeting.Metadata) != 0 {
+		t.Error("Unexpected Meta:", response.Meeting.Metadata)
+	}
 }
 
 func TestUnmarshalGetMeetingInfoResponsBreakout(t *testing.T) {
@@ -124,7 +147,6 @@ func TestUnmarshalGetMeetingInfoResponsBreakout(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(response)
 
 	if response.Meeting.MeetingID != "Demo Meeting" {
 		t.Error("Unexpected MeetingID:", response.Meeting.MeetingID)
@@ -147,8 +169,6 @@ func TestUnmarshalGetMeetingInfoResponsBreakoutParent(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(response)
-
 	if response.Meeting.MeetingID != "Demo Meeting" {
 		t.Error("Unexpected MeetingID:", response.Meeting.MeetingID)
 	}
@@ -180,7 +200,10 @@ func TestMarshalGetMeetingInfoResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(string(data1))
+
+	if len(data1) != 1486 {
+		t.Error("Unexpected data:", string(data1), len(data1))
+	}
 }
 
 func TestUnmarshalGetMeetingsResponse(t *testing.T) {
@@ -211,7 +234,10 @@ func TestMarshalGetMeetingsResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(string(data1))
+	if len(data1) != 1005 {
+		t.Error("Unexpected data:", len(data1))
+		t.Log(string(data1))
+	}
 }
 
 func TestUnmarshalGetRecordingsResponse(t *testing.T) {
@@ -230,7 +256,9 @@ func TestUnmarshalGetRecordingsResponse(t *testing.T) {
 		t.Error("Unexpected metadata:", recordings[0].Metadata)
 	}
 
-	t.Log(recordings[0].Formats[0])
+	if len(recordings[0].Formats) != 2 {
+		t.Error("Unexpected formats:", recordings[0].Formats)
+	}
 }
 
 func TestMarshalGetRecordingsResponse(t *testing.T) {
@@ -244,13 +272,30 @@ func TestMarshalGetRecordingsResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(string(data1))
+	if len(data1) != 2911 {
+		t.Error("Unexpected data:", string(data1), len(data1))
+	}
 }
 
 func TestUnmarshalPublishRecordingsResponse(t *testing.T) {
-	t.Error("Implement Me")
+	data := readTestResponse("publishRecordingsSuccess.xml")
+	response, err := UnmarshalPublishRecordingsResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if response.Published != true {
+		t.Error("Expected recordings to be published")
+	}
 }
 
 func TestMarshalPublishRecordingsResponse(t *testing.T) {
-	t.Error("Implement Me")
+	data := readTestResponse("publishRecordingsSuccess.xml")
+	response, err := UnmarshalPublishRecordingsResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	data1, err := response.Marshal()
+	if len(data1) != 124 {
+		t.Error("Unexpected data:", string(data1), len(data1))
+	}
 }
