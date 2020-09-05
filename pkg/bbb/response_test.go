@@ -400,3 +400,35 @@ func TestMarshalSetConfigXMLResponse(t *testing.T) {
 		t.Error("Unexpected data:", string(data), len(data))
 	}
 }
+
+func TestUnmarshalGetRecordingTextTracksResponse(t *testing.T) {
+	data := readTestResponse("getRecordingTextTracksSuccess.json")
+	response, err := UnmarshalGetRecordingTextTracksResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+
+	tracks := response.Tracks
+	if len(tracks) != 2 {
+		t.Error("Unexpected Tracks:", tracks)
+	}
+	if tracks[0].Label != "English" {
+		t.Error("Exptected English:", tracks[0].Label)
+	}
+}
+
+func TestMarshalGetRecordingTextTracksResponse(t *testing.T) {
+	data := readTestResponse("getRecordingTextTracksSuccess.json")
+	response, err := UnmarshalGetRecordingTextTracksResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	data1, err := response.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(data1) != 489 {
+		t.Error("Unexpected data:", string(data1), len(data1))
+	}
+}

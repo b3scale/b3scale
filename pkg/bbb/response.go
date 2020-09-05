@@ -269,6 +269,8 @@ type JSONResponse struct {
 // GetRecordingTextTracksResponse lists all tracks
 type GetRecordingTextTracksResponse struct {
 	Returncode string   `json:"returncode"`
+	MessageKey string   `json:"messagekey,omitempty"`
+	Message    string   `json:"message,omitempty"`
 	Tracks     []*Track `json:"tracks"`
 }
 
@@ -276,9 +278,19 @@ type GetRecordingTextTracksResponse struct {
 func UnmarshalGetRecordingTextTracksResponse(
 	data []byte,
 ) (*GetRecordingTextTracksResponse, error) {
-	res := &GetRecordingTextTracksResponse{}
+	res := &JSONResponse{
+		Response: &GetRecordingTextTracksResponse{},
+	}
 	err := json.Unmarshal(data, res)
-	return res, err
+	return res.Response.(*GetRecordingTextTracksResponse), err
+}
+
+// Marshal GetRecordingTextTracksResponse to JSON
+func (res *GetRecordingTextTracksResponse) Marshal() ([]byte, error) {
+	wrap := &JSONResponse{
+		Response: res,
+	}
+	return json.Marshal(wrap)
 }
 
 // Breakout info
