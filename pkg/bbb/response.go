@@ -269,7 +269,7 @@ type JSONResponse struct {
 // GetRecordingTextTracksResponse lists all tracks
 type GetRecordingTextTracksResponse struct {
 	Returncode string   `json:"returncode"`
-	MessageKey string   `json:"messagekey,omitempty"`
+	MessageKey string   `json:"messageKey,omitempty"`
 	Message    string   `json:"message,omitempty"`
 	Tracks     []*Track `json:"tracks"`
 }
@@ -287,9 +287,33 @@ func UnmarshalGetRecordingTextTracksResponse(
 
 // Marshal GetRecordingTextTracksResponse to JSON
 func (res *GetRecordingTextTracksResponse) Marshal() ([]byte, error) {
-	wrap := &JSONResponse{
-		Response: res,
+	wrap := &JSONResponse{Response: res}
+	return json.Marshal(wrap)
+}
+
+// PutRecordingTextTrackResponse is the response when uploading
+// a text track. Response is in JSON.
+type PutRecordingTextTrackResponse struct {
+	Returncode string `json:"returncode"`
+	MessageKey string `json:"messageKey,omitempty"`
+	Message    string `json:"message,omitempty"`
+	RecordID   string `json:"recordId,omitempty"`
+}
+
+// UnmarshalPutRecordingTextTrackResponse decodes the json response
+func UnmarshalPutRecordingTextTrackResponse(
+	data []byte,
+) (*PutRecordingTextTrackResponse, error) {
+	res := &JSONResponse{
+		Response: &PutRecordingTextTrackResponse{},
 	}
+	err := json.Unmarshal(data, res)
+	return res.Response.(*PutRecordingTextTrackResponse), err
+}
+
+// Marshal a PutRecordingTextTrackResponse to JSON
+func (res *PutRecordingTextTrackResponse) Marshal() ([]byte, error) {
+	wrap := &JSONResponse{Response: res}
 	return json.Marshal(wrap)
 }
 

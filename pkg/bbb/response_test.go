@@ -432,3 +432,31 @@ func TestMarshalGetRecordingTextTracksResponse(t *testing.T) {
 		t.Error("Unexpected data:", string(data1), len(data1))
 	}
 }
+
+func TestUnmarshalPutRecordingTextTrackResponse(t *testing.T) {
+	data := readTestResponse("putRecordingTextTrackSuccess.json")
+	response, err := UnmarshalPutRecordingTextTrackResponse(data)
+	if err != nil {
+		t.Error(err)
+	}
+	if response.RecordID != "baz" {
+		t.Error("Unexpected:", response.RecordID)
+	}
+	if response.Returncode != "SUCCESS" {
+		t.Error("Unexpected:", response.Returncode)
+	}
+}
+
+func TestMarshalPutRecordingTextTrackResponse(t *testing.T) {
+	res := PutRecordingTextTrackResponse{
+		Returncode: "SUCCESS",
+		RecordID:   "y4aaY",
+	}
+	data, err := res.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(data) != 56 {
+		t.Error("Unexpected:", string(data), len(data))
+	}
+}
