@@ -20,17 +20,39 @@ the response.
 A middleware is a handler function, accepting the next
 handler function as argument.
 
-      Middleware Stack:
+    Request -> [<user middlewares>] -> ...
 
-    
-    Request -> [user middlewares] -> ...
+                                 -> [filter] -> [apiBackend]
+     ...      -> [dispatchMerge] -> [filter] -> [apiBackend]
+                                 -> [filter] -> [apiBackend]
 
-                                  -> [filter] -> [loader]
-     ...      -> [dispatch/merge] -> [filter] -> [loader]
-                                  -> [filter] -> [loader]
+A Handler is a stateful middleware.
+It should be initialized with a constructor and should
+safe and restore it's operational state if required.
+
+The Handler interface exposes functions for retrieving
+a schema for mapping updateable variables and types...
+
+Handlers can be registered at a HttpController where
+the current state(s) can be queried and
+changes can be send to the endpoint...
+
+API (draft):
+
+ GET /api/v1/handlers
+     /api/v1/handlers/<myHandler>
+     
+ OPTIONS /api/v1/handlers/<myHandler>
+     Returns the update schema
+ 
+ PUT /api/v1/handlers/<myHandler>
+     Accepts an update according to schema
+
+Maybe. 
 
 
 
-               
+
+
 
 
