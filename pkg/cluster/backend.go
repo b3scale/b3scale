@@ -53,6 +53,9 @@ func (b *Backend) Stop() {
 	log.Println("Shutting down backend:", b.ID)
 }
 
+// BBB API Implementation
+// TODO: Fix Response Types
+
 // Create a new Meeting
 func (b *Backend) Create(req *Request) (*Response, error) {
 	return nil, fmt.Errorf("implement me")
