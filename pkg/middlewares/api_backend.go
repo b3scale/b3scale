@@ -6,12 +6,12 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
-// NewBackendMiddleware creates the request handler
+// NewAPIBackend creates the request handler
 // middleware for invoking API calls on a backend.
 //
 // The backend is retrieved from the request context
 // and must implement the bbb.API interface.
-func NewBackendMiddleware() cluster.MiddlewareFunc {
+func NewAPIBackend() cluster.MiddlewareFunc {
 	return func(_next cluster.HandlerFunc) cluster.HandlerFunc {
 		return func(req *cluster.Request) (*cluster.Response, error) {
 			// Get backend by id
