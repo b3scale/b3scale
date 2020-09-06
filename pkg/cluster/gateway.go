@@ -42,10 +42,11 @@ func (gw *Gateway) Use(mware MiddlewareFunc) {
 func (gw *Gateway) Dispatch(request *bbb.Request) *bbb.Response {
 	// Make cluster request and initialize context
 	cReq := &Request{Request: request}
-	res, err := gw.middleware(cReq)
+	res, err := gw.handlerFunc(cReq)
 	if err != nil {
 		// TODO: Make generic BBB error response
 		return nil
 	}
+	_ = res
 	return nil
 }
