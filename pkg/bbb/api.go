@@ -4,20 +4,20 @@ package bbb
 
 // ApiResources
 const (
-	APIJoin                   = "join"
-	APICreate                 = "create"
-	APIIsMeetingRunning       = "isMeetingRunning"
-	APIEnd                    = "end"
-	APIGetMeetingInfo         = "getMeetingInfo"
-	APIGetMeetings            = "getMeetings"
-	APIGetRecordings          = "getRecordings"
-	APIPublishRecordings      = "publishRecordings"
-	APIDeleteRecordings       = "deleteRecordings"
-	APIUpdateRecordings       = "updateRecordings"
-	APIGetDefaultConfigXML    = "getDefaultConfigXML"
-	APISetConfigXML           = "setConfigXML"
-	APIGetRecordingTextTracks = "getRecordingTextTrack"
-	APIPutRecordingTextTrack  = "putRecordingTextTrack"
+	ResJoin                   = "join"
+	ResCreate                 = "create"
+	ResIsMeetingRunning       = "isMeetingRunning"
+	ResEnd                    = "end"
+	ResGetMeetingInfo         = "getMeetingInfo"
+	ResGetMeetings            = "getMeetings"
+	ResGetRecordings          = "getRecordings"
+	ResPublishRecordings      = "publishRecordings"
+	ResDeleteRecordings       = "deleteRecordings"
+	ResUpdateRecordings       = "updateRecordings"
+	ResGetDefaultConfigXML    = "getDefaultConfigXML"
+	ResSetConfigXML           = "setConfigXML"
+	ResGetRecordingTextTracks = "getRecordingTextTracks"
+	ResPutRecordingTextTrack  = "putRecordingTextTrack"
 )
 
 // API is the bbb api interface
