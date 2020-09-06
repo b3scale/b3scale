@@ -55,8 +55,12 @@ func main() {
 	ctl := NewSigCtl(controller)
 	go ctl.Start()
 
-	// Start cluster request handler
+	// Start cluster request handler, and apply middlewares
 	gateway := cluster.NewGateway(state)
+	// gateway.Use(loader)
+	// gateway.Use(frontendFilter)
+	// gateway.Use(dispatchMerge)
+	// gateway.Use(cache)
 	go gateway.Start()
 
 	// Start HTTP interface
