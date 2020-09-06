@@ -6,6 +6,12 @@ import (
 	"fmt"
 )
 
+// Response is a response interface
+type Response interface {
+	Unmarshal(v interface{}) error
+	Marshal() ([]byte, error)
+}
+
 // A XMLResponse from the server
 type XMLResponse struct {
 	XMLName    xml.Name `xml:"response"`
