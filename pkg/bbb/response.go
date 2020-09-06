@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// Response is a response interface
+// Response interface
 type Response interface {
 	Unmarshal(v interface{}) error
 	Marshal() ([]byte, error)

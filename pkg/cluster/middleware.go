@@ -2,8 +2,6 @@ package cluster
 
 import (
 	"fmt"
-
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
 // Schema is a mapping of variable names and decode hints
@@ -29,10 +27,13 @@ type Handler interface {
 
 // HandlerFunc accepts a bbb request and state. It produces
 // a bbb response or an error.
-type HandlerFunc func(*bbb.Request) (*bbb.Response, error)
+type HandlerFunc func(*Request) (*Response, error)
 
-// NoneHandler is an empty handler, that only will result
+// MiddlewareFunc is a plain middleware without a state
+type MiddlewareFunc func(next HandlerFunc) HandlerFunc
+
+// nilHandler is an empty handler, that only will result
 // in an error when called.
-func NoneHandler(_req *bbb.Request) (*bbb.Response, error) {
+func nilHandler(_req *Request) (*Response, error) {
 	return nil, fmt.Errorf("end of middleware chain")
 }

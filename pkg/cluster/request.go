@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"sync"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
@@ -8,5 +10,5 @@ import (
 // the BBB api request.
 type Request struct {
 	*bbb.Request
-	Labels
+	Context sync.Map
 }

@@ -1,6 +1,9 @@
 package cluster
 
-// A Response contains the result of the dispatch process
-// of the router.
-type Response struct {
-}
+import (
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+)
+
+// A Response is just an implementation of the bbb
+// Response interface.
+type Response bbb.Response

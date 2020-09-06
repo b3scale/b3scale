@@ -2,20 +2,22 @@ package cluster
 
 import (
 	"log"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
 // The Gateway accepts bbb cluster requests and dispatches
 // it to the cluster nodes.
 type Gateway struct {
-	state      *State
-	middleware HandlerFunc
+	state       *State
+	handlerFunc HandlerFunc
 }
 
 // NewGateway sets up a new cluster router instance.
 func NewGateway(state *State) *Gateway {
 	return &Gateway{
-		state:      state,
-		middleware: NoneHandler,
+		state:       state,
+		handlerFunc: nilHandler,
 	}
 }
 
@@ -26,13 +28,24 @@ func (gw *Gateway) Start() {
 
 // Register handler
 func (gw *Gateway) Register(handler Handler) {
-	gw.middleware = handler.Middleware(gw.middleware)
+	gw.handlerFunc = handler.Middleware(gw.handlerFunc)
+	log.Println("Gateway registered handler:", handler.ID())
 }
 
-// Dispatch taks a cluster request and forwards it
-// to selected number of cluster nodes.
-// The responses are then collected, filtered and
-// merged.
-func (gw *Gateway) Dispatch(request *Request) *Response {
+// Use registers a middleware function
+func (gw *Gateway) Use(mware MiddlewareFunc) {
+	gw.handlerFunc = mware(gw.handlerFunc)
+}
+
+// Dispatch taks a cluster request and starts the middleware
+// chain.
+func (gw *Gateway) Dispatch(request *bbb.Request) *bbb.Response {
+	// Make cluster request and initialize context
+	cReq := &Request{Request: request}
+	res, err := gw.middleware(cReq)
+	if err != nil {
+		// TODO: Make generic BBB error response
+		return nil
+	}
 	return nil
 }
