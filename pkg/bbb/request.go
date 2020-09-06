@@ -38,8 +38,6 @@ func (p Params) String() string {
 // incoming url - but can be directly passed on to a
 // BigBlueButton server.
 type Request struct {
-	Frontend *config.Frontend
-	Backend  *config.Backend
 	Resource string
 	Params   Params
 	Body     []byte
@@ -60,9 +58,8 @@ func (req *Request) calculateChecksum(secret string) []byte {
 // Validate request coming from a frontend.
 // Compare checksum with the checksum calculated from the params
 // and the frontend secret
-func (req *Request) Validate() error {
-	secret := req.Frontend.Secret
-	expected := req.calculateChecksum(secret)
+func (req *Request) Validate(frontend *config.Frontend) error {
+	expected := req.calculateChecksum(frontend.Secret)
 	if subtle.ConstantTimeCompare(expected, req.Checksum) != 1 {
 		return fmt.Errorf("invalid checksum")
 	}
@@ -70,24 +67,23 @@ func (req *Request) Validate() error {
 }
 
 // Sign a request, with the backend secret.
-func (req *Request) Sign() string {
-	secret := req.Backend.Secret
-	return string(req.calculateChecksum(secret))
+func (req *Request) Sign(backend *config.Backend) string {
+	return string(req.calculateChecksum(backend.Secret))
 }
 
-// String builds the URL representation of the
+// URL builds the URL representation of the
 // request, directed at a backend.
-func (req *Request) String() string {
+func (req *Request) URL(backend *config.Backend) string {
 	// In case the configuration does not end in a trailing slash,
 	// append it when needed.
-	apiBase := req.Backend.Host
+	apiBase := backend.Host
 	if !strings.HasSuffix(apiBase, "/") {
 		apiBase += "/"
 	}
 
 	// Sign the request and encode params
 	qry := req.Params.String()
-	chksum := req.Sign()
+	chksum := req.Sign(backend)
 
 	// Build request url
 	reqURL := apiBase + req.Resource
