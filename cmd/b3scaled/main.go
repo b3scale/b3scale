@@ -56,6 +56,10 @@ func main() {
 	ctl := NewSigCtl(controller)
 	go ctl.Start()
 
+	// Start router
+	router := cluster.NewRouter(state)
+	// router.Use()
+
 	// Initialize handlers and middlewares
 	apiBackend := middleware.NewAPIBackend()
 
@@ -65,8 +69,8 @@ func main() {
 	gateway.Use(apiBackend)
 	// gateway.Use(frontendFilter)
 	// gateway.Use(dispatchMerge)
+	gateway.Use(router.Middleware())
 	// gateway.Use(cache)
-	// gateway.Use(backendSource)
 	go gateway.Start()
 
 	// Start HTTP interface

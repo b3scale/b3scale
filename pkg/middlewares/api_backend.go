@@ -12,8 +12,8 @@ import (
 //
 // The backend is retrieved from the request context
 // and must implement the bbb.API interface.
-func NewAPIBackend() cluster.MiddlewareFunc {
-	return func(_next cluster.HandlerFunc) cluster.HandlerFunc {
+func NewAPIBackend() cluster.RequestMiddleware {
+	return func(_next cluster.RequestHandler) cluster.RequestHandler {
 		return func(req *cluster.Request) (cluster.Response, error) {
 			// Get backend by id
 			backend, ok := req.Context.Load("backend")
