@@ -64,9 +64,9 @@ func (b *Backend) Create(req *bbb.Request) (
 }
 
 // Join a meeting
-func (b *Backend) Join(req *bbb.Request) (
-	*bbb.JoinResponse, error,
-) {
+func (b *Backend) Join(
+	req *bbb.Request,
+) (*bbb.JoinResponse, error) {
 	return nil, fmt.Errorf("implement me")
 }
 

@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
@@ -13,7 +14,7 @@ import (
 // and must implement the bbb.API interface.
 func NewAPIBackend() cluster.MiddlewareFunc {
 	return func(_next cluster.HandlerFunc) cluster.HandlerFunc {
-		return func(req *cluster.Request) (*cluster.Response, error) {
+		return func(req *cluster.Request) (cluster.Response, error) {
 			// Get backend by id
 			backend, ok := req.Context.Load("backend")
 			if !ok {
@@ -22,7 +23,7 @@ func NewAPIBackend() cluster.MiddlewareFunc {
 			api := backend.(bbb.API)
 
 			// Dispatch API resources
-			switch res.Resource {
+			switch req.Resource {
 			case bbb.ResJoin:
 				return api.Join(req.Request)
 			case bbb.ResCreate:
@@ -35,26 +36,26 @@ func NewAPIBackend() cluster.MiddlewareFunc {
 				return api.GetMeetingInfo(req.Request)
 			case bbb.ResGetMeetings:
 				return api.GetMeetings(req.Request)
-			case bbb.ResGetRecordings(req.Request):
+			case bbb.ResGetRecordings:
 				return api.GetRecordings(req.Request)
-			case bbb.ResPublishRecordings(req.Request):
+			case bbb.ResPublishRecordings:
 				return api.PublishRecordings(req.Request)
-			case bbb.DeleteRecordings:
+			case bbb.ResDeleteRecordings:
 				return api.DeleteRecordings(req.Request)
-			case bbb.UpdateRecordings:
+			case bbb.ResUpdateRecordings:
 				return api.UpdateRecordings(req.Request)
 			case bbb.ResGetDefaultConfigXML:
 				return api.GetDefaultConfigXML(req.Request)
 			case bbb.ResSetConfigXML:
 				return api.SetConfigXML(req.Request)
-			case bbb.Res.GetRecordingTextTracks:
+			case bbb.ResGetRecordingTextTracks:
 				return api.GetRecordingTextTracks(req.Request)
 			case bbb.ResPutRecordingTextTrack:
-				return api.PutRecordingTextTracks(req.Request)
+				return api.PutRecordingTextTrack(req.Request)
 			}
 			// We could not dispatch this
 			return nil, fmt.Errorf("unknown resource: %s",
-				res.Resource)
+				req.Resource)
 		}
 	}
 }

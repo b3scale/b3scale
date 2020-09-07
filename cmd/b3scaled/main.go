@@ -7,7 +7,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
-	"gitlab.com/infra.run/public/b3scale/pkg/middleware"
+	"gitlab.com/infra.run/public/b3scale/pkg/middlewares"
 )
 
 // Get configuration from environment with
@@ -57,7 +57,7 @@ func main() {
 	go ctl.Start()
 
 	// Initialize handlers and middlewares
-	apiBackend := middleware.NewApiBackend()
+	apiBackend := middleware.NewAPIBackend()
 
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
@@ -66,6 +66,7 @@ func main() {
 	// gateway.Use(frontendFilter)
 	// gateway.Use(dispatchMerge)
 	// gateway.Use(cache)
+	// gateway.Use(backendSource)
 	go gateway.Start()
 
 	// Start HTTP interface

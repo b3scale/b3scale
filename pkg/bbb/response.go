@@ -8,7 +8,6 @@ import (
 
 // Response interface
 type Response interface {
-	Unmarshal(v interface{}) error
 	Marshal() ([]byte, error)
 }
 
