@@ -38,7 +38,9 @@ func (r *Router) Middleware(
 	next RequestHandler,
 ) RequestHandler {
 	return func(req *Request) (Response, error) {
-		// Add backends to context
+		// Add all backends to context
+		req.Context = ContextWithBackends(
+			req.Context, r.state.backends)
 
 		// Do routing
 		req, err := r.middleware(req)

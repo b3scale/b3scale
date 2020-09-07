@@ -16,8 +16,8 @@ func NewAPIBackend() cluster.RequestMiddleware {
 	return func(_next cluster.RequestHandler) cluster.RequestHandler {
 		return func(req *cluster.Request) (cluster.Response, error) {
 			// Get backend by id
-			backend, ok := req.Context.Load("backend")
-			if !ok {
+			backend := cluster.BackendFromContext(req.Context)
+			if backend == nil {
 				return nil, fmt.Errorf("no backend in context")
 			}
 			api := backend.(bbb.API)
