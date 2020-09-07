@@ -49,3 +49,19 @@ func BackendsFromContext(ctx context.Context) []*Backend {
 	}
 	return backends
 }
+
+// ContextWithBackend create a new context with a backend
+func ContextWithBackend(
+	ctx context.Context, backend *Backend,
+) context.Context {
+	return context.WithValue(ctx, backendContextKey, backend)
+}
+
+// BackendFromContext retrievs a backend from a context
+func BackendFromContext(ctx context.Context) *Backend {
+	backend, ok := ctx.Value(backendContextKey).(*Backend)
+	if !ok {
+		return nil
+	}
+	return backend
+}
