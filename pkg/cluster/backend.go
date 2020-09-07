@@ -111,7 +111,9 @@ func (b *Backend) PublishRecordings(
 }
 
 // DeleteRecordings deletes recordings
-func (b *Backend) DeleteRecordings(req *Request) (*Response, error) {
+func (b *Backend) DeleteRecordings(
+	req *bbb.Request,
+) (*bbb.DeleteRecordingsResponse, error) {
 	return nil, fmt.Errorf("implement me")
 }
 

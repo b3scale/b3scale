@@ -34,21 +34,21 @@ func (r *Router) Use(middleware RouterMiddleware) {
 }
 
 // Middleware builds a request middleware
-func (r *Router) Middleware(
-	next RequestHandler,
-) RequestHandler {
-	return func(req *Request) (Response, error) {
-		// Add all backends to context
-		req.Context = ContextWithBackends(
-			req.Context, r.state.backends)
+func (r *Router) Middleware() RequestMiddleware {
+	return func(next RequestHandler) RequestHandler {
+		return func(req *Request) (Response, error) {
+			// Add all backends to context
+			req.Context = ContextWithBackends(
+				req.Context, r.state.backends)
 
-		// Do routing
-		req, err := r.middleware(req)
-		if err != nil {
-			return nil, err
+			// Do routing
+			req, err := r.middleware(req)
+			if err != nil {
+				return nil, err
+			}
+
+			// Let other middlewares handle the request
+			return next(req)
 		}
-
-		// Let other middlewares handle the request
-		return next(req)
 	}
 }
