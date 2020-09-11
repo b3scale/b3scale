@@ -1,6 +1,7 @@
 package bbb
 
 import (
+	"errors"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -16,6 +17,10 @@ func readTestResponse(name string) []byte {
 	}
 
 	return data
+}
+
+func TestUnmarshalCreateInterface(t *testing.T) {
+	_ = Response(&CreateResponse{})
 }
 
 func TestUnmarshalCreateResponse(t *testing.T) {
@@ -42,6 +47,17 @@ func TestMarshalCreateResponse(t *testing.T) {
 	}
 	if len(data1) != 1039 {
 		t.Error("Unexpected data:", string(data1), len(data1))
+	}
+}
+
+func TestMarshalCreateResponseMerge(t *testing.T) {
+	a := &CreateResponse{
+		&XMLResponse{Returncode: "SUCCESS"},
+		&Meeting{MeetingName: "bar"},
+	}
+	b := &CreateResponse{}
+	if !errors.Is(a.Merge(b), ErrCantBeMerged) {
+		t.Error("Expected merge error")
 	}
 }
 

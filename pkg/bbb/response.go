@@ -3,12 +3,19 @@ package bbb
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 )
+
+// ErrCantBeMerged is the error when two responses
+// of the same type can not be merged, e.g. when
+// the data is not a collection.
+var ErrCantBeMerged = errors.New("responses of this type can not be merged")
 
 // Response interface
 type Response interface {
 	Marshal() ([]byte, error)
+	Merge(response Response) error
 }
 
 // A XMLResponse from the server
@@ -38,6 +45,11 @@ func (res *CreateResponse) Marshal() ([]byte, error) {
 	return data, err
 }
 
+// Merge another response
+func (res *CreateResponse) Merge(other Response) error {
+	return ErrCantBeMerged
+}
+
 // JoinResponse of the join resource
 type JoinResponse struct {
 	*XMLResponse
@@ -58,6 +70,11 @@ func UnmarshalJoinResponse(data []byte) (*JoinResponse, error) {
 // Marshal encodes a JoinResponse as XML
 func (res *JoinResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
+}
+
+// Merge another response
+func (res *JoinResponse) Merge(other Response) error {
+	return ErrCantBeMerged
 }
 
 // IsMeetingRunningResponse is a meeting status resonse
