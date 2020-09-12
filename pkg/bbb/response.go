@@ -352,6 +352,24 @@ func (res *UpdateRecordingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// Merge a UpdateRecordingsResponse
+func (res *UpdateRecordingsResponse) Merge(other Response) error {
+	otherRes, ok := other.(*UpdateRecordingsResponse)
+	if !ok {
+		return ErrCantBeMerged
+	}
+	// Envelope
+	err := res.XMLResponse.Merge(otherRes.XMLResponse)
+	if err != nil {
+		return err
+	}
+	// Payload
+	if res.Updated != otherRes.Updated {
+		return ErrMergeConflict
+	}
+	return nil
+}
+
 // GetDefaultConfigXMLResponse has the raw config xml data
 type GetDefaultConfigXMLResponse struct {
 	Config []byte
@@ -376,6 +394,11 @@ func (res *GetDefaultConfigXMLResponse) Marshal() ([]byte, error) {
 	return res.Config, nil
 }
 
+// Merge GetDefaultConfigXMLResponse
+func (res *GetDefaultConfigXMLResponse) Merge() error {
+	return ErrCantBeMerged
+}
+
 // SetConfigXMLResponse encodes the result of setting the config
 type SetConfigXMLResponse struct {
 	*XMLResponse
@@ -394,6 +417,11 @@ func UnmarshalSetConfigXMLResponse(
 // Marshal encodes a SetConfigXMLResponse as XML
 func (res *SetConfigXMLResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
+}
+
+// Merge SetConfigXMLResponse
+func (res *SetConfigXMLResponse) Merge() error {
+	return ErrCantBeMerged
 }
 
 // JSONResponse encapsulates a json reponse
@@ -426,6 +454,30 @@ func (res *GetRecordingTextTracksResponse) Marshal() ([]byte, error) {
 	return json.Marshal(wrap)
 }
 
+// Merge GetRecordingTextTracksResponse
+func (res *GetRecordingTextTracksResponse) Merge(other Response) error {
+
+	otherRes, ok := other.(*GetRecordingTextTracksResponse)
+	if !ok {
+		return ErrCantBeMerged
+	}
+	// Envelope
+	if res.Returncode != otherRes.Returncode {
+		return ErrMergeConflict
+	}
+	if res.Message != "" && res.Message != otherRes.Message {
+		return ErrMergeConflict
+	}
+	if res.MessageKey != "" && res.MessageKey != otherRes.MessageKey {
+		return ErrMergeConflict
+	}
+	res.Message = otherRes.Message
+	res.MessageKey = otherRes.MessageKey
+	// Payload
+	res.Tracks = append(res.Tracks, otherRes.Tracks...)
+	return nil
+}
+
 // PutRecordingTextTrackResponse is the response when uploading
 // a text track. Response is in JSON.
 type PutRecordingTextTrackResponse struct {
@@ -450,6 +502,11 @@ func UnmarshalPutRecordingTextTrackResponse(
 func (res *PutRecordingTextTrackResponse) Marshal() ([]byte, error) {
 	wrap := &JSONResponse{Response: res}
 	return json.Marshal(wrap)
+}
+
+// Merge a put recording text track
+func (res *PutRecordingTextTrackResponse) Merge(other Response) error {
+	return ErrCantBeMerged
 }
 
 // Breakout info
