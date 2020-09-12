@@ -41,13 +41,12 @@ func (res *XMLResponse) Merge(other *XMLResponse) error {
 	if res.Message != "" && res.Message != other.Message {
 		return ErrMergeConflict
 	}
+	if res.MessageKey != "" && res.MessageKey != other.MessageKey {
+		return ErrMergeConflict
+	}
 
-	if res.Message == "" {
-		res.Message = other.Message
-	}
-	if res.MessageKey == "" {
-		res.MessageKey = other.MessageKey
-	}
+	res.Message = other.Message
+	res.MessageKey = other.MessageKey
 	return nil
 }
 
@@ -231,9 +230,26 @@ func (res *GetRecordingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// Merge another GetRecordingsResponse
+func (res *GetRecordingsResponse) Merge(other Response) error {
+	otherRes, ok := other.(*GetRecordingsResponse)
+	if !ok {
+		return ErrCantBeMerged
+	}
+	err := res.XMLResponse.Merge(otherRes.XMLResponse)
+	if err != nil {
+		return err
+	}
+	res.Recordings = append(res.Recordings, otherRes.Recordings...)
+	return nil
+}
+
 // PublishRecordingsResponse indicates if the recordings
 // were published. This also has the potential for
 // tasks failed successfully.
+// Also the endpoint is designed badly because you can send
+// a set of recordings and receive just a single published
+// true or false.
 type PublishRecordingsResponse struct {
 	*XMLResponse
 	Published bool `xml:"published"`
@@ -253,8 +269,30 @@ func (res *PublishRecordingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// Merge a PublishRecordingsResponse
+func (res *PublishRecordingsResponse) Merge(other Response) error {
+	// This is kind of meh... I guess this is mergable
+	// as it needs to be dispatched to other instances...
+	otherRes, ok := other.(*PublishRecordingsResponse)
+	if !ok {
+		return ErrCantBeMerged
+	}
+	// Envelope
+	err := res.XMLResponse.Merge(otherRes.XMLResponse)
+	if err != nil {
+		return err
+	}
+	// Payload
+	if res.Published != otherRes.Published {
+		return ErrMergeConflict
+	}
+
+	return nil
+}
+
 // DeleteRecordingsResponse indicates if the recording
 // was correctly deleted. Might fail successfully.
+// Same crap as with the publish resource
 type DeleteRecordingsResponse struct {
 	*XMLResponse
 	Deleted bool `xml:"deleted"`
@@ -272,6 +310,24 @@ func UnmarshalDeleteRecordingsResponse(
 // Marshal encodes the delete recordings response as XML
 func (res *DeleteRecordingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
+}
+
+// Merge a DeleteRecordingsResponse
+func (res *DeleteRecordingsResponse) Merge(other Response) error {
+	otherRes, ok := other.(*DeleteRecordingsResponse)
+	if !ok {
+		return ErrCantBeMerged
+	}
+	// Envelope
+	err := res.XMLResponse.Merge(otherRes.XMLResponse)
+	if err != nil {
+		return err
+	}
+	// Payload
+	if res.Deleted != otherRes.Deleted {
+		return ErrMergeConflict
+	}
+	return nil
 }
 
 // UpdateRecordingsResponse indicates if the update was successful
