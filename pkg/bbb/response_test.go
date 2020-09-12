@@ -19,9 +19,7 @@ func readTestResponse(name string) []byte {
 	return data
 }
 
-func TestUnmarshalCreateInterface(t *testing.T) {
-	_ = Response(&CreateResponse{})
-}
+// CreateResponse
 
 func TestUnmarshalCreateResponse(t *testing.T) {
 	data := readTestResponse("createSuccess.xml")
@@ -61,6 +59,8 @@ func TestMarshalCreateResponseMerge(t *testing.T) {
 	}
 }
 
+// JoinResponse
+
 func TestUnmarshalJoinResponse(t *testing.T) {
 	data := readTestResponse("joinSuccess.xml")
 	response, err := UnmarshalJoinResponse(data)
@@ -87,6 +87,16 @@ func TestMarshalJoinResponse(t *testing.T) {
 		t.Error("Unexpecetd data:", data1)
 	}
 }
+
+func TestMergeJoinResponse(t *testing.T) {
+	a := &JoinResponse{}
+	b := &JoinResponse{}
+	if !errors.Is(a.Merge(b), ErrCantBeMerged) {
+		t.Error("JoinResponse should not be mergable")
+	}
+}
+
+// IsMeetingRunning
 
 func TestUnmarshalIsMeetingRunningResponse(t *testing.T) {
 	data := readTestResponse("isMeetingRunningSuccess.xml")
@@ -119,6 +129,16 @@ func TestMarshalIsMeetingRunningResponse(t *testing.T) {
 	}
 }
 
+func TestMergeIsMeetingRunningResponse(t *testing.T) {
+	a := &IsMeetingRunningResponse{}
+	b := &IsMeetingRunningResponse{}
+	if !errors.Is(a.Merge(b), ErrCantBeMerged) {
+		t.Error("Responses should not be merged")
+	}
+}
+
+// EndResponse
+
 func TestUnmarshalEndResponse(t *testing.T) {
 	data := readTestResponse("endSuccess.xml")
 	response, err := UnmarshalEndResponse(data)
@@ -130,6 +150,31 @@ func TestUnmarshalEndResponse(t *testing.T) {
 		t.Error("Unexpected MessageKey:", response.XMLResponse.MessageKey)
 	}
 }
+
+func TestMarshalEndResponse(t *testing.T) {
+	res := &EndResponse{
+		&XMLResponse{Returncode: "YAY"},
+	}
+	data, err := res.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(data) != 49 {
+		t.Error("Unexpected:", string(data), len(data))
+	}
+}
+
+func TestMergeEndResponse(t *testing.T) {
+	a := &EndResponse{}
+	b := &EndResponse{}
+
+	if !errors.Is(a.Merge(b), ErrCantBeMerged) {
+		t.Error("EndResponse should not be merged")
+	}
+}
+
+// GetMeetingInfoResponse
 
 func TestUnmarshalGetMeetingInfoRespons(t *testing.T) {
 	data := readTestResponse("getMeetingInfoSuccess.xml")
@@ -222,6 +267,16 @@ func TestMarshalGetMeetingInfoResponse(t *testing.T) {
 	}
 }
 
+func TestMergeGetMeetingInfoResponse(t *testing.T) {
+	a := &GetMeetingInfoResponse{}
+	b := &GetMeetingInfoResponse{}
+	if !errors.Is(a.Merge(b), ErrCantBeMerged) {
+		t.Error("Meeting info should not be merged.")
+	}
+}
+
+// GetMeetingsResponse
+
 func TestUnmarshalGetMeetingsResponse(t *testing.T) {
 	data := readTestResponse("getMeetingsSuccess.xml")
 	response, err := UnmarshalGetMeetingsResponse(data)
@@ -255,6 +310,34 @@ func TestMarshalGetMeetingsResponse(t *testing.T) {
 		t.Log(string(data1))
 	}
 }
+
+func TestMergeGetMeetingsResponse(t *testing.T) {
+	m1 := []*Meeting{
+		&Meeting{},
+	}
+	m2 := []*Meeting{
+		&Meeting{},
+		&Meeting{},
+	}
+	a := &GetMeetingsResponse{
+		&XMLResponse{},
+		m1,
+	}
+	b := &GetMeetingsResponse{
+		&XMLResponse{},
+		m2,
+	}
+
+	if err := a.Merge(b); err != nil {
+		t.Error(err)
+	}
+
+	if len(a.Meetings) != 3 {
+		t.Error("Meetings collection should have been merged")
+	}
+}
+
+// GetRecordingsResponse
 
 func TestUnmarshalGetRecordingsResponse(t *testing.T) {
 	data := readTestResponse("getRecordingsSuccess.xml")

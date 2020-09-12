@@ -10,7 +10,14 @@ import (
 // ErrCantBeMerged is the error when two responses
 // of the same type can not be merged, e.g. when
 // the data is not a collection.
-var ErrCantBeMerged = errors.New("responses of this type can not be merged")
+var ErrCantBeMerged = errors.New(
+	"responses of this type can not be merged")
+
+// ErrMergeConflict will be returned when two
+// responses differ in fields, where they should not.
+// Eg. a successful and a failed return code
+var ErrMergeConflict = errors.New(
+	"responses have conflicting values")
 
 // Response interface
 type Response interface {
@@ -24,6 +31,24 @@ type XMLResponse struct {
 	Returncode string   `xml:"returncode"`
 	Message    string   `xml:"message,omitempty"`
 	MessageKey string   `xml:"messageKey,omitempty"`
+}
+
+// Merge XML responses
+func (res *XMLResponse) Merge(other *XMLResponse) error {
+	if res.Returncode != other.Returncode {
+		return ErrMergeConflict
+	}
+	if res.Message != "" && res.Message != other.Message {
+		return ErrMergeConflict
+	}
+
+	if res.Message == "" {
+		res.Message = other.Message
+	}
+	if res.MessageKey == "" {
+		res.MessageKey = other.MessageKey
+	}
+	return nil
 }
 
 // CreateResponse is the resonse for the `create` API resource.
@@ -97,6 +122,11 @@ func (res *IsMeetingRunningResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// Merge IsMeetingRunning responses
+func (res *IsMeetingRunningResponse) Merge(other Response) error {
+	return ErrCantBeMerged
+}
+
 // EndResponse is the resonse of the end resource
 type EndResponse struct {
 	*XMLResponse
@@ -112,6 +142,11 @@ func UnmarshalEndResponse(data []byte) (*EndResponse, error) {
 // Marshal EndResponse to XML
 func (res *EndResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
+}
+
+// Merge EndResponses
+func (res *EndResponse) Merge(other Response) error {
+	return ErrCantBeMerged
 }
 
 // GetMeetingInfoResponse contains detailed meeting information
@@ -134,6 +169,11 @@ func (res *GetMeetingInfoResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
 }
 
+// Merge GetMeetingInfoResponse
+func (res *GetMeetingInfoResponse) Merge(other Response) error {
+	return ErrCantBeMerged
+}
+
 // GetMeetingsResponse contains a list of meetings.
 type GetMeetingsResponse struct {
 	*XMLResponse
@@ -152,6 +192,23 @@ func UnmarshalGetMeetingsResponse(
 // Marshal serializes the response as XML
 func (res *GetMeetingsResponse) Marshal() ([]byte, error) {
 	return xml.Marshal(res)
+}
+
+// Merge get meetings responses
+func (res *GetMeetingsResponse) Merge(other Response) error {
+	otherRes, ok := other.(*GetMeetingsResponse)
+	if !ok {
+		return ErrCantBeMerged
+	}
+
+	// Check envelope
+	err := res.XMLResponse.Merge(otherRes.XMLResponse)
+	if err != nil {
+		return err
+	}
+	// Merge meetings lists by appending
+	res.Meetings = append(res.Meetings, otherRes.Meetings...)
+	return nil
 }
 
 // GetRecordingsResponse is the response of the getRecordings resource
