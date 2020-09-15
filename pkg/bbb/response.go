@@ -395,7 +395,7 @@ func (res *GetDefaultConfigXMLResponse) Marshal() ([]byte, error) {
 }
 
 // Merge GetDefaultConfigXMLResponse
-func (res *GetDefaultConfigXMLResponse) Merge() error {
+func (res *GetDefaultConfigXMLResponse) Merge(other Response) error {
 	return ErrCantBeMerged
 }
 
@@ -420,7 +420,7 @@ func (res *SetConfigXMLResponse) Marshal() ([]byte, error) {
 }
 
 // Merge SetConfigXMLResponse
-func (res *SetConfigXMLResponse) Merge() error {
+func (res *SetConfigXMLResponse) Merge(other Response) error {
 	return ErrCantBeMerged
 }
 

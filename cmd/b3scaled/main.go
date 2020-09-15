@@ -65,7 +65,7 @@ func main() {
 	gateway := cluster.NewGateway(state)
 	gateway.Use(middleware.NewAPIBackend())
 	// gateway.Use(frontendFilter)
-	// gateway.Use(dispatchMerge)
+	gateway.Use(middleware.NewDispatchMerge())
 	// gateway.Use(cache)
 	gateway.Use(router.Middleware())
 	go gateway.Start()
