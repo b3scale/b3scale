@@ -2,21 +2,7 @@ package cluster
 
 import (
 	"context"
-
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
-
-// The RequestContext is a golang Context and
-// can be used as such. It provides convenient methods
-// for accessing values.
-type RequestContext context.Context
-
-// A Request is a request to the cluster, containing
-// the BBB api request.
-type Request struct {
-	*bbb.Request
-	Context context.Context
-}
 
 type requestContextKey int
 
