@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
@@ -9,7 +11,7 @@ import (
 // route handler.
 func ResourceRules() cluster.RouterMiddleware {
 	return func(next cluster.RouterHandler) cluster.RouterHandler {
-		return func(req *cluster.Request) (*cluster.Request, error) {
+		return func(ctx context.Context, req *bbb.Request) (*bbb.Request, error) {
 			// Apply rules for resources and update context
 			backends := cluster.BackendsFromContext(req.Context)
 			req.Context = cluster.ContextWithBackends(

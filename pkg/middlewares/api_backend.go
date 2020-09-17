@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -14,9 +15,9 @@ import (
 // and must implement the bbb.API interface.
 func NewAPIBackend() cluster.RequestMiddleware {
 	return func(_next cluster.RequestHandler) cluster.RequestHandler {
-		return func(req *cluster.Request) (cluster.Response, error) {
+		return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {
 			// Get backend by id
-			backend := cluster.BackendFromContext(req.Context)
+			backend := cluster.BackendFromContext(ctx)
 			if backend == nil {
 				return nil, fmt.Errorf("no backend in context")
 			}

@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -24,7 +25,9 @@ func NewGateway(state *State) *Gateway {
 
 // nilHandler is an empty handler, that only will result
 // in an error when called.
-func nilRequestHandler(_req *Request) (Response, error) {
+func nilRequestHandler(
+	_ctx context.Context, _req *bbb.Request,
+) (bbb.Response, error) {
 	return nil, fmt.Errorf("end of middleware chain")
 }
 
@@ -40,10 +43,12 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 
 // Dispatch taks a cluster request and starts the middleware
 // chain.
-func (gw *Gateway) Dispatch(request *bbb.Request) *bbb.Response {
+func (gw *Gateway) Dispatch(req *bbb.Request) *bbb.Response {
+	// Make initial context
+	ctx := context.Background()
+
 	// Make cluster request and initialize context
-	cReq := &Request{Request: request}
-	res, err := gw.middleware(cReq)
+	res, err := gw.middleware(ctx, req)
 	if err != nil {
 		// TODO: Make generic BBB error response
 		return nil

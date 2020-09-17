@@ -1,5 +1,11 @@
 package cluster
 
+import (
+	"context"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+)
+
 // The Router provides a requets middleware for routing
 // requests to backends.
 // The routing middleware stack selects backends.
@@ -24,7 +30,9 @@ func NewRouter(state *State) *Router {
 
 // identityHandler is the end of the middleware chain.
 // It will just pass on the request.
-func identityHandler(req *Request) (*Request, error) {
+func identityHandler(
+	ctx context.Context, req *bbb.Request,
+) (*bbb.Request, error) {
 	return req, nil
 }
 
@@ -36,19 +44,18 @@ func (r *Router) Use(middleware RouterMiddleware) {
 // Middleware builds a request middleware
 func (r *Router) Middleware() RequestMiddleware {
 	return func(next RequestHandler) RequestHandler {
-		return func(req *Request) (Response, error) {
-			// Add all backends to context
-			req.Context = ContextWithBackends(
-				req.Context, r.state.backends)
-
-			// Do routing
-			req, err := r.middleware(req)
+		return func(
+			ctx context.Context, req *bbb.Request,
+		) (bbb.Response, error) {
+			// Add all backends to context and do routing
+			ctx = ContextWithBackends(ctx, r.state.backends)
+			req, err := r.middleware(ctx, req)
 			if err != nil {
 				return nil, err
 			}
 
 			// Let other middlewares handle the request
-			return next(req)
+			return next(ctx, req)
 		}
 	}
 }

@@ -5,11 +5,14 @@ package middleware
 // and merges the response.
 
 import (
+	"context"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
 type dispatchResult struct {
-	response *cluster.Response
+	response *bbb.Response
 	error    error
 }
 
@@ -18,37 +21,30 @@ type dispatchResult struct {
 // collects responses.
 func NewDispatchMerge() cluster.RequestMiddleware {
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
-		return func(req *cluster.Request) (cluster.Response, error) {
-			// Fanout request, collect responses and
-			// call next middleware with each response.
-			return dispatchMerge(next, req)
-		}
+		return dispatchMerge
 	}
 }
 
 // Actual dispatch and merge of the request.
 func dispatchMerge(
+	ctx context.Context,
 	next cluster.RequestHandler,
-	req *cluster.Request,
-) (cluster.Response, error) {
-	backends := cluster.BackendsFromContext(req.Context)
-
-	// Create response channel
+	req *bbb.Request,
+) (bbb.Response, error) {
+	// Create response channel for all backends
+	backends := cluster.BackendsFromContext(ctx)
 	results := make(chan dispatchResult, len(backends))
 
 	// Fanout to all backends
 	for _, backend := range backends {
 		// Set backend for next middlewares
-		ctx := cluster.ContextWithBackend(
-			req.Context,
-			backend)
-		backendReq := &cluster.Request{req.Request, ctx}
-		go dispatch(results, next, backendReq)
+		ctx := cluster.ContextWithBackend(ctx, backend)
+		go dispatch(results, next, req)
 	}
 	close(results)
 
 	// Collect and merge responses
-	var response *cluster.Response
+	var response bbb.Response
 	for result := range results {
 		if result.error != nil {
 			return nil, result.error
@@ -71,7 +67,7 @@ func dispatchMerge(
 func dispatch(
 	results chan dispatchResult,
 	handler cluster.RequestHandler,
-	req *cluster.Request) {
+	req *bbb.Request) {
 	// Call next middleware
 	response, err := handler(req)
 	results <- dispatchResult{response, err}
