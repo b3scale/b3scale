@@ -7,7 +7,8 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
-	"gitlab.com/infra.run/public/b3scale/pkg/middlewares"
+	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
+	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
 )
 
 // Get configuration from environment with

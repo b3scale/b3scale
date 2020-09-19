@@ -1,4 +1,4 @@
-package middleware
+package requests
 
 // Dispatch / Merge Middleware
 // Forwards the request to the selected backends
