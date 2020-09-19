@@ -12,7 +12,7 @@ import (
 )
 
 type dispatchResult struct {
-	response *bbb.Response
+	response bbb.Response
 	error    error
 }
 
@@ -21,7 +21,10 @@ type dispatchResult struct {
 // collects responses.
 func NewDispatchMerge() cluster.RequestMiddleware {
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
-		return dispatchMerge
+		return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {
+
+			return dispatchMerge(ctx, next, req)
+		}
 	}
 }
 
@@ -39,7 +42,7 @@ func dispatchMerge(
 	for _, backend := range backends {
 		// Set backend for next middlewares
 		ctx := cluster.ContextWithBackend(ctx, backend)
-		go dispatch(results, next, req)
+		go dispatch(ctx, results, next, req)
 	}
 	close(results)
 
@@ -49,7 +52,6 @@ func dispatchMerge(
 		if result.error != nil {
 			return nil, result.error
 		}
-
 		if response == nil {
 			response = result.response
 		} else {
@@ -58,17 +60,17 @@ func dispatchMerge(
 			}
 		}
 	}
-
 	return response, nil
 }
 
 // Call next middleware with requst and push
 // response into
 func dispatch(
+	ctx context.Context,
 	results chan dispatchResult,
 	handler cluster.RequestHandler,
 	req *bbb.Request) {
 	// Call next middleware
-	response, err := handler(req)
+	response, err := handler(ctx, req)
 	results <- dispatchResult{response, err}
 }

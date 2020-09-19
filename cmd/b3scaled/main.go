@@ -59,14 +59,14 @@ func main() {
 
 	// Start router
 	router := cluster.NewRouter(state)
-	router.Use(middleware.ResourceRules())
+	router.Use(routing.ResourceRules())
 
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
 	gateway := cluster.NewGateway(state)
-	gateway.Use(middleware.NewAPIBackend())
+	gateway.Use(requests.NewAPIBackend())
 	// gateway.Use(frontendFilter)
-	gateway.Use(middleware.NewDispatchMerge())
+	gateway.Use(requests.NewDispatchMerge())
 	// gateway.Use(cache)
 	gateway.Use(router.Middleware())
 	go gateway.Start()
