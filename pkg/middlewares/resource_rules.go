@@ -15,7 +15,7 @@ func ResourceRules() cluster.RouterMiddleware {
 			// Apply rules for resources and update context
 			backends := cluster.BackendsFromContext(ctx)
 			backends = applyResourceRule(backends, req.Resource)
-			return backends, nil
+			return next(backends)
 		}
 	}
 }

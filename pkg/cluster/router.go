@@ -29,11 +29,11 @@ func NewRouter(state *State) *Router {
 }
 
 // identityHandler is the end of the middleware chain.
-// It will just pass on the request.
+// It will just pass on the backends.
 func identityHandler(
-	ctx context.Context, req *bbb.Request,
-) (*bbb.Request, error) {
-	return req, nil
+	backends []*Backend, _req *bbb.Request,
+) ([]*Backend, error) {
+	return backends, nil
 }
 
 // Use will insert a middleware into the chain
@@ -48,13 +48,13 @@ func (r *Router) Middleware() RequestMiddleware {
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
 			// Add all backends to context and do routing
-			ctx = ContextWithBackends(ctx, r.state.backends)
-			req, err := r.middleware(ctx, req)
+			backends, err := r.middleware(r.state.backends, req)
 			if err != nil {
 				return nil, err
 			}
 
 			// Let other middlewares handle the request
+			ctx = ContextWithBackends(ctx, backends)
 			return next(ctx, req)
 		}
 	}
