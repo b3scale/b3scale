@@ -30,6 +30,9 @@ type Backend struct {
 	State     BackendState
 	LastError string
 
+	Meetings   []*bbb.Meeting
+	Recordings []*bbb.Recording
+
 	config *config.Backend
 	client *bbb.Client
 }

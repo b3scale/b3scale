@@ -39,6 +39,7 @@ func (p Params) String() string {
 // BigBlueButton server.
 type Request struct {
 	Resource string
+	Method   string
 	Params   Params
 	Body     []byte
 	Checksum []byte
