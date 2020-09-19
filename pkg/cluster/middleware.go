@@ -17,8 +17,8 @@ type RequestHandler func(context.Context, *bbb.Request) (bbb.Response, error)
 type RequestMiddleware func(next RequestHandler) RequestHandler
 
 // RouterHandler accepts a bbb request and returns
-// a bbb request.
-type RouterHandler func(context.Context, *bbb.Request) (*bbb.Request, error)
+// a list of backends.
+type RouterHandler func(context.Context, *bbb.Request) ([]*Backend, error)
 
 // A RouterMiddleware accepts a handler function
 // and returns a decorated handler function.

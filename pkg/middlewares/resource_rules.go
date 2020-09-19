@@ -11,13 +11,11 @@ import (
 // route handler.
 func ResourceRules() cluster.RouterMiddleware {
 	return func(next cluster.RouterHandler) cluster.RouterHandler {
-		return func(ctx context.Context, req *bbb.Request) (*bbb.Request, error) {
+		return func(ctx context.Context, req *bbb.Request) ([]*cluster.Backend, error) {
 			// Apply rules for resources and update context
-			backends := cluster.BackendsFromContext(req.Context)
-			req.Context = cluster.ContextWithBackends(
-				req.Context,
-				applyResourceRule(backends, req.Resource))
-			return req, nil
+			backends := cluster.BackendsFromContext(ctx)
+			backends = applyResourceRule(backends, req.Resource)
+			return backends, nil
 		}
 	}
 }

@@ -25,33 +25,33 @@ func NewAPIBackend() cluster.RequestMiddleware {
 			// Dispatch API resources
 			switch req.Resource {
 			case bbb.ResJoin:
-				return backend.Join(req.Request)
+				return backend.Join(req)
 			case bbb.ResCreate:
-				return backend.Create(req.Request)
+				return backend.Create(req)
 			case bbb.ResIsMeetingRunning:
-				return backend.IsMeetingRunning(req.Request)
+				return backend.IsMeetingRunning(req)
 			case bbb.ResEnd:
-				return backend.End(req.Request)
+				return backend.End(req)
 			case bbb.ResGetMeetingInfo:
-				return backend.GetMeetingInfo(req.Request)
+				return backend.GetMeetingInfo(req)
 			case bbb.ResGetMeetings:
-				return backend.GetMeetings(req.Request)
+				return backend.GetMeetings(req)
 			case bbb.ResGetRecordings:
-				return backend.GetRecordings(req.Request)
+				return backend.GetRecordings(req)
 			case bbb.ResPublishRecordings:
-				return backend.PublishRecordings(req.Request)
+				return backend.PublishRecordings(req)
 			case bbb.ResDeleteRecordings:
-				return backend.DeleteRecordings(req.Request)
+				return backend.DeleteRecordings(req)
 			case bbb.ResUpdateRecordings:
-				return backend.UpdateRecordings(req.Request)
+				return backend.UpdateRecordings(req)
 			case bbb.ResGetDefaultConfigXML:
-				return backend.GetDefaultConfigXML(req.Request)
+				return backend.GetDefaultConfigXML(req)
 			case bbb.ResSetConfigXML:
-				return backend.SetConfigXML(req.Request)
+				return backend.SetConfigXML(req)
 			case bbb.ResGetRecordingTextTracks:
-				return backend.GetRecordingTextTracks(req.Request)
+				return backend.GetRecordingTextTracks(req)
 			case bbb.ResPutRecordingTextTrack:
-				return backend.PutRecordingTextTrack(req.Request)
+				return backend.PutRecordingTextTrack(req)
 			}
 			// We could not dispatch this
 			return nil, fmt.Errorf("unknown resource: %s",
