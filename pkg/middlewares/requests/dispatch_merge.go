@@ -6,6 +6,7 @@ package requests
 
 import (
 	"context"
+	"sync"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -37,13 +38,18 @@ func dispatchMerge(
 	// Create response channel for all backends
 	backends := cluster.BackendsFromContext(ctx)
 	results := make(chan dispatchResult, len(backends))
+	wg := &sync.WaitGroup{}
 
 	// Fanout to all backends
 	for _, backend := range backends {
 		// Set backend for next middlewares
+		wg.Add(1)
 		ctx := cluster.ContextWithBackend(ctx, backend)
-		go dispatch(ctx, results, next, req)
+		go dispatch(ctx, wg, results, next, req)
 	}
+
+	// Wait for requests to be done
+	wg.Wait()
 	close(results)
 
 	// Collect and merge responses
@@ -60,6 +66,7 @@ func dispatchMerge(
 			}
 		}
 	}
+
 	return response, nil
 }
 
@@ -67,9 +74,11 @@ func dispatchMerge(
 // response into
 func dispatch(
 	ctx context.Context,
+	wg *sync.WaitGroup,
 	results chan dispatchResult,
 	handler cluster.RequestHandler,
 	req *bbb.Request) {
+	defer wg.Done()
 	// Call next middleware
 	response, err := handler(ctx, req)
 	results <- dispatchResult{response, err}
