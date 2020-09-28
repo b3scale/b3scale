@@ -22,6 +22,11 @@ func NewAPIBackend() cluster.RequestMiddleware {
 				return nil, fmt.Errorf("no backend in context")
 			}
 
+			// Check if the backend is ready to accept requests:
+			if backend.State != cluster.BackendStateReady {
+				return nil, fmt.Errorf("backend not ready")
+			}
+
 			// Dispatch API resources
 			switch req.Resource {
 			case bbb.ResJoin:

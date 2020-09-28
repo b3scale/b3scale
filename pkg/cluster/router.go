@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -47,6 +48,18 @@ func (r *Router) Middleware() RequestMiddleware {
 		return func(
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
+			// Filter backends and only accept state active
+			backends := make([]*Backend, 0, len(r.state.backends))
+			for _, backend := range r.state.backends {
+				if backend.State == BackendStateReady {
+					backends = append(backends, backend)
+				}
+			}
+
+			if len(backends) == 0 {
+				return nil, fmt.Errorf("no backends available")
+			}
+
 			// Add all backends to context and do routing
 			backends, err := r.middleware(r.state.backends, req)
 			if err != nil {

@@ -30,8 +30,8 @@ type Backend struct {
 	State     BackendState
 	LastError string
 
-	Meetings   []*bbb.Meeting
-	Recordings []*bbb.Recording
+	meetings   []*bbb.Meeting
+	recordings []*bbb.Recording
 
 	config *config.Backend
 	client *bbb.Client
@@ -40,15 +40,19 @@ type Backend struct {
 // NewBackend creates a cluster node.
 func NewBackend(config *config.Backend) *Backend {
 	return &Backend{
-		ID:     config.Host,
-		config: config,
-		client: nil,
+		ID:         config.Host,
+		config:     config,
+		client:     nil,
+		meetings:   []*bbb.Meeting{},
+		recordings: []*bbb.Recording{},
 	}
 }
 
 // Start the backend
 func (b *Backend) Start() {
 	log.Println("Starting backend:", b.ID)
+
+	// Initial sync
 }
 
 // Stop shuts down the backend process
