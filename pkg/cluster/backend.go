@@ -30,11 +30,14 @@ type Backend struct {
 	State     BackendState
 	LastError string
 
-	meetings   []*bbb.Meeting
-	recordings []*bbb.Recording
-
 	config *config.Backend
 	client *bbb.Client
+
+	// Local state
+	meetings             []*bbb.Meeting
+	recordings           []*bbb.Recording
+	recordingsTextTracks map[string][]*bbb.TextTrack
+	defaultConfigXML     []byte
 }
 
 // NewBackend creates a cluster node.
@@ -51,7 +54,6 @@ func NewBackend(config *config.Backend) *Backend {
 // Start the backend
 func (b *Backend) Start() {
 	log.Println("Starting backend:", b.ID)
-
 	// Initial sync
 }
 
@@ -60,8 +62,13 @@ func (b *Backend) Stop() {
 	log.Println("Shutting down backend:", b.ID)
 }
 
+// Backend State Sync: Loads the state from
+// the bbb backend and keeps it locally.
+func (b *Backend) loadMeetings() error {
+	return nil
+}
+
 // BBB API Implementation
-// TODO: Fix Response Types
 
 // Create a new Meeting
 func (b *Backend) Create(req *bbb.Request) (
