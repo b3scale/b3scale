@@ -55,13 +55,12 @@ func (r *Router) Middleware() RequestMiddleware {
 					backends = append(backends, backend)
 				}
 			}
-
 			if len(backends) == 0 {
 				return nil, fmt.Errorf("no backends available")
 			}
 
 			// Add all backends to context and do routing
-			backends, err := r.middleware(r.state.backends, req)
+			backends, err := r.middleware(backends, req)
 			if err != nil {
 				return nil, err
 			}
