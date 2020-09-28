@@ -97,9 +97,12 @@ func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
 	// Make cluster request and initialize context
 	res, err := gw.middleware(ctx, req)
 	if err != nil {
-		// TODO: Make generic BBB error response
-		return nil
+		// We encode our error as a BBB error response
+		return &bbb.XMLResponse{
+			Returncode: "FAILED",
+			MessageKey: "b3scale_gateway_error",
+			Message:    fmt.Sprintf("%s", err),
+		}
 	}
-
 	return res
 }

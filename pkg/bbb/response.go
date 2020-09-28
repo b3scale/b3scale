@@ -33,8 +33,8 @@ type XMLResponse struct {
 	MessageKey string   `xml:"messageKey,omitempty"`
 }
 
-// Merge XML responses
-func (res *XMLResponse) Merge(other *XMLResponse) error {
+// MergeXMLResponse is a specific merge
+func (res *XMLResponse) MergeXMLResponse(other *XMLResponse) error {
 	if res.Returncode != other.Returncode {
 		return ErrMergeConflict
 	}
@@ -48,6 +48,18 @@ func (res *XMLResponse) Merge(other *XMLResponse) error {
 	res.Message = other.Message
 	res.MessageKey = other.MessageKey
 	return nil
+}
+
+// Merge XMLResponses.
+// However, in general this should not be merged.
+func (res *XMLResponse) Merge(other Response) error {
+	return ErrCantBeMerged
+}
+
+// Marshal a XMLResponse to XML
+func (res *XMLResponse) Marshal() ([]byte, error) {
+	data, err := xml.Marshal(res)
+	return data, err
 }
 
 // CreateResponse is the resonse for the `create` API resource.
@@ -201,7 +213,7 @@ func (res *GetMeetingsResponse) Merge(other Response) error {
 	}
 
 	// Check envelope
-	err := res.XMLResponse.Merge(otherRes.XMLResponse)
+	err := res.XMLResponse.MergeXMLResponse(otherRes.XMLResponse)
 	if err != nil {
 		return err
 	}
