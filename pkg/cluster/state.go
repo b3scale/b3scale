@@ -92,7 +92,7 @@ func (state *State) addBackend(backend *Backend) {
 	}
 
 	// Replace instance when config changed
-	if *(current.config) != *(backend.config) {
+	if *(current.cfg) != *(backend.cfg) {
 		backends := make([]*Backend, 0, len(state.backends))
 		for _, b := range state.backends {
 			if b == current {

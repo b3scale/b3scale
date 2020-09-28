@@ -19,16 +19,63 @@ type Gateway struct {
 func NewGateway(state *State) *Gateway {
 	return &Gateway{
 		state:      state,
-		middleware: nilRequestHandler,
+		middleware: dispatchBackendHandler,
 	}
 }
 
-// nilHandler is an empty handler, that only will result
-// in an error when called.
-func nilRequestHandler(
-	_ctx context.Context, _req *bbb.Request,
+// The dispatchBackendHandler marks the end of the
+// middleware chain and is the default handler for requests.
+// It expects the presence of a "backend" in the current
+// context. Otherwise it will fail.
+func dispatchBackendHandler(
+	ctx context.Context, req *bbb.Request,
 ) (bbb.Response, error) {
-	return nil, fmt.Errorf("end of middleware chain")
+	// Get backend by id
+	backend := BackendFromContext(ctx)
+	if backend == nil {
+		return nil, fmt.Errorf("no backend in context")
+	}
+
+	// Check if the backend is ready to accept requests:
+	if backend.State != BackendStateReady {
+		return nil, fmt.Errorf("backend not ready")
+		// This should however not happen!
+	}
+
+	// Dispatch API resources
+	switch req.Resource {
+	case bbb.ResJoin:
+		return backend.Join(req)
+	case bbb.ResCreate:
+		return backend.Create(req)
+	case bbb.ResIsMeetingRunning:
+		return backend.IsMeetingRunning(req)
+	case bbb.ResEnd:
+		return backend.End(req)
+	case bbb.ResGetMeetingInfo:
+		return backend.GetMeetingInfo(req)
+	case bbb.ResGetMeetings:
+		return backend.GetMeetings(req)
+	case bbb.ResGetRecordings:
+		return backend.GetRecordings(req)
+	case bbb.ResPublishRecordings:
+		return backend.PublishRecordings(req)
+	case bbb.ResDeleteRecordings:
+		return backend.DeleteRecordings(req)
+	case bbb.ResUpdateRecordings:
+		return backend.UpdateRecordings(req)
+	case bbb.ResGetDefaultConfigXML:
+		return backend.GetDefaultConfigXML(req)
+	case bbb.ResSetConfigXML:
+		return backend.SetConfigXML(req)
+	case bbb.ResGetRecordingTextTracks:
+		return backend.GetRecordingTextTracks(req)
+	case bbb.ResPutRecordingTextTrack:
+		return backend.PutRecordingTextTrack(req)
+	}
+	// We could not dispatch this
+	return nil, fmt.Errorf(
+		"unknown resource: %s", req.Resource)
 }
 
 // Start initializes the router
@@ -43,7 +90,7 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 
 // Dispatch taks a cluster request and starts the middleware
 // chain.
-func (gw *Gateway) Dispatch(req *bbb.Request) *bbb.Response {
+func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
 	// Make initial context
 	ctx := context.Background()
 
@@ -53,6 +100,6 @@ func (gw *Gateway) Dispatch(req *bbb.Request) *bbb.Response {
 		// TODO: Make generic BBB error response
 		return nil
 	}
-	_ = res
-	return nil
+
+	return res
 }

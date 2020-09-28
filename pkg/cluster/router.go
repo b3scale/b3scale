@@ -25,16 +25,65 @@ type Router struct {
 func NewRouter(state *State) *Router {
 	return &Router{
 		state:      state,
-		middleware: identityHandler,
+		middleware: selectDiscardHandler,
 	}
 }
 
-// identityHandler is the end of the middleware chain.
-// It will just pass on the backends.
-func identityHandler(
-	backends []*Backend, _req *bbb.Request,
+// As a final step in routing, make sure that there
+// is only a single backend left in the list of
+// potential backends for some resources.
+//
+// This pretty much applies to all state mutating
+// API resources like join or create.
+//
+// We use the selectDiscardHandler as the end of our
+// middleware chain.
+func selectDiscardHandler(
+	backends []*Backend, req *bbb.Request,
 ) ([]*Backend, error) {
-	return backends, nil
+	res := req.Resource
+	switch res {
+	case bbb.ResJoin:
+		return selectFirst(backends), nil
+	case bbb.ResCreate:
+		return selectFirst(backends), nil
+	case bbb.ResIsMeetingRunning:
+		return selectFirst(backends), nil
+	case bbb.ResEnd:
+		return selectFirst(backends), nil
+	case bbb.ResGetMeetingInfo:
+		return selectFirst(backends), nil
+	case bbb.ResGetMeetings:
+		return backends, nil
+	case bbb.ResGetRecordings:
+		return backends, nil
+	case bbb.ResPublishRecordings:
+		return backends, nil
+	case bbb.ResDeleteRecordings:
+		return backends, nil
+	case bbb.ResUpdateRecordings:
+		return selectFirst(backends), nil
+	case bbb.ResGetDefaultConfigXML:
+		return selectFirst(backends), nil
+	case bbb.ResSetConfigXML:
+		return selectFirst(backends), nil
+	case bbb.ResGetRecordingTextTracks:
+		return selectFirst(backends), nil
+	case bbb.ResPutRecordingTextTrack:
+		return selectFirst(backends), nil
+	}
+
+	return nil, fmt.Errorf(
+		"unknown api resource for backend select: %s", res)
+}
+
+// Keep only first backend
+func selectFirst(backends []*Backend) []*Backend {
+	// The following slice operation with empty slices
+	if len(backends) == 0 {
+		return backends
+	}
+	return backends[:1]
 }
 
 // Use will insert a middleware into the chain
