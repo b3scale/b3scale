@@ -8,7 +8,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
-	// "gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
+	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
 )
 
 // Get configuration from environment with
@@ -59,6 +59,8 @@ func main() {
 
 	// Start router
 	router := cluster.NewRouter(state)
+	// router.Use(routing.SortLoad)
+	// router.Use(routing.StickyBackends...)
 
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
