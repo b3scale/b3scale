@@ -431,10 +431,10 @@ type JSONResponse struct {
 
 // GetRecordingTextTracksResponse lists all tracks
 type GetRecordingTextTracksResponse struct {
-	Returncode string   `json:"returncode"`
-	MessageKey string   `json:"messageKey,omitempty"`
-	Message    string   `json:"message,omitempty"`
-	Tracks     []*Track `json:"tracks"`
+	Returncode string       `json:"returncode"`
+	MessageKey string       `json:"messageKey,omitempty"`
+	Message    string       `json:"message,omitempty"`
+	Tracks     []*TextTrack `json:"tracks"`
 }
 
 // UnmarshalGetRecordingTextTracksResponse decodes the json
@@ -617,8 +617,8 @@ type Image struct {
 	Width   int      `xml:"width,attr"`
 }
 
-// Track (TextTrack) of a Recording
-type Track struct {
+// TextTrack of a Recording
+type TextTrack struct {
 	Href   string `json:"href"`
 	Kind   string `json:"kind"`
 	Label  string `json:"label"`
