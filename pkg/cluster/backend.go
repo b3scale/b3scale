@@ -30,7 +30,7 @@ type Backend struct {
 	State     BackendState
 	LastError string
 
-	config *config.Backend
+	cfg    *config.Backend
 	client *bbb.Client
 
 	// Local state
@@ -41,11 +41,14 @@ type Backend struct {
 }
 
 // NewBackend creates a cluster node.
-func NewBackend(config *config.Backend) *Backend {
+func NewBackend(cfg *config.Backend) *Backend {
+	// Start HTTP client
+	client := bbb.NewClient(cfg)
+
 	return &Backend{
-		ID:         config.Host,
-		config:     config,
-		client:     nil,
+		ID:         cfg.Host,
+		cfg:        cfg,
+		client:     client,
 		meetings:   []*bbb.Meeting{},
 		recordings: []*bbb.Recording{},
 	}
