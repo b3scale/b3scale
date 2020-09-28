@@ -38,11 +38,12 @@ func (p Params) String() string {
 // incoming url - but can be directly passed on to a
 // BigBlueButton server.
 type Request struct {
-	Resource string
-	Method   string
-	Params   Params
-	Body     []byte
-	Checksum []byte
+	Resource    string
+	Method      string
+	ContentType string
+	Params      Params
+	Body        []byte
+	Checksum    []byte
 }
 
 // Internal calculate checksum with a given secret.
@@ -74,17 +75,17 @@ func (req *Request) Sign(backend *config.Backend) string {
 
 // URL builds the URL representation of the
 // request, directed at a backend.
-func (req *Request) URL(backend *config.Backend) string {
+func (req *Request) URL(cfg *config.Backend) string {
 	// In case the configuration does not end in a trailing slash,
 	// append it when needed.
-	apiBase := backend.Host
+	apiBase := cfg.Host
 	if !strings.HasSuffix(apiBase, "/") {
 		apiBase += "/"
 	}
 
 	// Sign the request and encode params
 	qry := req.Params.String()
-	chksum := req.Sign(backend)
+	chksum := req.Sign(cfg)
 
 	// Build request url
 	reqURL := apiBase + req.Resource
