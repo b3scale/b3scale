@@ -32,9 +32,12 @@ func main() {
 		"B3SCALE_BACKENDS", "etc/b3scale/backends.conf")
 	listenHTTP := getopt(
 		"B3SCALE_LISTEN_HTTP", "127.0.0.1:42353") // B3S
+	redisAddr := getopt(
+		"B3SCALE_REDIS", ":6379")
 
 	log.Println("Using frontends from:", frontendsConfigFilename)
 	log.Println("Using backends from:", backendsConfigFilename)
+	log.Println("Using redis @", redisAddr)
 
 	// Initialize configuration
 	backendsConfig := config.NewBackendsFileConfig(
@@ -60,7 +63,7 @@ func main() {
 	// Start router
 	router := cluster.NewRouter(state)
 	// router.Use(routing.SortLoad)
-	// router.Use(routing.StickyBackends...)
+	// router.Use(routing.SessionTracking...)
 
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
