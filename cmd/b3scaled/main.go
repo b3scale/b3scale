@@ -69,7 +69,7 @@ func main() {
 	go ctl.Start()
 
 	// Initialize RIB
-	store := rib.NewRedisStore(state, &redis.ClusterOptions{
+	store := rib.NewRedisClusterStore(state, &redis.ClusterOptions{
 		Addrs:    strings.Split(redisAddrsOpt, " "),
 		Username: redisUser,
 		Password: redisPass,
