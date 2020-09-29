@@ -12,8 +12,6 @@ import (
 
  This state needs to be shared across instances
  and must be persisted.
-
- We are using redis for this.
 */
 
 // Store provides an interface for retrieving
