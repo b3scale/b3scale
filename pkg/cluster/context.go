@@ -10,6 +10,7 @@ type requestContextKey int
 var (
 	backendsContextKey = requestContextKey(1)
 	backendContextKey  = requestContextKey(2)
+	frontendContextKey = requestContextKey(3)
 )
 
 // NewRequestContext create a new context
@@ -50,4 +51,20 @@ func BackendFromContext(ctx context.Context) *Backend {
 		return nil
 	}
 	return backend
+}
+
+// ContextWithFrontend creates a context with a frontend
+func ContextWithFrontend(
+	ctx context.Context, frontend *Frontend,
+) context.Context {
+	return context.WithValue(ctx, frontendContextKey, frontend)
+}
+
+// FrontendFromContext retrieves a frontend from a context
+func FrontendFromContext(ctx context.Context) *Frontend {
+	frontend, ok := ctx.Value(frontendContextKey).(*Frontend)
+	if !ok {
+		return nil
+	}
+	return frontend
 }

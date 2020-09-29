@@ -27,3 +27,15 @@ func TestContextBackend(t *testing.T) {
 		t.Error("backend should be present")
 	}
 }
+
+func TestContextFrontend(t *testing.T) {
+	frontend := &Frontend{}
+	ctx := NewRequestContext()
+	if FrontendFromContext(ctx) != nil {
+		t.Error("context should not have a frontend")
+	}
+	ctx = ContextWithFrontend(ctx, frontend)
+	if FrontendFromContext(ctx) == nil {
+		t.Error("context should have a frontend")
+	}
+}
