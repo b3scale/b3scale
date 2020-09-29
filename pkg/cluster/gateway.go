@@ -89,7 +89,9 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 }
 
 // Dispatch taks a cluster request and starts the middleware
-// chain.
+// chain. We will always return a bbb response.
+// Any error occoring during routing or dispatching will be
+// encoded as an BBB XML Response.
 func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
 	// Make initial context
 	ctx := context.Background()
