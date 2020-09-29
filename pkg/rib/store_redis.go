@@ -2,6 +2,7 @@ package rib
 
 import (
 	"github.com/go-redis/redis/v8"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
@@ -9,15 +10,13 @@ import (
 // interface using redis.
 type RedisStore struct {
 	state *cluster.State
-	rdb   *redis.Client
+	rdb   *redis.ClusterClient
 }
 
 // NewRedisStore makes a new store with
 // a redis host address and a cluster state.
-func NewRedisStore(state *cluster.State, addr string) *RedisStore {
-	rdb := redis.NewClient(&redis.Options{
-		Addr: addr,
-	})
+func NewRedisStore(state *cluster.State, opts *redis.ClusterOptions) *RedisStore {
+	rdb := redis.NewClusterClient(opts)
 	return &RedisStore{
 		state: state,
 		rdb:   rdb,
