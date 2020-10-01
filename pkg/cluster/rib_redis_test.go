@@ -22,15 +22,67 @@ func makeClusterState() *State {
 	return state
 }
 
-func makeRedisRIB(s *State) *RedisClusterRIB {
+func makeRedisRIB(s *State) *RedisRIB {
+	return NewRedisRIB(s, &redis.Options{
+		Addr: ":6379",
+	})
+}
+
+// Test redis rib
+func TestRedisRIBBackend(t *testing.T) {
+	s := makeClusterState()
+	rib := makeRedisRIB(s)
+
+	be := &Backend{ID: "backend1"}
+	m := &bbb.Meeting{MeetingID: "meeeeeeeeting00000fff"}
+
+	// Clear meeting
+	err := rib.Delete(m)
+	if err != nil {
+		t.Error(err)
+	}
+	retb, err := rib.GetBackend(m)
+	if err != nil {
+		t.Error(err)
+	}
+	if retb != nil {
+		t.Error("There should be no associated backend.")
+	}
+	err = rib.SetBackend(m, be)
+	if err != nil {
+		t.Error(err)
+	}
+	retb, err = rib.GetBackend(m)
+	if err != nil {
+		t.Error(err)
+	}
+	if retb == nil {
+		t.Error("There should be an associated backend!")
+	}
+	// Delete backend
+	err = rib.SetBackend(m, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	retb, err = rib.GetBackend(m)
+	if err != nil {
+		t.Error(err)
+	}
+	if retb != nil {
+		t.Error("There should be no associated backend.")
+	}
+}
+
+func makeRedisClusterRIB(s *State) *RedisClusterRIB {
 	return NewRedisClusterRIB(s, &redis.ClusterOptions{
 		Addrs: []string{":6379"},
 	})
 }
 
-func TestGetBackend(t *testing.T) {
+// DISABLED: For now we use a normal redis client
+func _TestRedisClusterGetBackend(t *testing.T) {
 	state := makeClusterState()
-	rib := makeRedisRIB(state)
+	rib := makeRedisClusterRIB(state)
 
 	// Associate meeting
 	b1 := state.GetBackendByID("backend1")

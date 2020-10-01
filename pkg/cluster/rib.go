@@ -26,4 +26,5 @@ type RIB interface {
 
 	// Meeting
 	Delete(*bbb.Meeting) error
+	Meetings() ([]*bbb.Meeting, error)
 }
