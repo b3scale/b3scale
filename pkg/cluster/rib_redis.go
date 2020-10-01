@@ -1,31 +1,29 @@
-package rib
+package cluster
 
 import (
-	//	"context"
 	"context"
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
-// A RedisClusterStore is a implemenation of a Store
+// A RedisClusterRIB is a implemenation of a RIB
 // interface using a redis cluster client.
-type RedisClusterStore struct {
-	state *cluster.State
+type RedisClusterRIB struct {
+	state *State
 	rdb   *redis.ClusterClient
 }
 
-// NewRedisClusterStore makes a new store with
+// NewRedisClusterRIB makes a new store with
 // a redis host address and a cluster state.
-func NewRedisClusterStore(
-	state *cluster.State,
+func NewRedisClusterRIB(
+	state *State,
 	opts *redis.ClusterOptions,
-) *RedisClusterStore {
+) *RedisClusterRIB {
 	rdb := redis.NewClusterClient(opts)
-	return &RedisClusterStore{
+	return &RedisClusterRIB{
 		state: state,
 		rdb:   rdb,
 	}
@@ -34,9 +32,9 @@ func NewRedisClusterStore(
 // GetBackend retrieves a backend associated with
 // a Meeting from the store.
 // If no meeting was found, nil will be returned.
-func (s *RedisClusterStore) GetBackend(
+func (s *RedisClusterRIB) GetBackend(
 	meeting *bbb.Meeting,
-) (*cluster.Backend, error) {
+) (*Backend, error) {
 	// Check identifier
 	if meeting.MeetingID == "" {
 		return nil, fmt.Errorf("meeting id is empty")
@@ -55,8 +53,8 @@ func (s *RedisClusterStore) GetBackend(
 }
 
 // SetBackend associates a backend with a meeting
-func (s *RedisClusterStore) SetBackend(
-	meeting *bbb.Meeting, backend *cluster.Backend,
+func (s *RedisClusterRIB) SetBackend(
+	meeting *bbb.Meeting, backend *Backend,
 ) error {
 	// Check identifiers
 	if meeting.MeetingID == "" {
