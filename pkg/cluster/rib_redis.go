@@ -10,6 +10,8 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
+type keyFunc func(string) string
+
 // Create a meeting key for a frontend value
 func frontendMeetingKey(id string) string {
 	return "m:" + id + ":fe"
@@ -39,53 +41,112 @@ func NewRedisRIB(state *State, opts *redis.Options) *RedisRIB {
 	}
 }
 
-// SetBackend associates a backend id with a meeting.
-// When b is nil the key will be deleted.
-func (rib *RedisRIB) SetBackend(m *bbb.Meeting, b *Backend) error {
+// Internal: Set value for a meeting.
+func (rib *RedisRIB) setMeetingValue(
+	kFun keyFunc,
+	m *bbb.Meeting,
+	value string,
+) error {
 	// Check identifiers
 	if m.MeetingID == "" {
 		return fmt.Errorf("meeting id is empty")
 	}
+	ctx := context.Background()
+	key := kFun(m.MeetingID)
+
+	// set value if not empty
+	if value == "" {
+		return fmt.Errorf("set %s value is empty", key)
+	}
+
+	return rib.rdb.Set(ctx, key, value, 0).Err()
+}
+
+// Internal Get value for a meeting
+func (rib *RedisRIB) getMeetingValue(
+	kFun keyFunc,
+	m *bbb.Meeting,
+) (string, error) {
+	if m.MeetingID == "" {
+		return "", fmt.Errorf("meeting id is empty")
+	}
 
 	ctx := context.Background()
-	key := backendMeetingKey(m.MeetingID)
+	key := kFun(m.MeetingID)
 
+	// Lookup meeting with key
+	val, err := rib.rdb.Get(ctx, key).Result()
+	if err != nil {
+		// Ignore if the key was not found
+		if errors.Is(err, redis.Nil) {
+			return "", nil
+		}
+		return "", err
+	}
+	return val, nil
+}
+
+// Internal: Delete meeting key
+func (rib *RedisRIB) deleteMeetingKey(
+	kFun keyFunc,
+	m *bbb.Meeting,
+) error {
+	// Check identifiers
+	if m.MeetingID == "" {
+		return fmt.Errorf("meeting id is empty")
+	}
+	ctx := context.Background()
+	key := kFun(m.MeetingID)
+
+	if err := rib.rdb.Del(ctx, key).Err(); !errors.Is(err, redis.Nil) {
+		return err
+	}
+
+	return nil
+}
+
+// SetBackend associates a backend id with a meeting.
+// When b is nil the key will be deleted.
+func (rib *RedisRIB) SetBackend(m *bbb.Meeting, b *Backend) error {
 	// Is this a delete operation?
 	if b == nil {
-		if err := rib.rdb.Del(ctx, key).Err(); !errors.Is(err, redis.Nil) {
-			return err
-		}
-		return nil // We are done here
+		return rib.deleteMeetingKey(backendMeetingKey, m)
 	}
-
-	// Otherwise set backend, if possible
-	if b.ID == "" {
-		return fmt.Errorf("backend id is empty")
-	}
-	return rib.rdb.Set(ctx, key, b.ID, 0).Err()
+	return rib.setMeetingValue(backendMeetingKey, m, b.ID)
 }
 
 // GetBackend retrieves a backend from the store
 // or returns nil in case it could not be found.
 func (rib *RedisRIB) GetBackend(m *bbb.Meeting) (*Backend, error) {
-	if m.MeetingID == "" {
-		return nil, fmt.Errorf("meeting id is empty")
-	}
-
-	ctx := context.Background()
-	key := backendMeetingKey(m.MeetingID)
-
 	// Lookup backend
-	id, err := rib.rdb.Get(ctx, key).Result()
+	id, err := rib.getMeetingValue(backendMeetingKey, m)
 	if err != nil {
-		// Ignore if the key was not found
-		if errors.Is(err, redis.Nil) {
-			return nil, nil
-		}
 		return nil, err
 	}
 	backend := rib.state.GetBackendByID(id)
 	return backend, nil
+}
+
+// SetFrontend associates a frontend id with a meeting.
+// When the frontend is nil the key will be deleted.
+func (rib *RedisRIB) SetFrontend(m *bbb.Meeting, fe *Frontend) error {
+	// Is this a delete operation?
+	if fe == nil {
+		return rib.deleteMeetingKey(frontendMeetingKey, m)
+	}
+	return rib.setMeetingValue(frontendMeetingKey, m, fe.ID)
+}
+
+// GetFrontend retrieves a frontend from the store
+// or returns nil in case it could not be found.
+func (rib *RedisRIB) GetFrontend(m *bbb.Meeting) (*Frontend, error) {
+	// Lookup frontend
+	id, err := rib.getMeetingValue(frontendMeetingKey, m)
+	if err != nil {
+		return nil, err
+	}
+	frontend := rib.state.GetFrontendByID(id)
+	return frontend, nil
 }
 
 // Delete is removing the meeting from the store
@@ -94,7 +155,7 @@ func (rib *RedisRIB) Delete(m *bbb.Meeting) error {
 	if err != nil {
 		return err
 	}
-
+	err = rib.SetFrontend(m, nil)
 	return err
 }
 

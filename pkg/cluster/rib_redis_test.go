@@ -28,7 +28,7 @@ func makeRedisRIB(s *State) *RedisRIB {
 	})
 }
 
-// Test redis rib
+// Test redis rib: Backend
 func TestRedisRIBBackend(t *testing.T) {
 	s := makeClusterState()
 	rib := makeRedisRIB(s)
@@ -69,6 +69,51 @@ func TestRedisRIBBackend(t *testing.T) {
 		t.Error(err)
 	}
 	if retb != nil {
+		t.Error("There should be no associated backend.")
+	}
+}
+
+// Test redis rib: Frontend
+func TestRedisRIBFrontend(t *testing.T) {
+	s := makeClusterState()
+	rib := makeRedisRIB(s)
+
+	fe := &Frontend{ID: "frontend1"}
+	m := &bbb.Meeting{MeetingID: "meeeeeeeeting00000fff"}
+
+	// Clear meeting
+	err := rib.Delete(m)
+	if err != nil {
+		t.Error(err)
+	}
+	retfe, err := rib.GetFrontend(m)
+	if err != nil {
+		t.Error(err)
+	}
+	if retfe != nil {
+		t.Error("There should be no associated backend.")
+	}
+	err = rib.SetFrontend(m, fe)
+	if err != nil {
+		t.Error(err)
+	}
+	retfe, err = rib.GetFrontend(m)
+	if err != nil {
+		t.Error(err)
+	}
+	if retfe == nil {
+		t.Error("There should be an associated backend!")
+	}
+	// Delete backend
+	err = rib.SetFrontend(m, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	retfe, err = rib.GetFrontend(m)
+	if err != nil {
+		t.Error(err)
+	}
+	if retfe != nil {
 		t.Error("There should be no associated backend.")
 	}
 }
