@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"strings"
 
 	"github.com/go-redis/redis/v8"
 
@@ -11,7 +10,6 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
-	"gitlab.com/infra.run/public/b3scale/pkg/rib"
 	// "gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
 )
 
@@ -36,8 +34,8 @@ func main() {
 		"B3SCALE_BACKENDS", "etc/b3scale/backends.conf")
 	listenHTTP := getopt(
 		"B3SCALE_LISTEN_HTTP", "127.0.0.1:42353") // B3S
-	redisAddrsOpt := getopt(
-		"B3SCALE_REDIS_ADDRS", ":6379")
+	redisAddrOpt := getopt(
+		"B3SCALE_REDIS_ADDR", ":6379")
 	redisUser := getopt(
 		"B3SCALE_REDIS_USERNAME", "")
 	redisPass := getopt(
@@ -45,7 +43,7 @@ func main() {
 
 	log.Println("Using frontends from:", frontendsConfigFilename)
 	log.Println("Using backends from:", backendsConfigFilename)
-	log.Println("Using redis cluster @", redisAddrsOpt)
+	log.Println("Using redis @", redisAddrOpt)
 
 	// Initialize configuration
 	backendsConfig := config.NewBackendsFileConfig(
@@ -69,13 +67,13 @@ func main() {
 	go ctl.Start()
 
 	// Initialize RIB
-	store := rib.NewRedisClusterStore(state, &redis.ClusterOptions{
-		Addrs:    strings.Split(redisAddrsOpt, " "),
+	rib := cluster.NewRedisRIB(state, &redis.Options{
+		Addr:     redisAddrOpt,
 		Username: redisUser,
 		Password: redisPass,
 	})
 
-	_ = store
+	_ = rib
 
 	// Start router
 	router := cluster.NewRouter(state)
