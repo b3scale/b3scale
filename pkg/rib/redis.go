@@ -67,6 +67,5 @@ func (s *RedisClusterStore) SetBackend(
 	}
 
 	ctx := context.Background()
-
 	return s.rdb.Set(ctx, meeting.MeetingID, backend.ID, 0).Err()
 }
