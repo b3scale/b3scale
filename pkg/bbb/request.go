@@ -12,6 +12,11 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
+// Well known params
+const (
+	ParamMeetingID = "meetingID"
+)
+
 // Params for the BBB API
 type Params map[string]interface{}
 
@@ -32,6 +37,20 @@ func (p Params) String() string {
 		q = append(q, fmt.Sprintf("%s=%s", k, vStr))
 	}
 	return strings.Join(q, "&")
+}
+
+// GetMeetingID retrievs the well known
+// parameter from the set of params.
+func (p Params) GetMeetingID() (string, bool) {
+	iID, ok := p[ParamMeetingID]
+	if !ok {
+		return "", false
+	}
+	id, ok := iID.(string)
+	if !ok {
+		return "", false
+	}
+	return id, true
 }
 
 // Request is a bbb request as decoded from the
