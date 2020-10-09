@@ -1,6 +1,8 @@
 package routing
 
 import (
+	"log"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
@@ -22,7 +24,7 @@ func RIBLookup(rib cluster.RIB) cluster.RouterMiddleware {
 			// Lookup meeting id in RIB, use backend
 			// if there is one associated - otherwise return
 			// all possible backends.
-			meeting := bbb.Meeting{MeetingID: id}
+			meeting := &bbb.Meeting{MeetingID: id}
 			backend, err := rib.GetBackend(meeting)
 			if err != nil {
 				return nil, err
@@ -42,8 +44,9 @@ func RIBLookup(rib cluster.RIB) cluster.RouterMiddleware {
 			}
 			if !found {
 				// Emit a warning
-				log.Warn(
-					"Requested backend", backend, "is not longer available",
+				log.Println(
+					"WARNING: Requested backend", backend,
+					"is no longer available",
 					"as selectable routing target.",
 					"Reassigning meeting:", meeting)
 				return backends, nil

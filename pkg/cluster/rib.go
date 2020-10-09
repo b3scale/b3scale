@@ -22,7 +22,7 @@ type RIB interface {
 
 	// Frontend
 	GetFrontend(*bbb.Meeting) (*Frontend, error)
-	SetFrontend(*bbb.Meeting, *Backend) error
+	SetFrontend(*bbb.Meeting, *Frontend) error
 
 	// Meeting
 	Delete(*bbb.Meeting) error
