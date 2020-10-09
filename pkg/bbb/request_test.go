@@ -29,6 +29,32 @@ func TestParamsString(t *testing.T) {
 	}
 }
 
+func TestParamsGetMeetingID(t *testing.T) {
+	p1 := Params{
+		"meetingID": "someMeetingID",
+		"foo":       "bar",
+	}
+	p2 := Params{
+		"foo": "bar",
+	}
+
+	// Found
+	id, ok := p1.GetMeetingID()
+	if !ok {
+		t.Error("expected meetingID")
+	}
+	if id != "someMeetingID" {
+		t.Error("Unexpected meetingID:", id)
+	}
+
+	// Not Found
+	id, ok = p2.GetMeetingID()
+	if ok {
+		t.Error("did not expect meetingID:", id)
+	}
+
+}
+
 func TestSign(t *testing.T) {
 	// We use the example from the api documentation.
 	// However as we encode our parameters with a deterministic
