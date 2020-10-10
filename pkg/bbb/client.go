@@ -81,33 +81,33 @@ func (c *Client) httpDo(req *Request) ([]byte, error) {
 // Internal response decoding
 func unmarshalRequestResponse(req *Request, data []byte) (Response, error) {
 	switch req.Resource {
-	case ResJoin:
+	case ResourceJoin:
 		return UnmarshalJoinResponse(data)
-	case ResCreate:
+	case ResourceCreate:
 		return UnmarshalCreateResponse(data)
-	case ResIsMeetingRunning:
+	case ResourceIsMeetingRunning:
 		return UnmarshalIsMeetingRunningResponse(data)
-	case ResEnd:
+	case ResourceEnd:
 		return UnmarshalEndResponse(data)
-	case ResGetMeetingInfo:
+	case ResourceGetMeetingInfo:
 		return UnmarshalGetMeetingInfoResponse(data)
-	case ResGetMeetings:
+	case ResourceGetMeetings:
 		return UnmarshalGetMeetingsResponse(data)
-	case ResGetRecordings:
+	case ResourceGetRecordings:
 		return UnmarshalGetRecordingsResponse(data)
-	case ResPublishRecordings:
+	case ResourcePublishRecordings:
 		return UnmarshalPublishRecordingsResponse(data)
-	case ResDeleteRecordings:
+	case ResourceDeleteRecordings:
 		return UnmarshalDeleteRecordingsResponse(data)
-	case ResUpdateRecordings:
+	case ResourceUpdateRecordings:
 		return UnmarshalUpdateRecordingsResponse(data)
-	case ResGetDefaultConfigXML:
+	case ResourceGetDefaultConfigXML:
 		return UnmarshalGetDefaultConfigXMLResponse(data)
-	case ResSetConfigXML:
+	case ResourceSetConfigXML:
 		return UnmarshalSetConfigXMLResponse(data)
-	case ResGetRecordingTextTracks:
+	case ResourceGetRecordingTextTracks:
 		return UnmarshalGetRecordingTextTracksResponse(data)
-	case ResPutRecordingTextTrack:
+	case ResourcePutRecordingTextTrack:
 		return UnmarshalPutRecordingTextTrackResponse(data)
 	}
 

@@ -44,7 +44,6 @@ type Backend struct {
 func NewBackend(cfg *config.Backend) *Backend {
 	// Start HTTP client
 	client := bbb.NewClient(cfg)
-
 	return &Backend{
 		ID:         cfg.Host,
 		cfg:        cfg,
@@ -65,9 +64,22 @@ func (b *Backend) Stop() {
 	log.Println("Shutting down backend:", b.ID)
 }
 
+// Load current state from the node. This includes
+// all meetings, meetings in detail and recordings.
+func (b *Backend) loadNodeState() error {
+	if err := b.loadMeetingsState(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Backend State Sync: Loads the state from
 // the bbb backend and keeps it locally.
-func (b *Backend) loadMeetings() error {
+// Meeting details will be fetched.
+func (b *Backend) loadMeetingsState() error {
+	// Fetch meetings from backend
+
 	return nil
 }
 

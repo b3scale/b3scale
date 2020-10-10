@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
@@ -63,6 +64,55 @@ type Request struct {
 	Params      Params
 	Body        []byte
 	Checksum    []byte
+}
+
+// Request Builders:
+
+// JoinRequest creates a new join request
+func JoinRequest(params Params) *Request {
+	return &Request{
+		Method:   http.MethodGet,
+		Resource: ResourceJoin,
+		Params:   params,
+	}
+}
+
+// CreateRequest creates a new create request
+func CreateRequest(params Params, body []byte) *Request {
+	return &Request{
+		Method:      http.MethodPost,
+		Resource:    ResourceCreate,
+		ContentType: "application/xml",
+		Params:      params,
+		Body:        body,
+	}
+}
+
+// GetMeetingsRequest builds a new getMeetings request
+func GetMeetingsRequest(params Params, body []byte) *Request {
+	return &Request{
+		Method:   http.MethodGet,
+		Resource: ResourceGetMeetings,
+		Params:   params,
+	}
+}
+
+// GetMeetingInfoRequest creates a new getMeetingInfo request
+func GetMeetingInfoRequest(params Params) *Request {
+	return &Request{
+		Method:   http.MethodGet,
+		Resource: ResourceGetMeetingInfo,
+		Params:   params,
+	}
+}
+
+// IsMeetingRunningRequest makes a new isMeetingRunning request
+func IsMeetingRunningRequest(params Params) *Request {
+	return &Request{
+		Method:   http.MethodGet,
+		Resource: ResourceIsMeetingRunning,
+		Params:   params,
+	}
 }
 
 // Internal calculate checksum with a given secret.

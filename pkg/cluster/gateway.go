@@ -44,33 +44,33 @@ func dispatchBackendHandler(
 
 	// Dispatch API resources
 	switch req.Resource {
-	case bbb.ResJoin:
+	case bbb.ResourceJoin:
 		return backend.Join(req)
-	case bbb.ResCreate:
+	case bbb.ResourceCreate:
 		return backend.Create(req)
-	case bbb.ResIsMeetingRunning:
+	case bbb.ResourceIsMeetingRunning:
 		return backend.IsMeetingRunning(req)
-	case bbb.ResEnd:
+	case bbb.ResourceEnd:
 		return backend.End(req)
-	case bbb.ResGetMeetingInfo:
+	case bbb.ResourceGetMeetingInfo:
 		return backend.GetMeetingInfo(req)
-	case bbb.ResGetMeetings:
+	case bbb.ResourceGetMeetings:
 		return backend.GetMeetings(req)
-	case bbb.ResGetRecordings:
+	case bbb.ResourceGetRecordings:
 		return backend.GetRecordings(req)
-	case bbb.ResPublishRecordings:
+	case bbb.ResourcePublishRecordings:
 		return backend.PublishRecordings(req)
-	case bbb.ResDeleteRecordings:
+	case bbb.ResourceDeleteRecordings:
 		return backend.DeleteRecordings(req)
-	case bbb.ResUpdateRecordings:
+	case bbb.ResourceUpdateRecordings:
 		return backend.UpdateRecordings(req)
-	case bbb.ResGetDefaultConfigXML:
+	case bbb.ResourceGetDefaultConfigXML:
 		return backend.GetDefaultConfigXML(req)
-	case bbb.ResSetConfigXML:
+	case bbb.ResourceSetConfigXML:
 		return backend.SetConfigXML(req)
-	case bbb.ResGetRecordingTextTracks:
+	case bbb.ResourceGetRecordingTextTracks:
 		return backend.GetRecordingTextTracks(req)
-	case bbb.ResPutRecordingTextTrack:
+	case bbb.ResourcePutRecordingTextTrack:
 		return backend.PutRecordingTextTrack(req)
 	}
 	// We could not dispatch this

@@ -43,33 +43,33 @@ func selectDiscardHandler(
 ) ([]*Backend, error) {
 	res := req.Resource
 	switch res {
-	case bbb.ResJoin:
+	case bbb.ResourceJoin:
 		return selectFirst(backends), nil
-	case bbb.ResCreate:
+	case bbb.ResourceCreate:
 		return selectFirst(backends), nil
-	case bbb.ResIsMeetingRunning:
+	case bbb.ResourceIsMeetingRunning:
 		return selectFirst(backends), nil
-	case bbb.ResEnd:
+	case bbb.ResourceEnd:
 		return selectFirst(backends), nil
-	case bbb.ResGetMeetingInfo:
+	case bbb.ResourceGetMeetingInfo:
 		return selectFirst(backends), nil
-	case bbb.ResGetMeetings:
+	case bbb.ResourceGetMeetings:
 		return backends, nil
-	case bbb.ResGetRecordings:
+	case bbb.ResourceGetRecordings:
 		return backends, nil
-	case bbb.ResPublishRecordings:
+	case bbb.ResourcePublishRecordings:
 		return backends, nil
-	case bbb.ResDeleteRecordings:
+	case bbb.ResourceDeleteRecordings:
 		return backends, nil
-	case bbb.ResUpdateRecordings:
+	case bbb.ResourceUpdateRecordings:
 		return selectFirst(backends), nil
-	case bbb.ResGetDefaultConfigXML:
+	case bbb.ResourceGetDefaultConfigXML:
 		return selectFirst(backends), nil
-	case bbb.ResSetConfigXML:
+	case bbb.ResourceSetConfigXML:
 		return selectFirst(backends), nil
-	case bbb.ResGetRecordingTextTracks:
+	case bbb.ResourceGetRecordingTextTracks:
 		return selectFirst(backends), nil
-	case bbb.ResPutRecordingTextTrack:
+	case bbb.ResourcePutRecordingTextTrack:
 		return selectFirst(backends), nil
 	}
 
