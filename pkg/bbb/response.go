@@ -598,12 +598,21 @@ func (col MeetingsCollection) GetMeetingByID(id string) *Meeting {
 // Update the collection will either replace a
 // present meeting with the new one identified by ID,
 // or will append the meeting.
-func (col MeetingsCollection) Update(m *Meeting) {
-	/// ....... .. .. WIP
+func (col MeetingsCollection) Update(m *Meeting) MeetingsCollection {
 	if col.GetMeetingByID(m.MeetingID) == nil {
-		col = append(col, m)
-		return
+		return append(col, m)
 	}
+
+	// Replace meeting
+	meetings := make(MeetingsCollection, 0, len(col))
+	for _, cur := range col {
+		if cur.MeetingID == m.MeetingID {
+			meetings = append(meetings, m) // Replace
+		} else {
+			meetings = append(meetings, cur)
+		}
+	}
+	return meetings
 }
 
 // Recording is a recorded bbb session
