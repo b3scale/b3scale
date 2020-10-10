@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
@@ -38,6 +39,8 @@ type Backend struct {
 	recordings           []*bbb.Recording
 	recordingsTextTracks map[string][]*bbb.TextTrack
 	defaultConfigXML     []byte
+
+	stop chan bool
 }
 
 // NewBackend creates a cluster node.
@@ -50,18 +53,47 @@ func NewBackend(cfg *config.Backend) *Backend {
 		client:     client,
 		meetings:   []*bbb.Meeting{},
 		recordings: []*bbb.Recording{},
+		stop:       make(chan bool),
 	}
 }
 
 // Start the backend
 func (b *Backend) Start() {
 	log.Println("Starting backend:", b.ID)
+	// Main Loop
+	for {
+		select {
+		case <-b.stop:
+			b.shutdown()
+		default:
+			b.loop()
+		}
+	}
+}
+
+// Backend Main
+func (b *Backend) loop() {
 	// Initial sync
+	err := b.loadNodeState()
+	if err != nil {
+		b.State = BackendStateReady
+		return
+	}
+
+	b.State = BackendStateReady
+
+	// Wait.
+	time.Sleep(10000 * time.Hour)
+}
+
+// Beckend on shutdown
+func (b *Backend) shutdown() {
+	log.Println("Shutting down backend:", b.ID)
 }
 
 // Stop shuts down the backend process
 func (b *Backend) Stop() {
-	log.Println("Shutting down backend:", b.ID)
+	b.stop <- true
 }
 
 // Load current state from the node. This includes
@@ -78,7 +110,32 @@ func (b *Backend) loadNodeState() error {
 // the bbb backend and keeps it locally.
 // Meeting details will be fetched.
 func (b *Backend) loadMeetingsState() error {
+	log.Println(b.ID, "SYNC: meetings")
 	// Fetch meetings from backend
+	req := bbb.GetMeetingsRequest(bbb.Params{})
+	res, err := b.client.Do(req)
+	if err != nil {
+		return err
+	}
+	meetingsRes := res.(*bbb.GetMeetingsResponse)
+
+	// Get meeting details
+	meetings := meetingsRes.Meetings
+	stateMeetings := make([]*bbb.Meeting, 0, len(meetings))
+	for _, m := range meetings {
+		req = bbb.GetMeetingInfoRequest(bbb.Params{
+			bbb.ParamMeetingID: m.MeetingID,
+		})
+		res, err = b.client.Do(req)
+		if err != nil {
+			return err // Sync must be complete.
+		}
+		meetingRes := res.(*bbb.GetMeetingInfoResponse)
+		stateMeetings = append(stateMeetings, meetingRes.Meeting)
+	}
+
+	b.meetings = stateMeetings
+	log.Println("Meetings:", b.meetings)
 
 	return nil
 }

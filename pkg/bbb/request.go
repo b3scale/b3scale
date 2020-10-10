@@ -89,7 +89,7 @@ func CreateRequest(params Params, body []byte) *Request {
 }
 
 // GetMeetingsRequest builds a new getMeetings request
-func GetMeetingsRequest(params Params, body []byte) *Request {
+func GetMeetingsRequest(params Params) *Request {
 	return &Request{
 		Method:   http.MethodGet,
 		Resource: ResourceGetMeetings,
