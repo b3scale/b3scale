@@ -582,6 +582,30 @@ func (m *Meeting) String() string {
 	)
 }
 
+// MeetingsCollection is a slice of meetings
+type MeetingsCollection []*Meeting
+
+// GetMeetingByID retrieves a meeting by its id
+func (col MeetingsCollection) GetMeetingByID(id string) *Meeting {
+	for _, m := range col {
+		if m.MeetingID == id {
+			return m
+		}
+	}
+	return nil
+}
+
+// Update the collection will either replace a
+// present meeting with the new one identified by ID,
+// or will append the meeting.
+func (col MeetingsCollection) Update(m *Meeting) {
+	/// ....... .. .. WIP
+	if col.GetMeetingByID(m.MeetingID) == nil {
+		col = append(col, m)
+		return
+	}
+}
+
 // Recording is a recorded bbb session
 type Recording struct {
 	XMLName           xml.Name  `xml:"recording"`

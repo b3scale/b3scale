@@ -164,13 +164,27 @@ func (b *Backend) Create(req *bbb.Request) (
 func (b *Backend) Join(
 	req *bbb.Request,
 ) (*bbb.JoinResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	// Make join request to the backend and update local
+	// meetings state
+	res, err := b.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	joinRes := res.(*bbb.CreateResponse)
+
+	// Insert meeting into state
+	b.meetings = append(b.meetings, createRes.Meeting)
+
+	return createRes, nil
 }
 
 // IsMeetingRunning returns the is meeting running state
 func (b *Backend) IsMeetingRunning(
 	req *bbb.Request,
 ) (*bbb.IsMeetingRunningResponse, error) {
+
+	// Try With the server...
+
 	return nil, fmt.Errorf("implement me")
 }
 
