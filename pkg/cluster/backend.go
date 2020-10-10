@@ -135,7 +135,7 @@ func (b *Backend) loadMeetingsState() error {
 	}
 
 	b.meetings = stateMeetings
-	log.Println("Meetings:", b.meetings)
+	log.Println(b.ID, "Meetings:", b.meetings)
 
 	return nil
 }
@@ -146,7 +146,18 @@ func (b *Backend) loadMeetingsState() error {
 func (b *Backend) Create(req *bbb.Request) (
 	*bbb.CreateResponse, error,
 ) {
-	return nil, fmt.Errorf("implement me")
+	// Make request to the backend and update local
+	// meetings state
+	res, err := b.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	createRes := res.(*bbb.CreateResponse)
+
+	// Insert meeting into state
+	b.meetings = append(b.meetings, createRes.Meeting)
+
+	return createRes, nil
 }
 
 // Join a meeting
