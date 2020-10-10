@@ -188,7 +188,7 @@ func (res *GetMeetingInfoResponse) Merge(other Response) error {
 // GetMeetingsResponse contains a list of meetings.
 type GetMeetingsResponse struct {
 	*XMLResponse
-	Meetings []*Meeting `xml:"meetings>meeting"`
+	Meetings MeetingsCollection `xml:"meetings>meeting"`
 }
 
 // UnmarshalGetMeetingsResponse decodes the xml response
