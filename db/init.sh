@@ -8,11 +8,9 @@
 # @description :  Initialize the database
 ######################################################################
 
-
 if [ -z $PSQL ]; then
     PSQL="psql"
 fi
-
 
 if [ -z $DB_HOST ]; then
     DB_HOST="localhost"
@@ -43,4 +41,4 @@ export PGUSER=$DB_USER
 export PGPASSWORD=$DB_PASSWORD
 
 ## Apply sql scripts
-psql < schema/0001_initial_tables.sql
+$PSQL < schema/0001_initial_tables.sql

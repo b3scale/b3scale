@@ -3,6 +3,10 @@
 
 We use postgres to store a shared state across instances.
 
+## Initialization
+
+To initialize an empty database, you can use the `init.sh`
+script to apply all sql scripts in `./schema/`
 
 ## Tables
 
@@ -25,17 +29,10 @@ This table holds all frontend configurations:
     secret: the frontend secret in plain text
 
 
-### meetings
+### store
 
-The meetings table holds information about the meeting.
-Meeting data as recieved from the node is stored as json value
-in the `info` attribute. The following additional attributes
-are available
-
-    id: MeetingID (string)
-    backend_id: ID of the backend node
-    frontend_id: ID of the associated frontend
-
+Holds meetings and recordings data or other shared
+backend state. Has key value store properties.
 
 ### commands (...)
 
@@ -46,4 +43,5 @@ by the instance. e.g. reloading the configuration.
     sequence: e.g. timestap nano (uint64)
     action: name of the action (string)
     args: list of arguments ([json])
+
 
