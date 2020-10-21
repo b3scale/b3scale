@@ -60,16 +60,9 @@ func main() {
 	ctl := NewSigCtl(controller)
 	go ctl.Start()
 
-	// Initialize RIB
-	rib := cluster.NewRedisRIB(state, &redis.Options{
-		Addr:     redisAddrOpt,
-		Username: redisUser,
-		Password: redisPass,
-	})
-
 	// Start router
 	router := cluster.NewRouter(state)
-	router.Use(routing.RIBLookup(rib))
+	router.Use(routing.RIBLookup(state))
 	// router.Use(routing.SortLoad)
 	// router.Use(routing.SessionTracking...)
 
@@ -78,7 +71,6 @@ func main() {
 	gateway := cluster.NewGateway()
 	// gateway.Use(frontendFilter)
 	gateway.Use(requests.NewDispatchMerge())
-	// gateway.Use(cache)
 	gateway.Use(router.Middleware())
 	go gateway.Start()
 
