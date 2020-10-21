@@ -54,6 +54,8 @@ CREATE TABLE frontends (
     key     text NOT NULL UNIQUE,
     secret  text NOT NULL,
 
+    active  BOOLEAN NOT NULL DEFAULT true,
+
     -- Timestamps
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NULL DEFAULT NULL
