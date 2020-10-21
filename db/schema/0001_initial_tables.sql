@@ -1,6 +1,10 @@
-
 --
--- Create the initial b3scale db schema
+-- ----------------------
+-- b3scale schema v.1.0.0
+-- ----------------------
+--
+-- %% Author:      annika
+-- %% Description: Create the initial b3scale db schema.
 --
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -24,7 +28,7 @@ CREATE TABLE frontends (
     id      uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
 
     key     text NOT NULL UNIQUE,
-    secret  text NOT NULL
+    secret  text NOT NULL,
 
     -- Timestamps
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -32,15 +36,33 @@ CREATE TABLE frontends (
 );
 
 
--- Meetings
-CREATE TABLE meetings (
+-- The store table holds the shared state
+-- between instances. This can be meeting data
+-- but also recording information.
+--
+-- Please note that the primary source of truth
+-- about meetings etc. should be the bbb instance.
+--
+-- Also: If required this could be split up
+-- into dedicated entities.
+--
+-- To for example get all meetings for a backend:
+-- SELECT * FROM store 
+--          WHERE backend_id = $1
+--            AND key LIKE 'meeting:%'
+--
+CREATE TABLE store (
     id      uuid PRIMARY KEY,
 
-    -- All meeting data is stored in the jsonb field.
-    -- This should be sufficient for now.
-    -- A later optimization could be moving out the attendees
-    -- into a separate entity.
-    info    jsonb NOT NULL,
+    -- The stores have an additional key, which can
+    -- be used for querying - eg.: meeting:2839102938012
+    key     text NOT NULL,
+
+    -- All state data is stored in the jsonb field.
+    -- This should be sufficient for now; if required
+    -- the state could be broken up into meetings,
+    -- attendees, recordings, etc...
+    state   jsonb NOT NULL,
 
     -- Relations
     frontend_id uuid NULL DEFAULT NULL
@@ -56,5 +78,5 @@ CREATE TABLE meetings (
     updated_at  TIMESTAMP NULL DEFAULT NULL
 );
 
--- Recordings
+CREATE INDEX idx_store_key ON store USING btree (key);
 
