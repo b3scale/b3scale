@@ -172,12 +172,12 @@ func (b *Backend) Join(
 	if err != nil {
 		return nil, err
 	}
-	joinRes := res.(*bbb.CreateResponse)
+	joinRes := res.(*bbb.JoinResponse)
 
-	// Insert meeting into state
-	b.meetings = append(b.meetings, createRes.Meeting)
+	// Update meeting attendee list
+	// ...
 
-	return createRes, nil
+	return joinRes, nil
 }
 
 // IsMeetingRunning returns the is meeting running state
