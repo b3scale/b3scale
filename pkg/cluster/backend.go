@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 const (
@@ -27,35 +28,28 @@ type BackendState int
 // It has a host and a secret for request authentication.
 // It syncs it's state with the bbb instance.
 type Backend struct {
-	ID        string
-	State     BackendState
-	LastError string
+	ID string
 
 	cfg    *config.Backend
+	state  *store.BackendState
 	client *bbb.Client
-
-	// Local state is stored in the RIB, which
-	// provides methods for retrieving the nodes
-	// meetings, recordings, text tracks,
-	meetings             []*bbb.Meeting
-	recordings           []*bbb.Recording
-	recordingsTextTracks map[string][]*bbb.TextTrack
-	defaultConfigXML     []byte
 
 	stop chan bool
 }
 
 // NewBackend creates a cluster node.
-func NewBackend(cfg *config.Backend) *Backend {
+func NewBackend(
+	cfg *config.Backend,
+	state *store.BackendState,
+) *Backend {
 	// Start HTTP client
 	client := bbb.NewClient(cfg)
 	return &Backend{
-		ID:         cfg.Host,
-		cfg:        cfg,
-		client:     client,
-		meetings:   []*bbb.Meeting{},
-		recordings: []*bbb.Recording{},
-		stop:       make(chan bool),
+		ID:     cfg.Host,
+		cfg:    cfg,
+		client: client,
+		state:  state,
+		stop:   make(chan bool),
 	}
 }
 
