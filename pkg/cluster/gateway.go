@@ -11,14 +11,12 @@ import (
 // The Gateway accepts bbb cluster requests and dispatches
 // it to the cluster nodes.
 type Gateway struct {
-	state      *State
 	middleware RequestHandler
 }
 
 // NewGateway sets up a new cluster router instance.
-func NewGateway(state *State) *Gateway {
+func NewGateway() *Gateway {
 	return &Gateway{
-		state:      state,
 		middleware: dispatchBackendHandler,
 	}
 }

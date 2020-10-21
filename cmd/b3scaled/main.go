@@ -45,14 +45,8 @@ func main() {
 	log.Println("Using backends from:", backendsConfigFilename)
 	log.Println("Using redis @", redisAddrOpt)
 
-	// Initialize configuration
-	backendsConfig := config.NewBackendsFileConfig(
-		backendsConfigFilename)
-	frontendsConfig := config.NewFrontendsFileConfig(
-		frontendsConfigFilename)
-
 	// Initialize cluster
-	state := cluster.NewState()
+	state := store.NewClusterState()
 	go state.Start()
 
 	// Start cluster controller
@@ -81,7 +75,7 @@ func main() {
 
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
-	gateway := cluster.NewGateway(state)
+	gateway := cluster.NewGateway()
 	// gateway.Use(frontendFilter)
 	gateway.Use(requests.NewDispatchMerge())
 	// gateway.Use(cache)
