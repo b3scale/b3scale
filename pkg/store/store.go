@@ -14,20 +14,34 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
+// Store provides an interface for persisting and
+// retrieving data from a shared state. The store is
+// stringly typed.
+type Store interface {
+	Get(string) (string, error)
+	GetAll(string) ([]string, error)
+
+	// Set a key with data
+	Set(string, string) error
+
+	// Delete a key
+	Delete(string) error
+}
+
 // The RIB provides an interface for retrieving
 // stored routing decisions for a meeting.
 type RIB interface {
 	// Routing information:
 	// Backend
-	GetBackend(string) (*cluster.Backend, error)
-	SetBackend(string, *cluster.Backend) error
+	GetBackend(*bbb.Meeting) (*cluster.Backend, error)
+	SetBackend(*bbb.Meeting, *cluster.Backend) error
 
 	// Frontend
-	GetFrontend(string) (*cluster.Frontend, error)
-	SetFrontend(string, *cluster.Frontend) error
+	GetFrontend(*bbb.Meeting) (*cluster.Frontend, error)
+	SetFrontend(*bbb.Meeting, *cluster.Frontend) error
 
 	// Forget about the meeting
-	Delete(string) error
+	Delete(*bbb.Meeting) error
 }
 
 // The BackendState is shared across instances
@@ -35,13 +49,13 @@ type RIB interface {
 // The backend.ID should be used as identifier.
 type BackendState interface {
 	// Meetings
-	GetMeetings(string) (bbb.MeetingsCollection, error)
-	SetMeetings(string, bbb.MeetingsCollection) error
+	GetMeetings(*cluster.Backend) (bbb.MeetingsCollection, error)
+	SetMeetings(*cluster.Backend, bbb.MeetingsCollection) error
 
 	// Recordings
-	GetRecordings(string) (bbb.MeetingsCollection, error)
-	SetRecordings(string, bbb.MeetingsCollection) error
+	GetRecordings(*cluster.Backend) (bbb.MeetingsCollection, error)
+	SetRecordings(*cluster.Backend, bbb.MeetingsCollection) error
 
 	// Forget about the backend
-	Delete(string)
+	Delete(*cluster.Backend)
 }

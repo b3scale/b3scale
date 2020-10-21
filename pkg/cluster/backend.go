@@ -34,7 +34,9 @@ type Backend struct {
 	cfg    *config.Backend
 	client *bbb.Client
 
-	// Local state
+	// Local state is stored in the RIB, which
+	// provides methods for retrieving the nodes
+	// meetings, recordings, text tracks,
 	meetings             []*bbb.Meeting
 	recordings           []*bbb.Recording
 	recordingsTextTracks map[string][]*bbb.TextTrack
