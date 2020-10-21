@@ -37,7 +37,7 @@ are available
     frontend_id: ID of the associated frontend
 
 
-### commands
+### commands (...)
 
 The commands table acts as a queue for actions performed
 by the instance. e.g. reloading the configuration.
