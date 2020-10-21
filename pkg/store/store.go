@@ -53,8 +53,8 @@ type BackendState interface {
 	SetMeetings(*cluster.Backend, bbb.MeetingsCollection) error
 
 	// Recordings
-	GetRecordings(*cluster.Backend) (bbb.MeetingsCollection, error)
-	SetRecordings(*cluster.Backend, bbb.MeetingsCollection) error
+	GetRecordings(*cluster.Backend) (bbb.RecordingsCollection, error)
+	SetRecordings(*cluster.Backend, bbb.RecordingsCollection) error
 
 	// Forget about the backend
 	Delete(*cluster.Backend)
