@@ -9,9 +9,32 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+
+-- The instance state indicates if the backend
+-- is ready to accept requests.
+CREATE TYPE instance_state AS ENUM (
+    'init',    
+    -- The backend is initializing.
+    'ready',   
+    -- Ready for accepting requests.
+    'error', 
+    -- An error occured and we should not longer
+    -- accept new requests.
+    'stopped'
+    -- The backend is disabled and should not accept
+    -- any requests.
+);
+
+
 -- Backends
 CREATE TABLE backends (
     id      uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+
+    -- The instance state indicates the current state
+    -- of the bbb node, the admin state declares the
+    -- desired state of the instance.
+    node_state  instance_state NOT NULL DEFAULT 'init',
+    admin_state instance_state NOT NULL DEFAULT 'ready',
 
     host    text NOT NULL,
     secret  text NOT NULL,
@@ -20,7 +43,8 @@ CREATE TABLE backends (
 
     -- Timestamps
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NULL DEFAULT NULL
+    updated_at  TIMESTAMP NULL DEFAULT NULL,
+    synced_at   TIMESTAMP NULL DEFAULT NULL
 );
 
 -- Frontends
@@ -75,7 +99,8 @@ CREATE TABLE store (
 
     -- Timestamps
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NULL DEFAULT NULL
+    updated_at  TIMESTAMP NULL DEFAULT NULL,
+    synced_at   TIMESTAMP NULL DEFAULT NULL
 );
 
 CREATE INDEX idx_store_key ON store USING btree (key);

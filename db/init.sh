@@ -32,13 +32,27 @@ if [ -z $DB_PASSWORD ]; then
     DB_PASSWORD="postgres"
 fi
 
-
 ## Setup postgres env
 export PGHOST=$DB_HOST
 export PGPORT=$DB_PORT
 export PGDATABASE=$DB_NAME
 export PGUSER=$DB_USER
 export PGPASSWORD=$DB_PASSWORD
+
+
+## Commandline opts: 
+if [ "$1" == "-h" ]; then
+    echo "Options:"
+    echo "   -h     Show this helpful text"
+    echo "   -c     Drop and create the database"
+    exit
+fi
+
+if [ "$1" == "-c" ]; then
+    echo "Clearing database..."
+    $PSQL template1 -c "DROP DATABASE $DB_NAME"
+    $PSQL template1 -c "CREATE DATABASE $DB_NAME"
+fi
 
 ## Apply sql scripts
 $PSQL < schema/0001_initial_tables.sql
