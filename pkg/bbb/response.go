@@ -222,10 +222,13 @@ func (res *GetMeetingsResponse) Merge(other Response) error {
 	return nil
 }
 
+// RecordingsCollection is a list of recordings
+type RecordingsCollection []*Recording
+
 // GetRecordingsResponse is the response of the getRecordings resource
 type GetRecordingsResponse struct {
 	*XMLResponse
-	Recordings []*Recording `xml:"recordings>recording"`
+	Recordings RecordingsCollection `xml:"recordings>recording"`
 }
 
 // UnmarshalGetRecordingsResponse deserializes the response XML
