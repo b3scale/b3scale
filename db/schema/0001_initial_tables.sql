@@ -166,9 +166,9 @@ CREATE TABLE commands (
     -- The action encodes a invokable function
     -- for example retrieving the current bbb state from
     -- a backend.
-    action  VARCHAR(80)   NOT NULL,
-    params  json          NOT NULL,
-    result  json          NOT NULL,
+    action  VARCHAR(80),
+    params  json          NULL,
+    result  json          NULL,
 
     -- Job control: A deadline is required for each 
     -- command. Afterwards the command is expired.
