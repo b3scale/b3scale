@@ -64,9 +64,9 @@ CREATE TABLE frontends (
 );
 
 
--- The store table holds the shared state
--- between instances. This can be meeting data
--- but also recording information.
+-- The store tables: `meetings`, `recordings`,
+-- `recording_text_tracks` hold the shared state
+-- between instances. 
 --
 -- Please note that the primary source of truth
 -- about meetings etc. should be the bbb instance.
@@ -74,17 +74,9 @@ CREATE TABLE frontends (
 -- Also: If required this could be split up
 -- into dedicated entities.
 --
--- To for example get all meetings for a backend:
--- SELECT * FROM store 
---          WHERE backend_id = $1
---            AND key LIKE 'meeting:%'
---
-CREATE TABLE store (
+CREATE TABLE meetings (
+    -- The BBB meeting ID
     id      uuid PRIMARY KEY,
-
-    -- The stores have an additional key, which can
-    -- be used for querying - eg.: meeting:2839102938012
-    key     text NOT NULL,
 
     -- All state data is stored in the jsonb field.
     -- This should be sufficient for now; if required
@@ -93,9 +85,9 @@ CREATE TABLE store (
     state   jsonb NOT NULL,
 
     -- Relations
-    frontend_id uuid NULL DEFAULT NULL
+    frontend_id uuid NOT NULL
                 REFERENCES frontends(id)
-                ON DELETE SET NULL,
+                ON DELETE CASCADE,
 
     backend_id uuid NOT NULL
                REFERENCES backends(id)
@@ -107,5 +99,55 @@ CREATE TABLE store (
     synced_at   TIMESTAMP NULL DEFAULT NULL
 );
 
-CREATE INDEX idx_store_key ON store USING btree (key);
+-- Recordings are quite like meetings, however
+-- a foreign key relation exists to improve querying.
+CREATE TABLE recordings (
+    -- The BBB record ID
+    id      uuid PRIMARY KEY,
+    state   jsonb NOT NULL,
+
+    -- Relations
+    backend_id uuid NOT NULL
+               REFERENCES backends(id)
+               ON DELETE CASCADE,
+    
+    meeting_id uuid NOT NULL
+               REFERENCES meetings(id)
+               ON DELETE CASCADE,
+
+    -- Timestamps
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NULL DEFAULT NULL,
+    synced_at   TIMESTAMP NULL DEFAULT NULL
+);
+
+-- RecordingTextTracks are associated with recordings
+-- meetings through a foreign key relation for querying.
+CREATE TABLE recording_text_tracks (
+    -- The BBB record ID
+    id      uuid PRIMARY KEY,
+    state   jsonb NOT NULL,
+
+    -- Relations
+    record_id   uuid NOT NULL
+                REFERENCES recordings(id)
+                ON DELETE CASCADE,
+
+    -- Timestamps
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NULL DEFAULT NULL,
+    synced_at   TIMESTAMP NULL DEFAULT NULL
+);
+
+
+-- The eta table stores information about the schema
+-- like when it was migrated and the current revision.
+CREATE TABLE __meta__ (
+    version     INTEGER   NOT NULL  UNIQUE,
+    description TEXT      NOT NULL,
+    applied_at  TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO __meta__ (version, description)
+     VALUES (1, 'initial tables');
 

@@ -21,7 +21,7 @@ if [ -z $DB_PORT ]; then
 fi
 
 if [ -z $DB_NAME ]; then
-    DB_NAME="postgres"
+    DB_NAME="b3scale"
 fi
 
 if [ -z $DB_USER ]; then
