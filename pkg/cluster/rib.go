@@ -1,4 +1,4 @@
-package store
+package cluster
 
 import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
