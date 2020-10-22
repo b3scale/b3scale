@@ -140,7 +140,7 @@ CREATE TABLE recording_text_tracks (
 );
 
 
--- The eta table stores information about the schema
+-- The meta table stores information about the schema
 -- like when it was migrated and the current revision.
 CREATE TABLE __meta__ (
     version     INTEGER   NOT NULL  UNIQUE,
