@@ -129,8 +129,8 @@ func (req *Request) calculateChecksum(secret string) []byte {
 // Validate request coming from a frontend.
 // Compare checksum with the checksum calculated from the params
 // and the frontend secret
-func (req *Request) Validate(frontend *config.Frontend) error {
-	expected := req.calculateChecksum(frontend.Secret)
+func (req *Request) Validate(secret string) error {
+	expected := req.calculateChecksum(secret)
 	if subtle.ConstantTimeCompare(expected, req.Checksum) != 1 {
 		return fmt.Errorf("invalid checksum")
 	}
@@ -138,16 +138,15 @@ func (req *Request) Validate(frontend *config.Frontend) error {
 }
 
 // Sign a request, with the backend secret.
-func (req *Request) Sign(backend *config.Backend) string {
-	return string(req.calculateChecksum(backend.Secret))
+func (req *Request) Sign(secret string) string {
+	return string(req.calculateChecksum(secret))
 }
 
 // URL builds the URL representation of the
 // request, directed at a backend.
-func (req *Request) URL(cfg *config.Backend) string {
+func (req *Request) URL(apiBase, secret string) string {
 	// In case the configuration does not end in a trailing slash,
 	// append it when needed.
-	apiBase := cfg.Host
 	if !strings.HasSuffix(apiBase, "/") {
 		apiBase += "/"
 	}

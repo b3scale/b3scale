@@ -1,4 +1,4 @@
-package store
+package cluster
 
 import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -9,6 +9,17 @@ import (
 // and encapsulates the list of meetings and recordings.
 // The backend.ID should be used as identifier.
 type BackendState struct {
+	ID string
+
+	NodeState  string
+	AdminState string
+
+	LastError string
+
+	Host   string
+	Secret string
+
+	Tags []string
 }
 
 // Meetings

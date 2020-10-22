@@ -1,19 +1,19 @@
-package store
+package cluster
 
 import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-// The ClusterState holds the current backends
+// The State of the cluster holds the current backends
 // and frontends in the cluster.
-type ClusterState struct {
+type State struct {
 	conn *pgxpool.Conn
 }
 
-// NewClusterState will initialize the cluster state
+// NewState will initialize the cluster state
 // with a database connection.
-func NewClusterState(conn *pgxpool.Conn) *ClusterState {
-	return &ClusterState{
+func NewState(conn *pgxpool.Conn) *ClusterState {
+	return &State{
 		conn: conn,
 	}
 }

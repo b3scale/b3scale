@@ -6,25 +6,22 @@ import (
 	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-// A Backend is a BigBlueButton instance and a node in
-// the cluster.
+// A Backend is a BigBlueButton instance in the cluster.
 //
-// It has a host and a secret for request authentication,
+// It has a bbb.backend secret for request authentication,
 // stored in the backend state. The state is shared across all
 // instances.
 //
 type Backend struct {
-	state  *store.BackendState
+	state  *BackendState
 	client *bbb.Client
 }
 
 // Load current state from the node. This includes
 // all meetings, meetings in detail and recordings.
-func (b *Backend) loadNodeState() error {
+func (b *Backend) fetchBBBState() error {
 	if err := b.loadMeetingsState(); err != nil {
 		return err
 	}
