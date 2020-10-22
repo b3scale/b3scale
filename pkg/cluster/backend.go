@@ -10,86 +10,16 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-const (
-	// BackendStateInit when syncing the state
-	BackendStateInit = iota
-	// BackendStateReady when we accept requests
-	BackendStateReady
-	// BackendStateError when we do not accept requests
-	BackendStateError
-)
-
-// The BackendState can be init, active or error
-type BackendState int
-
 // A Backend is a BigBlueButton instance and a node in
 // the cluster.
 //
-// It has a host and a secret for request authentication.
-// It syncs it's state with the bbb instance.
+// It has a host and a secret for request authentication,
+// stored in the backend state. The state is shared across all
+// instances.
+//
 type Backend struct {
-	ID string
-
-	cfg    *config.Backend
 	state  *store.BackendState
 	client *bbb.Client
-
-	stop chan bool
-}
-
-// NewBackend creates a cluster node.
-func NewBackend(
-	cfg *config.Backend,
-	state *store.BackendState,
-) *Backend {
-	// Start HTTP client
-	client := bbb.NewClient(cfg)
-	return &Backend{
-		ID:     cfg.Host,
-		cfg:    cfg,
-		client: client,
-		state:  state,
-		stop:   make(chan bool),
-	}
-}
-
-// Start the backend
-func (b *Backend) Start() {
-	log.Println("Starting backend:", b.ID)
-	// Main Loop
-	for {
-		select {
-		case <-b.stop:
-			b.shutdown()
-		default:
-			b.loop()
-		}
-	}
-}
-
-// Backend Main
-func (b *Backend) loop() {
-	// Initial sync
-	err := b.loadNodeState()
-	if err != nil {
-		b.State = BackendStateReady
-		return
-	}
-
-	b.State = BackendStateReady
-
-	// Wait.
-	time.Sleep(10000 * time.Hour)
-}
-
-// Beckend on shutdown
-func (b *Backend) shutdown() {
-	log.Println("Shutting down backend:", b.ID)
-}
-
-// Stop shuts down the backend process
-func (b *Backend) Stop() {
-	b.stop <- true
 }
 
 // Load current state from the node. This includes
@@ -105,7 +35,7 @@ func (b *Backend) loadNodeState() error {
 // Backend State Sync: Loads the state from
 // the bbb backend and keeps it locally.
 // Meeting details will be fetched.
-func (b *Backend) loadMeetingsState() error {
+func (b *Backend) fetchMeetingsState() error {
 	log.Println(b.ID, "SYNC: meetings")
 	// Fetch meetings from backend
 	req := bbb.GetMeetingsRequest(bbb.Params{})
