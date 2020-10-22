@@ -140,6 +140,45 @@ CREATE TABLE recording_text_tracks (
 );
 
 
+-- Commands state transition between requested
+-- and a final success indicator.
+CREATE TYPE command_state AS ENUM (
+    -- The initial state of a command is that the request
+    -- was issued.
+    'requested',
+    -- The command is being executed
+    'running',
+    -- Finally executing the command was successful
+    'success',
+    -- Finally executing the command was not successful
+    'error'
+);
+
+-- Commands are jobs processed by any b3scale instance.
+-- B3scale instances listen on a pg notify queue.
+CREATE TABLE commands (
+    id      uuid          DEFAULT uuid_generate_v4()
+                          PRIMARY KEY,
+    seq     SERIAL,
+
+    state   command_state DEFAULT 'requested',
+
+    -- The action encodes a invokable function
+    -- for example retrieving the current bbb state from
+    -- a backend.
+    action  VARCHAR(80)   NOT NULL,
+    params  json          NOT NULL,
+    result  json          NOT NULL,
+
+    -- Job control: A deadline is required for each 
+    -- command. Afterwards the command is expired.
+    deadline   TIMESTAMP,
+    started_at TIMESTAMP  NULL    DEFAULT NULL,
+    stopped_at TIMESTAMP  NULL    DEFAULT NULL,
+    created_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP
+);
+
+
 -- The meta table stores information about the schema
 -- like when it was migrated and the current revision.
 CREATE TABLE __meta__ (
