@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
@@ -28,25 +28,21 @@ func main() {
 	log.Println("Starting b3scaled.")
 
 	// Config
-	frontendsConfigFilename := getopt(
-		"B3SCALE_FRONTENDS", "etc/b3scale/frontends.conf")
-	backendsConfigFilename := getopt(
-		"B3SCALE_BACKENDS", "etc/b3scale/backends.conf")
 	listenHTTP := getopt(
 		"B3SCALE_LISTEN_HTTP", "127.0.0.1:42353") // B3S
-	redisAddrOpt := getopt(
-		"B3SCALE_REDIS_ADDR", ":6379")
-	redisUser := getopt(
-		"B3SCALE_REDIS_USERNAME", "")
-	redisPass := getopt(
-		"B3SCALE_REDIS_PASSWORD", "")
+	dbConnStr := getopt(
+		"B3SCALE_DB_URL",
+		"postgres://postgres:postgres@localhost:5432/b3scale")
 
-	log.Println("Using frontends from:", frontendsConfigFilename)
-	log.Println("Using backends from:", backendsConfigFilename)
-	log.Println("Using redis @", redisAddrOpt)
+	// Initialize postgres connection
+	dbConn, err := pgxpool.Connect(context.Background(), dbConnStr)
+	if err != nil {
+		log.Println("Error while connecting to database:", err)
+		return
+	}
 
 	// Initialize cluster
-	state := store.NewClusterState()
+	state := store.NewClusterState(dbConn)
 	go state.Start()
 
 	// Start cluster controller
