@@ -3,7 +3,6 @@ package cluster
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -22,7 +21,7 @@ type Backend struct {
 // Load current state from the node. This includes
 // all meetings, meetings in detail and recordings.
 func (b *Backend) fetchBBBState() error {
-	if err := b.loadMeetingsState(); err != nil {
+	if err := b.fetchMeetingsState(); err != nil {
 		return err
 	}
 
@@ -33,7 +32,7 @@ func (b *Backend) fetchBBBState() error {
 // the bbb backend and keeps it locally.
 // Meeting details will be fetched.
 func (b *Backend) fetchMeetingsState() error {
-	log.Println(b.ID, "SYNC: meetings")
+	log.Println(b.state.ID, "SYNC: meetings")
 	// Fetch meetings from backend
 	req := bbb.GetMeetingsRequest(bbb.Params{})
 	res, err := b.client.Do(req)
@@ -57,8 +56,11 @@ func (b *Backend) fetchMeetingsState() error {
 		stateMeetings = append(stateMeetings, meetingRes.Meeting)
 	}
 
-	b.meetings = stateMeetings
-	log.Println(b.ID, "Meetings:", b.meetings)
+	if err := b.state.SetMeetings(stateMeetings); err != nil {
+		return err
+	}
+
+	log.Println(b.state.ID, "Meetings:", stateMeetings)
 
 	return nil
 }
@@ -78,7 +80,9 @@ func (b *Backend) Create(req *bbb.Request) (
 	createRes := res.(*bbb.CreateResponse)
 
 	// Insert meeting into state
-	b.meetings = append(b.meetings, createRes.Meeting)
+	if err := b.state.AddMeeting(createRes.Meeting); err != nil {
+		return nil, err
+	}
 
 	return createRes, nil
 }

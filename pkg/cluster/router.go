@@ -98,18 +98,18 @@ func (r *Router) Middleware() RequestMiddleware {
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
 			// Filter backends and only accept state active
-			backends := make([]*Backend, 0, len(r.state.backends))
-			for _, backend := range r.state.backends {
-				if backend.State == BackendStateReady {
-					backends = append(backends, backend)
-				}
+			backends, err := r.state.GetBackends(&GetBackendsOpts{
+				FilterState: BackendStateReady,
+			})
+			if err != nil {
+				return nil, err
 			}
 			if len(backends) == 0 {
 				return nil, fmt.Errorf("no backends available")
 			}
 
-			// Add all backends to context and do routing
-			backends, err := r.middleware(backends, req)
+			// Apply routing middleware to backends for a BBB request
+			backends, err = r.middleware(backends, req)
 			if err != nil {
 				return nil, err
 			}

@@ -9,8 +9,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
 // Well known params
@@ -153,7 +151,7 @@ func (req *Request) URL(apiBase, secret string) string {
 
 	// Sign the request and encode params
 	qry := req.Params.String()
-	chksum := req.Sign(cfg)
+	chksum := req.Sign(secret)
 
 	// Build request url
 	reqURL := apiBase + req.Resource

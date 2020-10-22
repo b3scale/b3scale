@@ -7,12 +7,12 @@ import (
 // The State of the cluster holds the current backends
 // and frontends in the cluster.
 type State struct {
-	conn *pgxpool.Conn
+	conn *pgxpool.Pool
 }
 
 // NewState will initialize the cluster state
 // with a database connection.
-func NewState(conn *pgxpool.Conn) *ClusterState {
+func NewState(conn *pgxpool.Pool) *State {
 	return &State{
 		conn: conn,
 	}
@@ -25,12 +25,17 @@ type GetBackendsOpts struct {
 }
 
 // GetBackends retrives backends
-func (c *ClusterState) GetBackends(opts *GetBackendsOpts) {
-
+func (c *State) GetBackends(opts *GetBackendsOpts) ([]*Backend, error) {
+	return nil, nil
 }
 
-// GetBackend .... . .. . ..  provides filtering options
-// for the GetBackend operation
-func (c *ClusterState) GetBackend() {
+// GetBackendByID retrievs a specific backend by ID
+func (c *State) GetBackendByID(id string) (*Backend, error) {
+	return nil, nil
+}
 
+// GetBackendByHost retrievs a specific backend
+// by the unique host name
+func (c *State) GetBackendByHost(host string) (*Backend, error) {
+	return nil, nil
 }

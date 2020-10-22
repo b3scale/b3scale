@@ -8,6 +8,14 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
+// BackendStates: The state of the cluster backend.
+const (
+	BackendStateInit    = "init"
+	BackendStateReady   = "ready"
+	BackendStateError   = "error"
+	BackendStateStopped = "stopped"
+)
+
 // The Gateway accepts bbb cluster requests and dispatches
 // it to the cluster nodes.
 type Gateway struct {
@@ -35,7 +43,7 @@ func dispatchBackendHandler(
 	}
 
 	// Check if the backend is ready to accept requests:
-	if backend.State != BackendStateReady {
+	if backend.state.NodeState != BackendStateReady {
 		return nil, fmt.Errorf("backend not ready")
 		// This should however not happen!
 	}

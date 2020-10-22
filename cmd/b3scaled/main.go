@@ -42,23 +42,12 @@ func main() {
 	}
 
 	// Initialize cluster
-	state := store.NewClusterState(dbConn)
-	go state.Start()
-
-	// Start cluster controller
-	controller := cluster.NewController(
-		state,
-		backendsConfig,
-		frontendsConfig)
-	go controller.Start()
-
-	// Start control signal handler
-	ctl := NewSigCtl(controller)
-	go ctl.Start()
+	state := cluster.NewState(dbConn)
+	rib := cluster.NewRIB(dbConn)
 
 	// Start router
 	router := cluster.NewRouter(state)
-	router.Use(routing.RIBLookup(state))
+	router.Use(routing.RIBLookup(rib))
 	// router.Use(routing.SortLoad)
 	// router.Use(routing.SessionTracking...)
 
@@ -73,7 +62,6 @@ func main() {
 	// Start HTTP interface
 	ifaceHTTP := http.NewInterface(
 		listenHTTP,
-		controller,
 		gateway)
 
 	ifaceHTTP.Start()

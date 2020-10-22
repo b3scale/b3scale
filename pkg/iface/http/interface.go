@@ -14,17 +14,15 @@ import (
 // Interface provides the http server for the
 // application.
 type Interface struct {
-	listen     string
-	echo       *echo.Echo
-	gateway    *cluster.Gateway
-	controller *cluster.Controller
+	listen  string
+	echo    *echo.Echo
+	gateway *cluster.Gateway
 }
 
 // NewInterface configures and creates a new
 // http interface to our cluster gateway.
 func NewInterface(
 	listen string,
-	controller *cluster.Controller,
 	gateway *cluster.Gateway,
 ) *Interface {
 	// Setup and configure echo framework
@@ -43,10 +41,9 @@ func NewInterface(
 	p.Use(e)
 
 	iface := &Interface{
-		echo:       e,
-		listen:     listen,
-		controller: controller,
-		gateway:    gateway,
+		echo:    e,
+		listen:  listen,
+		gateway: gateway,
 	}
 
 	// Register routers

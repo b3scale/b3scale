@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
 // The BackendState is shared across b3scale instances
@@ -29,7 +28,11 @@ func (s *BackendState) GetMeetings() (bbb.MeetingsCollection, error) {
 
 // SetMeetings
 func (s *BackendState) SetMeetings(bbb.MeetingsCollection) error {
+	return nil
+}
 
+func (s *BackendState) AddMeeting(*bbb.Meeting) error {
+	return nil
 }
 
 /*

@@ -12,21 +12,20 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
 // A Client for communicating with a big blue button
 // instance. Requests are signed and encoded.
 // Responses are decoded.
 type Client struct {
-	cfg  *config.Backend
-	conn *http.Client
+	Host   string
+	Secret string
+	conn   *http.Client
 }
 
 // NewClient creates and configures a new http client
 // and creates the big blue client object.
-func NewClient(cfg *config.Backend) *Client {
+func NewClient(host, secret string) *Client {
 	conn := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost:   10,
@@ -36,7 +35,6 @@ func NewClient(cfg *config.Backend) *Client {
 	}
 
 	c := &Client{
-		cfg:  cfg,
 		conn: conn,
 	}
 
@@ -52,7 +50,7 @@ func (c *Client) httpDo(req *Request) ([]byte, error) {
 	}
 	httpReq, err := http.NewRequest(
 		req.Method,
-		req.URL(c.cfg),
+		req.URL(c.Host, c.Secret),
 		bodyReader)
 	if err != nil {
 		return nil, err
@@ -123,7 +121,7 @@ func (c *Client) Do(req *Request) (Response, error) {
 	// DEBUG LOG:
 	// TODO: Use some advanced logger or remove in production
 	// because this might expose sensitive data in logfiles
-	log.Println("[HTTP]", req.Method, req.URL(c.cfg))
+	log.Println("[HTTP]", req.Method, req.URL(c.Host, c.Secret))
 	data, err := c.httpDo(req)
 	if err != nil {
 		return nil, err

@@ -9,7 +9,7 @@ import (
 
 // RIBLookup middleware for retriving a
 // backend for a given meeting id from the RIB
-func RIBLookup(rib cluster.RIB) cluster.RouterMiddleware {
+func RIBLookup(rib *cluster.RIB) cluster.RouterMiddleware {
 	return func(next cluster.RouterHandler) cluster.RouterHandler {
 		return func(
 			backends []*cluster.Backend, req *bbb.Request,
