@@ -56,9 +56,7 @@ func (c *Controller) GetBackendByHost(host string) (*Backend, error) {
 }
 
 // GetBackendByMeetingID a backend associated with a meeting
-func (c *Controller) GetBackendByMeetingID(
-	m *bbb.Meeting,
-) (*Backend, error) {
+func (c *Controller) GetBackendByMeetingID(id string) (*Backend, error) {
 	return nil, nil
 }
 

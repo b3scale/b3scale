@@ -11,6 +11,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // Get configuration from environment with
@@ -25,7 +26,7 @@ func getopt(key, fallback string) string {
 
 func main() {
 	banner() // Most important.
-	log.Println("Starting b3scaled.")
+	log.Println("Booting b3scaled...")
 
 	// Config
 	listenHTTP := getopt(
@@ -42,12 +43,12 @@ func main() {
 	}
 
 	// Initialize cluster
-	state := cluster.NewState(dbConn)
-	rib := cluster.NewRIB(dbConn)
+	state := store.NewClusterState(dbConn)
+	ctrl := cluster.NewController(state, dbConn)
 
 	// Start router
-	router := cluster.NewRouter(state)
-	router.Use(routing.RIBLookup(rib))
+	router := cluster.NewRouter(ctrl)
+	router.Use(routing.Lookup(ctrl))
 	// router.Use(routing.SortLoad)
 	// router.Use(routing.SessionTracking...)
 

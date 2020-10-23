@@ -11,7 +11,7 @@ import (
 // requests to backends.
 // The routing middleware stack selects backends.
 type Router struct {
-	state      *State
+	ctrl       *Controller
 	middleware RouterHandler
 }
 
@@ -22,9 +22,9 @@ type Router struct {
 // of all backends available in the the cluster state
 //
 // The middleware chain should only subtract backends.
-func NewRouter(state *State) *Router {
+func NewRouter(ctrl *Controller) *Router {
 	return &Router{
-		state:      state,
+		ctrl:       ctrl,
 		middleware: selectDiscardHandler,
 	}
 }
@@ -98,9 +98,7 @@ func (r *Router) Middleware() RequestMiddleware {
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
 			// Filter backends and only accept state active
-			backends, err := r.state.GetBackends(&GetBackendsOpts{
-				FilterState: BackendStateReady,
-			})
+			backends, err := r.ctrl.GetBackendsWithState(BackendStateReady)
 			if err != nil {
 				return nil, err
 			}

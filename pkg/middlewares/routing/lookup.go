@@ -24,7 +24,7 @@ func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 			// Lookup backend for meeting in cluster, use backend
 			// if there is one associated - otherwise return
 			// all possible backends.
-			backend, err := ctrl.GetBackendByMeeting(meetingID)
+			backend, err := ctrl.GetBackendByMeetingID(meetingID)
 			if err != nil {
 				return nil, err
 			}
@@ -48,7 +48,7 @@ func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 					"WARNING: Requested backend", backend,
 					"is no longer available",
 					"as selectable routing target.",
-					"Reassigning meeting:", meeting)
+					"Reassigning meeting:", meetingID)
 				return backends, nil
 			}
 

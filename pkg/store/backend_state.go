@@ -15,34 +15,21 @@ type BackendState struct {
 
 	LastError string
 
-	Host   string
-	Secret string
+	Backend *bbb.Backend
 
 	Tags []string
 
 	// db storage
 }
 
-// GetBackendsOpts provides a set of possible filters
-type GetBackendsOpts struct {
-}
-
-// GetBackends retrievs all backend states, filterable with opts
-func GetBackends(opts *GetBackendsOpts) []*BackendState {
-	return nil
-}
-
-// Meetings
+// GetMeetings retrievs all meetings for a meeting
+// filterable with GetMeetingsOpts.
 func (s *BackendState) GetMeetings() (bbb.MeetingsCollection, error) {
 	return nil, nil
 }
 
-// SetMeetings
-func (s *BackendState) SetMeetings(bbb.MeetingsCollection) error {
-	return nil
-}
-
-func (s *BackendState) AddMeeting(*bbb.Meeting) error {
+// AddMeeting persists a meeting in the store
+func (s *BackendState) AddMeeting(fe *bbb.Frontend, m *bbb.Meeting) error {
 	return nil
 }
 

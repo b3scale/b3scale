@@ -55,6 +55,8 @@ func (p Params) GetMeetingID() (string, bool) {
 // Request is a bbb request as decoded from the
 // incoming url - but can be directly passed on to a
 // BigBlueButton server.
+//
+// It is associated with a backend and a frontend.
 type Request struct {
 	Resource    string
 	Method      string
@@ -62,9 +64,24 @@ type Request struct {
 	Params      Params
 	Body        []byte
 	Checksum    []byte
+
+	Backend  *Backend
+	Frontend *Frontend
 }
 
 // Request Builders:
+
+// WithBackend adds a backend to the request
+func (req *Request) WithBackend(b *Backend) *Request {
+	req.Backend = b
+	return req
+}
+
+// WithFrontend adds a frontend to the request
+func (req *Request) WithFrontend(f *Frontend) *Request {
+	req.Frontend = f
+	return req
+}
 
 // JoinRequest creates a new join request
 func JoinRequest(params Params) *Request {
@@ -142,17 +159,17 @@ func (req *Request) Sign(secret string) string {
 
 // URL builds the URL representation of the
 // request, directed at a backend.
-func (req *Request) URL(b *Backend) string {
+func (req *Request) URL() string {
 	// In case the configuration does not end in a trailing slash,
 	// append it when needed.
-	apiBase := b.Host
+	apiBase := req.Backend.Host
 	if !strings.HasSuffix(apiBase, "/") {
 		apiBase += "/"
 	}
 
 	// Sign the request and encode params
 	qry := req.Params.String()
-	chksum := req.Sign(b.Secret)
+	chksum := req.Sign(req.Backend.Secret)
 
 	// Build request url
 	reqURL := apiBase + req.Resource

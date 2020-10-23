@@ -21,9 +21,10 @@ type Backend struct {
 
 // NewBackend creates a new backend instance with
 // a fresh bbb client.
-func NewBackend(state *store.BackendState) {
+func NewBackend(state *store.BackendState) *Backend {
 	return &Backend{
 		client: bbb.NewClient(),
+		state:  state,
 	}
 }
 
@@ -43,7 +44,8 @@ func (b *Backend) fetchBBBState() error {
 func (b *Backend) fetchMeetingsState() error {
 	log.Println(b.state.ID, "SYNC: meetings")
 	// Fetch meetings from backend
-	req := bbb.GetMeetingsRequest(bbb.Params{})
+	req := bbb.GetMeetingsRequest(bbb.Params{}).
+		WithBackend(b.state.Backend)
 	res, err := b.client.Do(req)
 	if err != nil {
 		return err
@@ -65,12 +67,15 @@ func (b *Backend) fetchMeetingsState() error {
 		stateMeetings = append(stateMeetings, meetingRes.Meeting)
 	}
 
-	if err := b.state.SetMeetings(stateMeetings); err != nil {
-		return err
-	}
+	log.Println("SET MEETINGS FOR BACKEND....")
+
+	/*
+		if err := b.state.SetMeetings(stateMeetings); err != nil {
+			return err
+		}
+	*/
 
 	log.Println(b.state.ID, "Meetings:", stateMeetings)
-
 	return nil
 }
 
@@ -80,6 +85,7 @@ func (b *Backend) fetchMeetingsState() error {
 func (b *Backend) Create(req *bbb.Request) (
 	*bbb.CreateResponse, error,
 ) {
+	req = req.WithBackend(b.state.Backend)
 	// Make request to the backend and update local
 	// meetings state
 	res, err := b.client.Do(req)
@@ -89,7 +95,8 @@ func (b *Backend) Create(req *bbb.Request) (
 	createRes := res.(*bbb.CreateResponse)
 
 	// Insert meeting into state
-	if err := b.state.AddMeeting(createRes.Meeting); err != nil {
+	err = b.state.AddMeeting(req.Frontend, createRes.Meeting)
+	if err != nil {
 		return nil, err
 	}
 
