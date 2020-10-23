@@ -18,7 +18,7 @@ type Filter struct {
 func (f *Filter) String() string {
 	return fmt.Sprintf(
 		"%s %s $%d",
-		f.attr, f.op, f.idx+f.q.offset)
+		f.attr, f.op, f.idx+f.q.offset+1)
 }
 
 // Query is a representation of the WHERE clause
@@ -31,7 +31,7 @@ type Query struct {
 // NewQuery creates a new query
 func NewQuery() *Query {
 	return &Query{
-		offset:  1,
+		offset:  0,
 		join:    " AND ",
 		filters: []*Filter{},
 	}
