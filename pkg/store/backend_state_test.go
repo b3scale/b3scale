@@ -57,5 +57,22 @@ func TestBackendStateSave(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+	if state.CreatedAt.IsZero() {
+		t.Error("Expected created at to be set.")
+	}
+
+	// Update host
+	state.Backend.Host = "newhost"
+	err = state.Save()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if state.UpdatedAt == nil {
+		t.Error("Update date should bet set.")
+	}
+	t.Log(state.UpdatedAt)
+
 	t.Log(state)
 }

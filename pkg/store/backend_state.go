@@ -157,8 +157,41 @@ func (s *BackendState) insert() (string, error) {
 
 // Private update: updates the db row
 func (s *BackendState) update() error {
-	// _ctx := context.Background()
-	return nil
+	now := time.Now().UTC()
+	s.UpdatedAt = &now
+	ctx := context.Background()
+	qry := `
+		UPDATE backends
+		   SET node_state   = $2,
+		       admin_state  = $3,
+
+			   last_error   = $4,
+
+			   host         = $5,
+			   secret       = $6,
+
+			   tags         = $7,
+
+			   updated_at   = $8,
+			   synced_at    = $9
+
+		 WHERE id = $1
+	`
+	_, err := s.conn.Exec(
+		ctx, qry,
+		// Identifier
+		s.ID,
+		// Update Values
+		s.NodeState,
+		s.AdminState,
+		s.LastError,
+		s.Backend.Host,
+		s.Backend.Secret,
+		s.Tags,
+		s.UpdatedAt,
+		s.SyncedAt)
+
+	return err
 }
 
 // GetMeetings retrievs all meetings for a meeting
