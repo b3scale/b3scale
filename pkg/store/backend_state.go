@@ -1,6 +1,10 @@
 package store
 
 import (
+	"time"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
@@ -19,7 +23,24 @@ type BackendState struct {
 
 	Tags []string
 
-	// db storage
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	SyncedAt  time.Time
+
+	// DB
+	conn *pgxpool.Pool
+}
+
+// InitBackendState initializes a new backend state with
+// an initial state.
+func InitBackendState(conn *pgxpool.Pool, initial *BackendState) *BackendState {
+	initial.conn = conn
+	return initial
+}
+
+// Save persists the backend state in the database store
+func (s *BackendState) Save() error {
+	return nil
 }
 
 // GetMeetings retrievs all meetings for a meeting
