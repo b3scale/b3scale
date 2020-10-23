@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -82,11 +81,6 @@ func dispatchBackendHandler(
 	// We could not dispatch this
 	return nil, fmt.Errorf(
 		"unknown resource: %s", req.Resource)
-}
-
-// Start initializes the router
-func (gw *Gateway) Start() {
-	log.Println("Starting cluster gateway.")
 }
 
 // Use registers a middleware function

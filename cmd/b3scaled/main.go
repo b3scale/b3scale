@@ -58,7 +58,9 @@ func main() {
 	// gateway.Use(frontendFilter)
 	gateway.Use(requests.NewDispatchMerge())
 	gateway.Use(router.Middleware())
-	go gateway.Start()
+
+	// Start cluster controller
+	go ctrl.Start()
 
 	// Start HTTP interface
 	ifaceHTTP := http.NewInterface(
