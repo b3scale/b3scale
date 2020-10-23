@@ -54,24 +54,8 @@ func InitBackendState(conn *pgxpool.Pool, init *BackendState) *BackendState {
 	return init
 }
 
-func backendStateFromRow(conn *pgxpool.Pool, row pgx.Row) (*BackendState, error) {
-	state := InitBackendState(conn, &BackendState{})
-	err := row.Scan(
-		&state.ID,
-		&state.NodeState,
-		&state.AdminState,
-		&state.LastError,
-		&state.Backend.Host,
-		&state.Backend.Secret,
-		&state.Tags,
-		&state.CreatedAt,
-		&state.UpdatedAt,
-		&state.SyncedAt)
-	return state, err
-}
-
-// GetBackendStateByID tries to retriev a backend state
-func GetBackendStateByID(conn *pgxpool.Pool, id string) (*BackendState, error) {
+// GetBackendState tries to retriev a single backend state
+func GetBackendState(conn *pgxpool.Pool, q *Query) (*BackendState, error) {
 	ctx := context.Background()
 	qry := `
 		SELECT
@@ -91,16 +75,32 @@ func GetBackendStateByID(conn *pgxpool.Pool, id string) (*BackendState, error) {
 		  updated_at,
 		  synced_at
 		FROM backends
-		WHERE id = $1
-	`
-	row := conn.QueryRow(ctx, qry, id)
+		WHERE ` + q.where()
+	row := conn.QueryRow(ctx, qry, q.params()...)
 	return backendStateFromRow(conn, row)
+}
+
+func backendStateFromRow(conn *pgxpool.Pool, row pgx.Row) (*BackendState, error) {
+	state := InitBackendState(conn, &BackendState{})
+	err := row.Scan(
+		&state.ID,
+		&state.NodeState,
+		&state.AdminState,
+		&state.LastError,
+		&state.Backend.Host,
+		&state.Backend.Secret,
+		&state.Tags,
+		&state.CreatedAt,
+		&state.UpdatedAt,
+		&state.SyncedAt)
+	return state, err
 }
 
 // Refresh the backend state from the database
 func (s *BackendState) Refresh() error {
 	// Load from database
-	next, err := GetBackendStateByID(s.conn, s.ID)
+	q := NewQuery().Eq("id", s.ID)
+	next, err := GetBackendState(s.conn, q)
 	if err != nil {
 		return err
 	}

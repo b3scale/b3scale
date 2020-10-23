@@ -2,8 +2,7 @@ package store
 
 import (
 	"github.com/jackc/pgx/v4/pgxpool"
-
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
 // The ClusterState provides a shared state of the
@@ -17,12 +16,4 @@ func NewClusterState(conn *pgxpool.Pool) *ClusterState {
 	return &ClusterState{
 		conn: conn,
 	}
-}
-
-// GetBackendsOpts provides filtering options
-// for the GetBackends operation
-type GetBackendsOpts struct {
-	FilterState   string
-	FilterHost    string
-	FilterMeeting *bbb.Meeting
 }
