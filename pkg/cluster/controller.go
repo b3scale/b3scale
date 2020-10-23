@@ -34,6 +34,8 @@ func NewController(state *store.ClusterState, conn *pgxpool.Pool) *Controller {
 // Start the controller
 func (c *Controller) Start() {
 	log.Println("Starting cluster controller")
+
+	// Enter command loop
 }
 
 // GetBackendsWithState retrives backends with

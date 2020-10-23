@@ -41,15 +41,35 @@ export PGPASSWORD=$DB_PASSWORD
 
 
 ## Commandline opts: 
-if [ "$1" == "-h" ]; then
+OPT_USAGE=0
+OPT_TESTING=0
+OPT_CLEAR=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h) OPT_USAGE=1 ;;
+    -t) OPT_TESTING=1 ;;
+    -c) OPT_CLEAR=1 ;;
+  esac
+  shift
+done
+
+if [ $OPT_USAGE -eq 1 ]; then
     echo "Options:"
     echo "   -h     Show this helpful text"
     echo "   -c     Drop and create the database"
+    echo "   -t     Make a test database"
     exit
 fi
 
-if [ "$1" == "-c" ]; then
-    echo "Clearing database..."
+if [ $OPT_TESTING -eq 1 ]; then
+    echo "++ using test database"
+    DB_NAME="${DB_NAME}_test"
+    export PGDATABASE=$DB_NAME
+fi
+
+if [ $OPT_CLEAR -eq 1 ]; then
+    echo "++ clearing database"
     $PSQL template1 -c "DROP DATABASE $DB_NAME"
     $PSQL template1 -c "CREATE DATABASE $DB_NAME"
 fi
