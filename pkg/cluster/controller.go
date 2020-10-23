@@ -1,36 +1,46 @@
 package cluster
 
 import (
+	"log"
+
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-// The State of the cluster holds the current backends
-// and frontends in the cluster.
+// The Controller interfaces with the state of the cluster
+// providing methods for retrieving cluster backends and
+// frontends.
+//
+// The controller subscribes to commands.
 type Controller struct {
 	conn   *pgxpool.Pool
+	state  *store.ClusterState
 	client *bbb.Client
 }
 
 // NewController will initialize the cluster controller
 // with a database connection. A BBB client will be created
 // which will be used by the backend instances.
-func NewController(conn *pgxpool.Pool) *State {
-	return &State{
+func NewController(state *store.ClusterState, conn *pgxpool.Pool) *Controller {
+	return &Controller{
+		state:  state,
 		conn:   conn,
 		client: bbb.NewClient(),
 	}
 }
 
-// GetBackendsOpts provides filtering options
-// for the GetBackends operation
-type GetBackendsOpts struct {
-	FilterState string
+// Start the controller
+func (c *Controller) Start() {
+	log.Println("Starting cluster controller")
 }
 
-// GetBackends retrives backends
-func (c *Controller) GetBackends(opts *GetBackendsOpts) ([]*Backend, error) {
+// GetBackendsWithState retrives backends with
+// a specific state
+func (c *Controller) GetBackendsWithState(
+	state string,
+) ([]*Backend, error) {
 	return nil, nil
 }
 
@@ -44,3 +54,14 @@ func (c *Controller) GetBackendByID(id string) (*Backend, error) {
 func (c *Controller) GetBackendByHost(host string) (*Backend, error) {
 	return nil, nil
 }
+
+// GetBackendByMeetingID a backend associated with a meeting
+func (c *Controller) GetBackendByMeetingID(
+	m *bbb.Meeting,
+) (*Backend, error) {
+	return nil, nil
+}
+
+// SetBackendForMeeting associates a meeting with a backend
+
+// Commands

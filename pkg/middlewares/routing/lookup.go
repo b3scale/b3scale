@@ -7,33 +7,33 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
 
-// RIBLookup middleware for retriving a
-// backend for a given meeting id from the RIB
-func RIBLookup(rib *cluster.RIB) cluster.RouterMiddleware {
+// Lookup middleware for retriving an already associated
+// backend for a given meeting.
+func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 	return func(next cluster.RouterHandler) cluster.RouterHandler {
 		return func(
 			backends []*cluster.Backend, req *bbb.Request,
 		) ([]*cluster.Backend, error) {
 			// Get meeting id from params. If none is present,
 			// there is nothing to do for us here.
-			id, ok := req.Params.GetMeetingID()
+			meetingID, ok := req.Params.GetMeetingID()
 			if !ok {
 				return backends, nil
 			}
 
-			// Lookup meeting id in RIB, use backend
+			// Lookup backend for meeting in cluster, use backend
 			// if there is one associated - otherwise return
 			// all possible backends.
-			meeting := &bbb.Meeting{MeetingID: id}
-			backend, err := rib.GetBackend(meeting)
+			backend, err := ctrl.GetBackendByMeeting(meetingID)
 			if err != nil {
 				return nil, err
 			}
-			if meeting == nil {
+			if backend == nil {
 				// No specific backend was associated with the ID
 				return backends, nil
 			}
-			// Check if backend is still available, otherwise
+			// Check if backend was not already filtered out
+			// by a previous middleware stil, otherwise
 			// delete, association and return all possible backends.
 			found := false
 			for _, b := range backends {
