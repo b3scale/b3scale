@@ -1,11 +1,8 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
-
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
@@ -36,10 +33,10 @@ func main() {
 		"postgres://postgres:postgres@localhost:5432/b3scale")
 
 	// Initialize postgres connection
-	dbConn, err := pgxpool.Connect(context.Background(), dbConnStr)
+	dbConn := store.Connect(dbConnStr)
+	err := store.AssertDatabaseVersion(dbConn, 1)
 	if err != nil {
-		log.Println("Error while connecting to database:", err)
-		return
+		log.Fatal(err)
 	}
 
 	// Initialize cluster
