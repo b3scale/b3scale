@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -17,15 +18,15 @@ type BackendState struct {
 	NodeState  string
 	AdminState string
 
-	LastError string
+	LastError *string
 
 	Backend *bbb.Backend
 
 	Tags []string
 
 	CreatedAt time.Time
-	UpdatedAt time.Time
-	SyncedAt  time.Time
+	UpdatedAt *time.Time
+	SyncedAt  *time.Time
 
 	// DB
 	conn *pgxpool.Pool
@@ -33,13 +34,125 @@ type BackendState struct {
 
 // InitBackendState initializes a new backend state with
 // an initial state.
-func InitBackendState(conn *pgxpool.Pool, initial *BackendState) *BackendState {
-	initial.conn = conn
-	return initial
+func InitBackendState(conn *pgxpool.Pool, init *BackendState) *BackendState {
+	// Add default values
+	if init.NodeState == "" {
+		init.NodeState = "init"
+	}
+	if init.AdminState == "" {
+		init.AdminState = "ready"
+	}
+	if init.Backend == nil {
+		init.Backend = &bbb.Backend{}
+	}
+	if init.Tags == nil {
+		init.Tags = []string{}
+	}
+
+	init.conn = conn
+	return init
+}
+
+// GetBackendStateByID tries to retriev a backend state
+func GetBackendStateByID(conn *pgxpool.Pool, id string) (*BackendState, error) {
+	state := InitBackendState(conn, &BackendState{})
+	ctx := context.Background()
+	qry := `
+		SELECT
+		  id,
+
+		  node_state,
+		  admin_state,
+
+		  last_error,
+
+		  host,
+		  secret,
+
+		  tags,
+
+		  created_at,
+		  updated_at,
+		  synced_at
+		FROM backends
+		WHERE id = $1
+	`
+	err := conn.QueryRow(ctx, qry, id).Scan(
+		&state.ID,
+		&state.NodeState,
+		&state.AdminState,
+		&state.LastError,
+		&state.Backend.Host,
+		&state.Backend.Secret,
+		&state.Tags,
+		&state.CreatedAt,
+		&state.UpdatedAt,
+		&state.SyncedAt)
+
+	return state, err
+}
+
+// Refresh the backend state from the database
+func (s *BackendState) Refresh() error {
+	// Load from database
+	next, err := GetBackendStateByID(s.conn, s.ID)
+	if err != nil {
+		return err
+	}
+	*s = *next
+	return nil
 }
 
 // Save persists the backend state in the database store
 func (s *BackendState) Save() error {
+	var (
+		err error
+		id  string
+	)
+	if s.CreatedAt.IsZero() {
+		id, err = s.insert()
+		s.ID = id
+	} else {
+		err = s.update()
+	}
+	if err != nil {
+		return err
+	}
+
+	return s.Refresh()
+}
+
+// Private insert: adds a new row to the backends table
+func (s *BackendState) insert() (string, error) {
+	ctx := context.Background()
+	qry := `
+		INSERT INTO backends (
+			host,
+			secret,
+
+			node_state,
+			admin_state,
+
+			tags
+		)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+	insertID := ""
+	err := s.conn.QueryRow(ctx, qry,
+		// Values
+		s.Backend.Host,
+		s.Backend.Secret,
+		s.NodeState,
+		s.AdminState,
+		s.Tags).Scan(&insertID)
+
+	return insertID, err
+}
+
+// Private update: updates the db row
+func (s *BackendState) update() error {
+	// _ctx := context.Background()
 	return nil
 }
 
