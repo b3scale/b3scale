@@ -19,6 +19,17 @@ type BackendState struct {
 	Secret string
 
 	Tags []string
+
+	// db storage
+}
+
+// GetBackendsOpts provides a set of possible filters
+type GetBackendsOpts struct {
+}
+
+// GetBackends retrievs all backend states, filterable with opts
+func GetBackends(opts *GetBackendsOpts) []*BackendState {
+
 }
 
 // Meetings

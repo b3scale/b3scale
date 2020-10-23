@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // A Backend is a BigBlueButton instance in the cluster.
@@ -14,8 +15,16 @@ import (
 // instances.
 //
 type Backend struct {
-	state  *BackendState
+	state  *store.BackendState
 	client *bbb.Client
+}
+
+// NewBackend creates a new backend instance with
+// a fresh bbb client.
+func NewBackend(state *store.BackendState) {
+	return &Backend{
+		client: bbb.NewClient(),
+	}
 }
 
 // Load current state from the node. This includes

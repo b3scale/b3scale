@@ -18,14 +18,12 @@ import (
 // instance. Requests are signed and encoded.
 // Responses are decoded.
 type Client struct {
-	Host   string
-	Secret string
-	conn   *http.Client
+	conn *http.Client
 }
 
 // NewClient creates and configures a new http client
 // and creates the big blue client object.
-func NewClient(host, secret string) *Client {
+func NewClient() *Client {
 	conn := &http.Client{
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost:   10,
