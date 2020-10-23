@@ -26,7 +26,7 @@ type Client struct {
 func NewClient() *Client {
 	conn := &http.Client{
 		Transport: &http.Transport{
-			MaxIdleConnsPerHost:   10,
+			MaxIdleConnsPerHost:   20,
 			IdleConnTimeout:       300 * time.Second,
 			ResponseHeaderTimeout: 60 * time.Second,
 		},
@@ -41,14 +41,14 @@ func NewClient() *Client {
 
 // Internal http request processing: Make net/http request
 // from bbb request. Read and return body.
-func (c *Client) httpDo(req *Request) ([]byte, error) {
+func (c *Client) httpDo(b *Backend, req *Request) ([]byte, error) {
 	var bodyReader io.Reader
 	if req.Body != nil {
 		bodyReader = bytes.NewReader(req.Body)
 	}
 	httpReq, err := http.NewRequest(
 		req.Method,
-		req.URL(c.Host, c.Secret),
+		req.URL(b),
 		bodyReader)
 	if err != nil {
 		return nil, err
@@ -115,12 +115,12 @@ func unmarshalRequestResponse(req *Request, data []byte) (Response, error) {
 // Do sends the request to the backend.
 // The request is signed.
 // The response is decoded into a BBB response.
-func (c *Client) Do(req *Request) (Response, error) {
+func (c *Client) Do(b *Backend, req *Request) (Response, error) {
 	// DEBUG LOG:
 	// TODO: Use some advanced logger or remove in production
 	// because this might expose sensitive data in logfiles
-	log.Println("[HTTP]", req.Method, req.URL(c.Host, c.Secret))
-	data, err := c.httpDo(req)
+	log.Println("[HTTP]", req.Method, req.URL(b))
+	data, err := c.httpDo(b, req)
 	if err != nil {
 		return nil, err
 	}

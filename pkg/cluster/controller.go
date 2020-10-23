@@ -2,19 +2,24 @@ package cluster
 
 import (
 	"github.com/jackc/pgx/v4/pgxpool"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
 // The State of the cluster holds the current backends
 // and frontends in the cluster.
-type State struct {
-	conn *pgxpool.Pool
+type Controller struct {
+	conn   *pgxpool.Pool
+	client *bbb.Client
 }
 
-// NewState will initialize the cluster state
-// with a database connection.
-func NewState(conn *pgxpool.Pool) *State {
+// NewController will initialize the cluster controller
+// with a database connection. A BBB client will be created
+// which will be used by the backend instances.
+func NewController(conn *pgxpool.Pool) *State {
 	return &State{
-		conn: conn,
+		conn:   conn,
+		client: bbb.NewClient(),
 	}
 }
 
@@ -25,17 +30,17 @@ type GetBackendsOpts struct {
 }
 
 // GetBackends retrives backends
-func (c *State) GetBackends(opts *GetBackendsOpts) ([]*Backend, error) {
+func (c *Controller) GetBackends(opts *GetBackendsOpts) ([]*Backend, error) {
 	return nil, nil
 }
 
 // GetBackendByID retrievs a specific backend by ID
-func (c *State) GetBackendByID(id string) (*Backend, error) {
+func (c *Controller) GetBackendByID(id string) (*Backend, error) {
 	return nil, nil
 }
 
 // GetBackendByHost retrievs a specific backend
 // by the unique host name
-func (c *State) GetBackendByHost(host string) (*Backend, error) {
+func (c *Controller) GetBackendByHost(host string) (*Backend, error) {
 	return nil, nil
 }

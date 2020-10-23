@@ -142,16 +142,17 @@ func (req *Request) Sign(secret string) string {
 
 // URL builds the URL representation of the
 // request, directed at a backend.
-func (req *Request) URL(apiBase, secret string) string {
+func (req *Request) URL(b *Backend) string {
 	// In case the configuration does not end in a trailing slash,
 	// append it when needed.
+	apiBase := b.Host
 	if !strings.HasSuffix(apiBase, "/") {
 		apiBase += "/"
 	}
 
 	// Sign the request and encode params
 	qry := req.Params.String()
-	chksum := req.Sign(secret)
+	chksum := req.Sign(b.Secret)
 
 	// Build request url
 	reqURL := apiBase + req.Resource
