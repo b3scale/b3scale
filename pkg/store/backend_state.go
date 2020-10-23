@@ -1,4 +1,4 @@
-package cluster
+package store
 
 import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -29,7 +29,7 @@ type GetBackendsOpts struct {
 
 // GetBackends retrievs all backend states, filterable with opts
 func GetBackends(opts *GetBackendsOpts) []*BackendState {
-
+	return nil
 }
 
 // Meetings

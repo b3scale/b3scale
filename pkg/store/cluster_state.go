@@ -1,4 +1,4 @@
-package cluster
+package store
 
 import (
 	"github.com/jackc/pgx/v4/pgxpool"

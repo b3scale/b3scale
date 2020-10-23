@@ -1,4 +1,4 @@
-package cluster
+package store
 
 // The FrontendState holds shared information about
 // a frontend.
