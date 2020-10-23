@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -54,8 +55,8 @@ func InitBackendState(conn *pgxpool.Pool, init *BackendState) *BackendState {
 	return init
 }
 
-// GetBackendState tries to retriev a single backend state
-func GetBackendState(conn *pgxpool.Pool, q *Query) (*BackendState, error) {
+// GetBackendStates retrievs all backends
+func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 	ctx := context.Background()
 	qry := `
 		SELECT
@@ -76,8 +77,34 @@ func GetBackendState(conn *pgxpool.Pool, q *Query) (*BackendState, error) {
 		  synced_at
 		FROM backends
 		WHERE ` + q.where()
-	row := conn.QueryRow(ctx, qry, q.params()...)
-	return backendStateFromRow(conn, row)
+	rows, err := conn.Query(ctx, qry, q.params()...)
+	if err != nil {
+		return nil, err
+	}
+	cmd := rows.CommandTag()
+	fmt.Println("Affected rows:", cmd.RowsAffected())
+	results := make([]*BackendState, 0, cmd.RowsAffected())
+	for rows.Next() {
+		state, err := backendStateFromRow(conn, rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, state)
+	}
+
+	return results, nil
+}
+
+// GetBackendState tries to retriev a single backend state
+func GetBackendState(conn *pgxpool.Pool, q *Query) (*BackendState, error) {
+	states, err := GetBackendStates(conn, q)
+	if err != nil {
+		return nil, err
+	}
+	if len(states) == 0 {
+		return nil, nil
+	}
+	return states[0], nil
 }
 
 func backendStateFromRow(conn *pgxpool.Pool, row pgx.Row) (*BackendState, error) {

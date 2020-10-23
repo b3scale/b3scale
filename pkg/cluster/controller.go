@@ -40,9 +40,7 @@ func (c *Controller) Start() {
 
 // GetBackendsWithState retrives backends with
 // a specific state
-func (c *Controller) GetBackendsWithState(
-	state string,
-) ([]*Backend, error) {
+func (c *Controller) GetBackends(q *store.Query) ([]*Backend, error) {
 	return nil, nil
 }
 
