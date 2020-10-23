@@ -144,7 +144,8 @@ func (req *Request) calculateChecksum(secret string) []byte {
 // Validate request coming from a frontend.
 // Compare checksum with the checksum calculated from the params
 // and the frontend secret
-func (req *Request) Validate(secret string) error {
+func (req *Request) Validate() error {
+	secret := req.Frontend.Secret
 	expected := req.calculateChecksum(secret)
 	if subtle.ConstantTimeCompare(expected, req.Checksum) != 1 {
 		return fmt.Errorf("invalid checksum")
@@ -153,7 +154,8 @@ func (req *Request) Validate(secret string) error {
 }
 
 // Sign a request, with the backend secret.
-func (req *Request) Sign(secret string) string {
+func (req *Request) Sign() string {
+	secret := req.Backend.Secret
 	return string(req.calculateChecksum(secret))
 }
 
@@ -169,7 +171,7 @@ func (req *Request) URL() string {
 
 	// Sign the request and encode params
 	qry := req.Params.String()
-	chksum := req.Sign(req.Backend.Secret)
+	chksum := req.Sign()
 
 	// Build request url
 	reqURL := apiBase + req.Resource
