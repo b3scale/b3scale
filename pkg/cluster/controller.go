@@ -38,8 +38,7 @@ func (c *Controller) Start() {
 	// Enter command loop
 }
 
-// GetBackendsWithState retrives backends with
-// a specific state
+// GetBackends retrives backends with a store query
 func (c *Controller) GetBackends(q *store.Query) ([]*Backend, error) {
 	return nil, nil
 }
