@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -53,9 +54,24 @@ func InitBackendState(conn *pgxpool.Pool, init *BackendState) *BackendState {
 	return init
 }
 
+func backendStateFromRow(conn *pgxpool.Pool, row pgx.Row) (*BackendState, error) {
+	state := InitBackendState(conn, &BackendState{})
+	err := row.Scan(
+		&state.ID,
+		&state.NodeState,
+		&state.AdminState,
+		&state.LastError,
+		&state.Backend.Host,
+		&state.Backend.Secret,
+		&state.Tags,
+		&state.CreatedAt,
+		&state.UpdatedAt,
+		&state.SyncedAt)
+	return state, err
+}
+
 // GetBackendStateByID tries to retriev a backend state
 func GetBackendStateByID(conn *pgxpool.Pool, id string) (*BackendState, error) {
-	state := InitBackendState(conn, &BackendState{})
 	ctx := context.Background()
 	qry := `
 		SELECT
@@ -77,19 +93,8 @@ func GetBackendStateByID(conn *pgxpool.Pool, id string) (*BackendState, error) {
 		FROM backends
 		WHERE id = $1
 	`
-	err := conn.QueryRow(ctx, qry, id).Scan(
-		&state.ID,
-		&state.NodeState,
-		&state.AdminState,
-		&state.LastError,
-		&state.Backend.Host,
-		&state.Backend.Secret,
-		&state.Tags,
-		&state.CreatedAt,
-		&state.UpdatedAt,
-		&state.SyncedAt)
-
-	return state, err
+	row := conn.QueryRow(ctx, qry, id)
+	return backendStateFromRow(conn, row)
 }
 
 // Refresh the backend state from the database
