@@ -24,22 +24,36 @@ func (f *Filter) String() string {
 // Query is a representation of the WHERE clause
 type Query struct {
 	offset  int
+	concat  string
 	filters []*Filter
-	join    string
+	joins   []string
 }
 
 // NewQuery creates a new query
 func NewQuery() *Query {
 	return &Query{
 		offset:  0,
-		join:    " AND ",
+		concat:  " AND ",
 		filters: []*Filter{},
+		joins:   []string{},
 	}
+}
+
+// Q is an alias for NewQuery
+func Q() *Query {
+	return NewQuery()
 }
 
 // Offset updates the offset of the query
 func (q *Query) Offset(o int) *Query {
 	q.offset = o
+	return q
+}
+
+// Join includeds a join in the query
+func (q *Query) Join(table, on string) *Query {
+	join := fmt.Sprintf("JOIN %s ON %s", table, on)
+	q.joins = append(q.joins, join)
 	return q
 }
 
@@ -69,7 +83,7 @@ func (q *Query) where() string {
 		where = append(where, f.String())
 	}
 
-	return strings.Join(where, q.join)
+	return strings.Join(where, q.concat)
 }
 
 // Internal params, gets a list of all params
@@ -79,4 +93,9 @@ func (q *Query) params() []interface{} {
 		params = append(params, f.param)
 	}
 	return params
+}
+
+// Internal fetch from and related
+func (q *Query) related() string {
+	return strings.Join(q.joins, " ")
 }

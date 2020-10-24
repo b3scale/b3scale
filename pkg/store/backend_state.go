@@ -75,7 +75,7 @@ func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 		  created_at,
 		  updated_at,
 		  synced_at
-		FROM backends
+		FROM backends ` + q.related() + `
 		WHERE ` + q.where()
 	rows, err := conn.Query(ctx, qry, q.params()...)
 	if err != nil {

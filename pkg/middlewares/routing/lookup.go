@@ -5,6 +5,7 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // Lookup middleware for retriving an already associated
@@ -24,13 +25,9 @@ func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 			// Lookup backend for meeting in cluster, use backend
 			// if there is one associated - otherwise return
 			// all possible backends.
-			backend, err := ctrl.GetBackend(meetingID)
-
-			/// This is a bit of an interesting lookup.
-			/// How do we want to model this...
-			/// maybe meeting.get backend? however - there is
-			/// no cluster.meeting that could wrap for ctrl
-
+			backend, err := ctrl.GetBackend(store.Q().
+				Join("meetings", "backends.id = meetings.id").
+				Eq("meetings.id", meetingID))
 			if err != nil {
 				return nil, err
 			}
