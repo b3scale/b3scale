@@ -52,9 +52,9 @@ func (c *Controller) Start() {
 }
 
 // Command callback handler
-func (c *Controller) handleCommand(cmd *store.Command) error {
+func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	fmt.Println("Handling command:", cmd)
-	return nil
+	return "some result", nil
 }
 
 // GetBackends retrives backends with a store query

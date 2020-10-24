@@ -10,8 +10,10 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -20,7 +22,7 @@ const cmdQueue = "commands_queue"
 // CommandHandler is a callback function for handling
 // commands. The command was successful if no error was
 // returned.
-type CommandHandler func(*Command) error
+type CommandHandler func(*Command) (interface{}, error)
 
 // A Command is a representation of an operation
 type Command struct {
@@ -123,11 +125,13 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		 LIMIT 1`
 
 	// Begin transaction
+	startedAt := time.Now()
 	ctx := context.Background()
 	tx, err := q.pool.Begin(ctx)
 	if err != nil {
 		return false, err
 	}
+	defer tx.Rollback(ctx)
 
 	// Select command
 	cmd := &Command{}
@@ -138,13 +142,45 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		&cmd.Params,
 		&cmd.Deadline,
 		&cmd.CreatedAt)
-	if err != nil {
-		err1 := tx.Rollback(ctx)
-		if err1 != nil {
-			return false, err1
-		}
+	if err != nil && err == pgx.ErrNoRows {
+		return false, nil // Ok. There was just nothing to do.
+	} else if err != nil {
 		return false, err
 	}
 
-	return false, nil
+	// Apply command handler
+	state := "success"
+	result, err := handler(cmd)
+	if err != nil {
+		state = "error"
+		result = fmt.Sprintf("%s", err)
+	}
+
+	// We are done
+	stoppedAt := time.Now()
+
+	// Write result
+	qry = `
+		UPDATE commands
+		   SET state      = $2,
+		       result     = $3,
+			   started_at = $4,
+			   stopped_at = $5,
+		 WHERE id = $1`
+	_, err = tx.Exec(ctx, qry, cmd.ID,
+		state,
+		result,
+		startedAt,
+		stoppedAt)
+	if err != nil {
+		return false, err
+	}
+
+	// End transaction
+	err = tx.Commit(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
