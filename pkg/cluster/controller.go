@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -23,7 +24,7 @@ type Controller struct {
 // NewController will initialize the cluster controller
 // with a database connection. A BBB client will be created
 // which will be used by the backend instances.
-func NewController(state *store.ClusterState, conn *pgxpool.Pool) *Controller {
+func NewController(conn *pgxpool.Pool) *Controller {
 	return &Controller{
 		cmds: store.NewCommandQueue(conn),
 		conn: conn,
