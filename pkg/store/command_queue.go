@@ -11,6 +11,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -75,6 +76,29 @@ func (q *CommandQueue) Subscribe() error {
 
 // Queue adds a new command to the queue
 func (q *CommandQueue) Queue(cmd *Command) error {
+	ctx := context.Background()
+	// Our command will always expire. For now 2 minutes.
+	deadline := time.Now().UTC().Add(120 * time.Second)
+	// Add command to queue and notify instances
+	qry := `
+	  INSERT INTO commands (
+	  	action,
+		params,
+		deadline
+	  ) VALUES (
+		$1, $2, $3
+	  )`
+	_, err := q.pool.Exec(ctx, qry, cmd.Action, cmd.Params, deadline)
+	if err != nil {
+		return err
+	}
+
+	// Notify subscribers
+	_, err = q.pool.Exec(ctx, "NOTIFY "+cmdQueue)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -83,14 +107,26 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 // responds with an error, the error will be returned.
 func (q *CommandQueue) Receive(handler CommandHandler) error {
 	for {
-		ctx, _ := context.WithTimeout(context.Background(), 1*time.Second)
+		// We periodically check our queue. We only check instantly
+		// if we got informed that there is a job waiting.
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
 		// Await command, after a timeout just try to dequeue
 		if q.conn != nil {
 			_, err := q.conn.Conn().WaitForNotification(ctx)
 			if err != nil {
-				return err
+				netErr, ok := err.(net.Error)
+				if ok {
+					// In case we just ran into a timeout it
+					// is perfectly fine to continue. Otherwise
+					// we just forward the error
+					if !netErr.Timeout() {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
-
 			dequeued, err := q.process(handler)
 			if err != nil {
 				return err
@@ -101,8 +137,6 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 // Process will dequeue a command and apply the
@@ -120,9 +154,10 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 			deadline,
 			created_at
 		  FROM commands
-		   FOR UPDATE SKIP LOCKED
 		 WHERE state = 'requested'
-		 LIMIT 1`
+		 ORDER BY seq ASC
+		 LIMIT 1
+		   FOR UPDATE SKIP LOCKED`
 
 	// Begin transaction
 	startedAt := time.Now()
