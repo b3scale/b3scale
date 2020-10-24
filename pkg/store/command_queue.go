@@ -12,6 +12,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math/rand"
 	"net"
 	"time"
 
@@ -46,8 +48,9 @@ type Command struct {
 // The CommandQueue is connected to the database and
 // provides methods for queuing and dequeuing commands.
 type CommandQueue struct {
-	conn *pgxpool.Conn
 	pool *pgxpool.Pool
+
+	subscription *pgxpool.Conn
 }
 
 // NewCommandQueue initializes a new command queue
@@ -58,8 +61,32 @@ func NewCommandQueue(pool *pgxpool.Pool) *CommandQueue {
 	}
 }
 
+// Start the command queue
+func (q *CommandQueue) Start() {
+	// Start housekeeping, like periodically deleting
+	// old commands
+	for {
+		if err := q.deleteExpired(); err != nil {
+			log.Println(err)
+		}
+		time.Sleep(time.Duration(rand.Intn(10)+10) * time.Second)
+	}
+}
+
+// Housekeeping: delete expired commands
+func (q *CommandQueue) deleteExpired() error {
+	ctx := context.Background()
+	// We do not care about commands older than a minute
+	qry := `
+	  DELETE FROM commands
+	   WHERE
+	     now() - created_at > interval '1 minute'`
+	_, err := q.pool.Exec(ctx, qry)
+	return err
+}
+
 // Subscribe will let the queue listen for notifications
-func (q *CommandQueue) Subscribe() error {
+func (q *CommandQueue) subscribe() error {
 	ctx := context.Background()
 	conn, err := q.pool.Acquire(ctx)
 	if err != nil {
@@ -70,7 +97,7 @@ func (q *CommandQueue) Subscribe() error {
 	if err != nil {
 		return err
 	}
-	q.conn = conn
+	q.subscription = conn
 
 	return nil
 }
@@ -110,34 +137,41 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 // responds with an error, the error will be returned.
 func (q *CommandQueue) Receive(handler CommandHandler) error {
 	for {
+		// Subscribe on demand
+		if q.subscription == nil {
+			if err := q.subscribe(); err != nil {
+				return err
+			}
+		}
+
 		// We periodically check our queue. We only check instantly
 		// if we got informed that there is a job waiting.
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		// Await command, after a timeout just try to dequeue
-		if q.conn != nil {
-			_, err := q.conn.Conn().WaitForNotification(ctx)
-			if err != nil {
-				netErr, ok := err.(net.Error)
-				if ok {
-					// In case we just ran into a timeout it
-					// is perfectly fine to continue. Otherwise
-					// we just forward the error
-					if !netErr.Timeout() {
-						return err
-					}
-				} else {
+		_, err := q.subscription.Conn().WaitForNotification(ctx)
+		if err != nil {
+			q.subscription.Release()
+			q.subscription = nil
+			netErr, ok := err.(net.Error)
+			if ok {
+				// In case we just ran into a timeout it
+				// is perfectly fine to continue. Otherwise
+				// we just forward the error
+				if !netErr.Timeout() {
 					return err
 				}
-			}
-			dequeued, err := q.process(handler)
-			if err != nil {
+			} else {
 				return err
 			}
-			if dequeued {
-				// We processed a command
-				return nil
-			}
+		}
+		dequeued, err := q.process(handler)
+		if err != nil {
+			return err
+		}
+		if dequeued {
+			// We processed a command
+			return nil
 		}
 	}
 }

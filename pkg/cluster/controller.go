@@ -36,9 +36,7 @@ func (c *Controller) Start() {
 	log.Println("Starting cluster controller")
 
 	// Start command queue
-	if err := c.cmds.Subscribe(); err != nil {
-		log.Fatal("Could not subscribe to queue:", err)
-	}
+	go c.cmds.Start()
 
 	// Controller Main Loop
 	for {
