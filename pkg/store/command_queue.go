@@ -10,6 +10,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"time"
@@ -79,6 +80,8 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 	ctx := context.Background()
 	// Our command will always expire. For now 2 minutes.
 	deadline := time.Now().UTC().Add(120 * time.Second)
+	// Marshal payload
+	params, err := json.Marshal(cmd.Params)
 	// Add command to queue and notify instances
 	qry := `
 	  INSERT INTO commands (
@@ -88,7 +91,7 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 	  ) VALUES (
 		$1, $2, $3
 	  )`
-	_, err := q.pool.Exec(ctx, qry, cmd.Action, cmd.Params, deadline)
+	_, err = q.pool.Exec(ctx, qry, cmd.Action, params, deadline)
 	if err != nil {
 		return err
 	}
@@ -183,16 +186,28 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		return false, err
 	}
 
-	// Apply command handler
+	// Check deadline
 	state := "success"
-	result, err := handler(cmd)
-	if err != nil {
+	var result interface{}
+	if cmd.Deadline.Before(time.Now().UTC()) {
+		// Timeout
 		state = "error"
-		result = fmt.Sprintf("%s", err)
+		result = "timedout"
+	} else {
+		// Apply command handler
+		result, err = handler(cmd)
+		if err != nil {
+			state = "error"
+			result = fmt.Sprintf("%s", err)
+		}
 	}
 
 	// We are done
 	stoppedAt := time.Now()
+	data, err := json.Marshal(result)
+	if err != nil {
+		return false, err
+	}
 
 	// Write result
 	qry = `
@@ -200,11 +215,12 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		   SET state      = $2,
 		       result     = $3,
 			   started_at = $4,
-			   stopped_at = $5,
+			   stopped_at = $5
+
 		 WHERE id = $1`
 	_, err = tx.Exec(ctx, qry, cmd.ID,
 		state,
-		result,
+		data,
 		startedAt,
 		stoppedAt)
 	if err != nil {

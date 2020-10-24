@@ -53,7 +53,7 @@ func (c *Controller) Start() {
 
 // Command callback handler
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
-	fmt.Println("Handling command:", cmd)
+	fmt.Println("Handling command:", cmd.Action, cmd.Params)
 	return "some result", nil
 }
 
