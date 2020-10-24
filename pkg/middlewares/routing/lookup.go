@@ -24,7 +24,13 @@ func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 			// Lookup backend for meeting in cluster, use backend
 			// if there is one associated - otherwise return
 			// all possible backends.
-			backend, err := ctrl.GetBackendByMeetingID(meetingID)
+			backend, err := ctrl.GetBackend(meetingID)
+
+			/// This is a bit of an interesting lookup.
+			/// How do we want to model this...
+			/// maybe meeting.get backend? however - there is
+			/// no cluster.meeting that could wrap for ctrl
+
 			if err != nil {
 				return nil, err
 			}

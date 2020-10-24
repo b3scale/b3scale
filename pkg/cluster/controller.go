@@ -5,7 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -15,9 +15,8 @@ import (
 //
 // The controller subscribes to commands.
 type Controller struct {
-	conn   *pgxpool.Pool
-	state  *store.ClusterState
-	client *bbb.Client
+	conn  *pgxpool.Pool
+	state *store.ClusterState
 }
 
 // NewController will initialize the cluster controller
@@ -25,9 +24,8 @@ type Controller struct {
 // which will be used by the backend instances.
 func NewController(state *store.ClusterState, conn *pgxpool.Pool) *Controller {
 	return &Controller{
-		state:  state,
-		conn:   conn,
-		client: bbb.NewClient(),
+		state: state,
+		conn:  conn,
 	}
 }
 
@@ -40,25 +38,27 @@ func (c *Controller) Start() {
 
 // GetBackends retrives backends with a store query
 func (c *Controller) GetBackends(q *store.Query) ([]*Backend, error) {
-	return nil, nil
+	states, err := store.GetBackendStates(c.conn, q)
+	if err != nil {
+		return nil, err
+	}
+	// Make cluster backend from each state
+	backends := make([]*Backend, 0, len(states))
+	for _, s := range states {
+		backends = append(backends, NewBackend(s))
+	}
+
+	return backends, nil
 }
 
-// GetBackendByID retrievs a specific backend by ID
-func (c *Controller) GetBackendByID(id string) (*Backend, error) {
-	return nil, nil
+// GetBackend retrievs a single backend by query criteria
+func (c *Controller) GetBackend(q *store.Query) (*Backend, error) {
+	backends, err := c.GetBackends(q)
+	if err != nil {
+		return nil, err
+	}
+	if len(backends) == 0 {
+		return nil, nil
+	}
+	return backends[0], nil
 }
-
-// GetBackendByHost retrievs a specific backend
-// by the unique host name
-func (c *Controller) GetBackendByHost(host string) (*Backend, error) {
-	return nil, nil
-}
-
-// GetBackendByMeetingID a backend associated with a meeting
-func (c *Controller) GetBackendByMeetingID(id string) (*Backend, error) {
-	return nil, nil
-}
-
-// SetBackendForMeeting associates a meeting with a backend
-
-// Commands

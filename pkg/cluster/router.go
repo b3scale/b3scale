@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // The Router provides a requets middleware for routing
@@ -98,7 +99,8 @@ func (r *Router) Middleware() RequestMiddleware {
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
 			// Filter backends and only accept state active
-			backends, err := r.ctrl.GetBackendsWithState(BackendStateReady)
+			backends, err := r.ctrl.GetBackends(
+				store.NewQuery().Eq("node_state", "ready"))
 			if err != nil {
 				return nil, err
 			}
