@@ -232,6 +232,11 @@ func (s *BackendState) AddMeeting(fe *bbb.Frontend, m *bbb.Meeting) error {
 	return nil
 }
 
+// RemoveMeeting will delete a meeting from the store
+func (s *BackendState) RemoveMeeting(m *bbb.Meeting) error {
+	return nil
+}
+
 /*
 
 	// Recordings
