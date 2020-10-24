@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
@@ -15,8 +16,8 @@ import (
 //
 // The controller subscribes to commands.
 type Controller struct {
-	conn  *pgxpool.Pool
-	state *store.ClusterState
+	cmds *store.CommandQueue
+	conn *pgxpool.Pool
 }
 
 // NewController will initialize the cluster controller
@@ -24,8 +25,8 @@ type Controller struct {
 // which will be used by the backend instances.
 func NewController(state *store.ClusterState, conn *pgxpool.Pool) *Controller {
 	return &Controller{
-		state: state,
-		conn:  conn,
+		cmds: store.NewCommandQueue(conn),
+		conn: conn,
 	}
 }
 
@@ -33,7 +34,26 @@ func NewController(state *store.ClusterState, conn *pgxpool.Pool) *Controller {
 func (c *Controller) Start() {
 	log.Println("Starting cluster controller")
 
-	// Enter command loop
+	// Start command queue
+	if err := c.cmds.Subscribe(); err != nil {
+		log.Fatal("Could not subscribe to queue:", err)
+	}
+
+	// Controller Main Loop
+	for {
+		// Process commands from queue
+		if err := c.cmds.Receive(c.handleCommand); err != nil {
+			// Log error and wait a bit
+			log.Println(err)
+			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
+// Command callback handler
+func (c *Controller) handleCommand(cmd *store.Command) error {
+	fmt.Println("Handling command:", cmd)
+	return nil
 }
 
 // GetBackends retrives backends with a store query

@@ -40,8 +40,7 @@ func main() {
 	}
 
 	// Initialize cluster
-	state := store.NewClusterState(dbConn)
-	ctrl := cluster.NewController(state, dbConn)
+	ctrl := cluster.NewController(dbConn)
 
 	// Start router
 	router := cluster.NewRouter(ctrl)
