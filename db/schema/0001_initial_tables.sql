@@ -134,7 +134,7 @@ CREATE TABLE recording_text_tracks (
                 ON DELETE CASCADE,
 
     -- Timestamps
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NULL DEFAULT NULL,
     synced_at   TIMESTAMP NULL DEFAULT NULL
 );
@@ -173,9 +173,9 @@ CREATE TABLE commands (
     -- Job control: A deadline is required for each 
     -- command. Afterwards the command is expired.
     deadline   TIMESTAMP  NOT NULL,
-    started_at TIMESTAMP  NULL    DEFAULT NULL,
-    stopped_at TIMESTAMP  NULL    DEFAULT NULL,
-    created_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP
+    started_at TIMESTAMP  NULL       DEFAULT NULL,
+    stopped_at TIMESTAMP  NULL       DEFAULT NULL,
+    created_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Notify the commands queue whenever a new
