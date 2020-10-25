@@ -12,8 +12,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"math/rand"
 	"net"
 	"time"
 
@@ -61,20 +59,9 @@ func NewCommandQueue(pool *pgxpool.Pool) *CommandQueue {
 	}
 }
 
-// Start the command queue
-func (q *CommandQueue) Start() {
-	// Start housekeeping, like periodically deleting
-	// old commands
-	for {
-		if err := q.deleteExpired(); err != nil {
-			log.Println(err)
-		}
-		time.Sleep(time.Duration(rand.Intn(10)+10) * time.Second)
-	}
-}
-
-// Housekeeping: delete expired commands
-func (q *CommandQueue) deleteExpired() error {
+// ClearExpired is a housekeeping operation to delete
+// expired commands from the store.
+func (q *CommandQueue) ClearExpired() error {
 	ctx := context.Background()
 	// We do not care about commands older than a minute
 	qry := `

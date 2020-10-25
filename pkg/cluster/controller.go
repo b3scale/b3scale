@@ -35,9 +35,6 @@ func NewController(conn *pgxpool.Pool) *Controller {
 func (c *Controller) Start() {
 	log.Println("Starting cluster controller")
 
-	// Start command queue
-	go c.cmds.Start()
-
 	// Controller Main Loop
 	for {
 		// Process commands from queue
@@ -49,10 +46,26 @@ func (c *Controller) Start() {
 	}
 }
 
-// Command callback handler
+// Command callback handler: Decode the operation and
+// run the command specific handler
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
-	fmt.Println("Handling command:", cmd.Action, cmd.Params)
-	return "some result", nil
+	// Invoke command handler
+	switch cmd.Action {
+	case "clear_expired_commands":
+		return c.cmdClearExpiredCommands()
+	}
+
+	return nil, fmt.Errorf("unknown command: %s", cmd.Action)
+}
+
+// Clear expired commands
+func (c *Controller) cmdClearExpiredCommands() (interface{}, error) {
+	err := c.cmds.ClearExpired()
+	if err != nil {
+		return nil, err
+	}
+
+	return true, nil
 }
 
 // GetBackends retrives backends with a store query
