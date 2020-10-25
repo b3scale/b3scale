@@ -44,7 +44,7 @@ CREATE TABLE backends (
     tags    text ARRAY,
 
     -- Timestamps
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NULL DEFAULT NULL,
     synced_at   TIMESTAMP NULL DEFAULT NULL
 );
@@ -59,7 +59,7 @@ CREATE TABLE frontends (
     active  BOOLEAN NOT NULL DEFAULT true,
 
     -- Timestamps
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NULL DEFAULT NULL
 );
 
@@ -94,7 +94,7 @@ CREATE TABLE meetings (
                ON DELETE CASCADE,
 
     -- Timestamps
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NULL DEFAULT NULL,
     synced_at   TIMESTAMP NULL DEFAULT NULL
 );
@@ -116,7 +116,7 @@ CREATE TABLE recordings (
                ON DELETE CASCADE,
 
     -- Timestamps
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NULL DEFAULT NULL,
     synced_at   TIMESTAMP NULL DEFAULT NULL
 );
