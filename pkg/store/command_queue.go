@@ -245,3 +245,9 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 
 	return true, nil
 }
+
+// NextDeadline calculates the deadline for a
+// newly requested command
+func NextDeadline(dt time.Duration) time.Time {
+	return time.Now().UTC().Add(dt)
+}

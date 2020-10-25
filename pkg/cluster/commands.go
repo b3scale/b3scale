@@ -6,11 +6,13 @@ import (
 	"errors"
 	"time"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // Commands that can be handled by the controller
 const (
+	CmdAddBackend       = "add_backend"
 	CmdLoadBackendState = "load_backend_state"
 )
 
@@ -26,6 +28,16 @@ func FetchBackendState(backend *Backend) *store.Command {
 	return &store.Command{
 		Action:   CmdLoadBackendState,
 		Params:   backend.state.ID,
-		Deadline: time.Now().UTC().Add(5 * time.Minute),
+		Deadline: store.NextDeadline(5 * time.Minute),
+	}
+}
+
+// AddBackend inserts a new backend into
+// the cluster state.
+func AddBackend(b *bbb.Backend) *store.Command {
+	return &store.Command{
+		Action:   CmdAddBackend,
+		Params:   b,
+		Deadline: store.NextDeadline(10 * time.Minute),
 	}
 }
