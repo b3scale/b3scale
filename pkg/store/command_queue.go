@@ -121,7 +121,7 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 
 		// We periodically check our queue. We only check instantly
 		// if we got informed that there is a job waiting.
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		// Await command, after a timeout just try to dequeue
 		_, err := q.subscription.Conn().WaitForNotification(ctx)

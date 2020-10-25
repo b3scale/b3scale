@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -10,17 +9,6 @@ import (
 
 	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
-)
-
-// Commands that can be handled by the controller
-const (
-	CmdLoadInstanceState = "load_instance_state"
-)
-
-var (
-	// ErrUnknownCommand indicates, that the command was not
-	// understood by the controller.
-	ErrUnknownCommand = errors.New("command unknown")
 )
 
 // The Controller interfaces with the state of the cluster
@@ -63,11 +51,46 @@ func (c *Controller) Start() {
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
-	case CmdLoadInstanceState:
-		return nil, fmt.Errorf("not implemented")
+	case CmdAddBackend:
+		return c.handleAddBackend(cmd)
+	case CmdLoadBackendState:
+		return c.handleLoadBackendState(cmd)
 	}
 
 	return nil, ErrUnknownCommand
+}
+
+// Command: AddBackend
+// Creates a new backend state and dispatches the initial
+// load state.
+func (c *Controller) handleAddBackend(cmd *store.Command) (interface{}, error) {
+	params, ok := cmd.Params.(map[string]string)
+	if !ok {
+	}
+
+}
+
+// Command: LoadBackendState
+func (c *Controller) handleLoadBackendState(
+	cmd *store.Command,
+) (interface{}, error) {
+	// Get backend from command
+	backendID, ok := cmd.Params.(string)
+	if !ok {
+		return false, fmt.Errorf("invalid backend id: %v", cmd.Params)
+	}
+	backend, err := c.GetBackend(store.NewQuery().Eq("id", backendID))
+	if err != nil {
+		return false, err
+	}
+	if backend == nil {
+		return false, fmt.Errorf("backend not found: %s", backendID)
+	}
+	err = backend.loadBackendState()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // GetBackends retrives backends with a store query

@@ -30,8 +30,8 @@ func NewBackend(state *store.BackendState) *Backend {
 
 // Load current state from the node. This includes
 // all meetings, meetings in detail and recordings.
-func (b *Backend) fetchBBBState() error {
-	if err := b.fetchMeetingsState(); err != nil {
+func (b *Backend) loadBackendState() error {
+	if err := b.loadMeetingsState(); err != nil {
 		return err
 	}
 
@@ -41,7 +41,7 @@ func (b *Backend) fetchBBBState() error {
 // Backend State Sync: Loads the state from
 // the bbb backend and keeps it locally.
 // Meeting details will be fetched.
-func (b *Backend) fetchMeetingsState() error {
+func (b *Backend) loadMeetingsState() error {
 	log.Println(b.state.ID, "SYNC: meetings")
 	// Fetch meetings from backend
 	req := bbb.GetMeetingsRequest(bbb.Params{}).
