@@ -11,6 +11,12 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
+// Commands that can be handled by the controller
+const (
+	CmdClearExpired      = "clear_expired_commands"
+	CmdLoadInstanceState = "load_instance_state"
+)
+
 // The Controller interfaces with the state of the cluster
 // providing methods for retrieving cluster backends and
 // frontends.
@@ -51,7 +57,7 @@ func (c *Controller) Start() {
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
-	case "clear_expired_commands":
+	case CmdClearExpired:
 		return c.cmdClearExpiredCommands()
 	}
 
