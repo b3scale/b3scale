@@ -178,17 +178,23 @@ CREATE TABLE commands (
     created_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
 );
 
--- Notify the commands queue whenever a new
--- command was added to the queue
-CREATE FUNCTION notify_command_queue() RETURNS TRIGGER AS $$
+-- AfterCommandsInsert
+-- Procedure to be called for every new command
+CREATE FUNCTION after_commands_insert() RETURNS TRIGGER AS $$
 BEGIN
+  -- Housekeeping: Remove expired commands.
+  DELETE FROM commands
+   WHERE (deadline + interval '1 minute') < now();
+
+  -- Finally inform instances, that a new command
+  -- was queued.
   NOTIFY commands_queue;
   RETURN NULL;
 END
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER  command_notify    AFTER INSERT ON commands
-  FOR EACH ROW  EXECUTE PROCEDURE notify_command_queue();
+CREATE TRIGGER  command_insert    AFTER INSERT ON commands
+  FOR EACH ROW  EXECUTE PROCEDURE after_commands_insert();
 
 -- The meta table stores information about the schema
 -- like when it was migrated and the current revision.

@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -13,8 +14,13 @@ import (
 
 // Commands that can be handled by the controller
 const (
-	CmdClearExpired      = "clear_expired_commands"
 	CmdLoadInstanceState = "load_instance_state"
+)
+
+var (
+	// ErrUnknownCommand indicates, that the command was not
+	// understood by the controller.
+	ErrUnknownCommand = errors.New("command unknown")
 )
 
 // The Controller interfaces with the state of the cluster
@@ -57,21 +63,11 @@ func (c *Controller) Start() {
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
-	case CmdClearExpired:
-		return c.cmdClearExpiredCommands()
+	case CmdLoadInstanceState:
+		return nil, fmt.Errorf("not implemented")
 	}
 
-	return nil, fmt.Errorf("unknown command: %s", cmd.Action)
-}
-
-// Clear expired commands
-func (c *Controller) cmdClearExpiredCommands() (interface{}, error) {
-	err := c.cmds.ClearExpired()
-	if err != nil {
-		return nil, err
-	}
-
-	return true, nil
+	return nil, ErrUnknownCommand
 }
 
 // GetBackends retrives backends with a store query

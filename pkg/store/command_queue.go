@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -57,19 +58,6 @@ func NewCommandQueue(pool *pgxpool.Pool) *CommandQueue {
 	return &CommandQueue{
 		pool: pool,
 	}
-}
-
-// ClearExpired is a housekeeping operation to delete
-// expired commands from the store.
-func (q *CommandQueue) ClearExpired() error {
-	ctx := context.Background()
-	// We do not care about commands older than a minute
-	qry := `
-	  DELETE FROM commands
-	   WHERE
-	     now() - created_at > interval '1 minute'`
-	_, err := q.pool.Exec(ctx, qry)
-	return err
 }
 
 // Subscribe will let the queue listen for notifications
@@ -218,6 +206,7 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		// Apply command handler
 		result, err = handler(cmd)
 		if err != nil {
+			log.Printf("[CMD:%d:%s]: %s", cmd.Seq, cmd.Action, err)
 			state = "error"
 			result = fmt.Sprintf("%s", err)
 		}
