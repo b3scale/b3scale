@@ -23,7 +23,7 @@ func main() {
 
 	cmd := &store.Command{
 		Action: "huhu",
-		Params: []string{"foo", "bar"},
+		Params: []string{"foo", "bar", "triggered?"},
 	}
 
 	queue := store.NewCommandQueue(dbConn)

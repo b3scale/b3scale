@@ -178,6 +178,17 @@ CREATE TABLE commands (
     created_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Notify the commands queue whenever a new
+-- command was added to the queue
+CREATE FUNCTION notify_command_queue() RETURNS TRIGGER AS $$
+BEGIN
+  NOTIFY commands_queue;
+  RETURN NULL;
+END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER  command_notify    AFTER INSERT ON commands
+  FOR EACH ROW  EXECUTE PROCEDURE notify_command_queue();
 
 -- The meta table stores information about the schema
 -- like when it was migrated and the current revision.
