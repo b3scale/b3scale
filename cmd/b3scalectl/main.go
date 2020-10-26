@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -21,10 +23,10 @@ func main() {
 		"postgres://postgres:postgres@localhost:5432/b3scale")
 	dbConn := store.Connect(dbConnStr)
 
-	cmd := &store.Command{
-		Action: "huhu",
-		Params: []string{"foo", "bar", "triggered?"},
-	}
+	cmd := cluster.AddBackend(&bbb.Backend{
+		Host:   "host1",
+		Secret: "secret",
+	})
 
 	queue := store.NewCommandQueue(dbConn)
 	err := queue.Queue(cmd)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -47,7 +47,9 @@ func (c *Controller) Start() {
 }
 
 // Command callback handler: Decode the operation and
-// run the command specific handler
+// run the command specific handler. As this is invoked
+// by the CommandQueue, these functions are allowed
+// to crash and will be recovered.
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
@@ -64,10 +66,14 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 // Creates a new backend state and dispatches the initial
 // load state.
 func (c *Controller) handleAddBackend(cmd *store.Command) (interface{}, error) {
-	params, ok := cmd.Params.(map[string]string)
-	if !ok {
+	params := cmd.Params.(map[string]interface{})
+	backend := &bbb.Backend{
+		Host:   params["host"].(string),
+		Secret: params["secret"].(string),
 	}
+	log.Println("AddBackend:", backend)
 
+	return backend, nil
 }
 
 // Command: LoadBackendState

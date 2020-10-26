@@ -47,8 +47,7 @@ type Command struct {
 // The CommandQueue is connected to the database and
 // provides methods for queuing and dequeuing commands.
 type CommandQueue struct {
-	pool *pgxpool.Pool
-
+	pool         *pgxpool.Pool
 	subscription *pgxpool.Conn
 }
 
@@ -151,6 +150,24 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 	}
 }
 
+// Run the handler, but recover if an error occured.
+func safeExecHandler(
+	cmd *Command,
+	handler CommandHandler,
+	errc chan error,
+) interface{} {
+	defer func(e chan error) {
+		if r := recover(); r != nil {
+			e <- fmt.Errorf("%v", r)
+		}
+	}(errc)
+
+	// Run handler
+	res, err := handler(cmd)
+	errc <- err
+	return res
+}
+
 // Process will dequeue a command and apply the
 // handler function to it. If not command was dequeued 'false'
 // will be returned.
@@ -204,7 +221,9 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		result = "timedout"
 	} else {
 		// Apply command handler
-		result, err = handler(cmd)
+		errc := make(chan error, 1)
+		result = safeExecHandler(cmd, handler, errc)
+		err = <-errc
 		if err != nil {
 			log.Printf("[CMD:%d:%s]: %s", cmd.Seq, cmd.Action, err)
 			state = "error"
