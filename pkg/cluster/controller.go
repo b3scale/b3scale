@@ -39,7 +39,9 @@ func (c *Controller) Start() {
 	for {
 		// Process commands from queue
 		if err := c.cmds.Receive(c.handleCommand); err != nil {
-			// Log error and wait a bit
+			// We will only reach this code when waiting for
+			// commands fails. This can happen when the database
+			// is down. So, we log the error and wait a bit.
 			log.Println(err)
 			time.Sleep(1 * time.Second)
 		}
@@ -64,10 +66,12 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 // Creates a new backend state and dispatches the initial
 // load state.
 func (c *Controller) handleAddBackend(cmd *store.Command) (interface{}, error) {
-	params, ok := cmd.Params.(map[string]string)
-	if !ok {
-	}
+	params := cmd.Params.(map[string]interface{})
+	host := params["host"].(string)
+	secret := params["secret"].(string)
+	log.Println(params, host, secret)
 
+	return nil, nil
 }
 
 // Command: LoadBackendState
