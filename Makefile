@@ -4,10 +4,13 @@
 # @created     : Sunday Aug 16, 2020 19:24:54 CEST
 ######################################################################
 
-all: b3scaled
+all: b3scaled b3scalectl
 
 b3scaled:
 	cd cmd/b3scaled && go build
+
+b3scalectl:
+	cd cmd/b3scalectl && go build
 
 .PHONY: clean test
 
@@ -16,7 +19,7 @@ test:
 	cd pkg/config && go test -v
 	cd pkg/bbb && go test -v
 	cd pkg/iface/http && go test -v
-	# cd pkg/middlewares/routing && go test -v
+	cd pkg/middlewares/routing && go test -v
 	cd pkg/middlewares/requests && go test -v
 
 clean:
