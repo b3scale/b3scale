@@ -13,6 +13,7 @@ import (
 // Commands that can be handled by the controller
 const (
 	CmdAddBackend       = "add_backend"
+	CmdRemoveBackend    = "remove_backend"
 	CmdLoadBackendState = "load_backend_state"
 )
 
@@ -38,6 +39,16 @@ func AddBackend(b *bbb.Backend) *store.Command {
 	return &store.Command{
 		Action:   CmdAddBackend,
 		Params:   b,
+		Deadline: store.NextDeadline(10 * time.Minute),
+	}
+}
+
+// RemoveBackendByID will remove a given cluster
+// backend from the state.
+func RemoveBackendByID(id string) *store.Command {
+	return &store.Command{
+		Action:   CmdRemoveBackendByID,
+		Params:   id,
 		Deadline: store.NextDeadline(10 * time.Minute),
 	}
 }
