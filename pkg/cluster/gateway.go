@@ -19,11 +19,13 @@ const (
 // it to the cluster nodes.
 type Gateway struct {
 	middleware RequestHandler
+	ctrl       *Controller
 }
 
 // NewGateway sets up a new cluster router instance.
-func NewGateway() *Gateway {
+func NewGateway(ctrl *Controller) *Gateway {
 	return &Gateway{
+		ctrl:       ctrl,
 		middleware: dispatchBackendHandler,
 	}
 }
@@ -95,6 +97,9 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
 	// Make initial context
 	ctx := context.Background()
+
+	// Trigger backed jobs (// TODO this might need debouncing)
+	go gw.ctrl.StartBackground()
 
 	// Make cluster request and initialize context
 	res, err := gw.middleware(ctx, req)

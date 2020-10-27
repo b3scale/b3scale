@@ -33,22 +33,50 @@ func FetchBackendState(backend *Backend) *store.Command {
 	}
 }
 
+// AddBackendRequest is a collection of params
+// for creating a new backend state.
+type AddBackendRequest struct {
+	Backend *bbb.Backend `json:"backend"`
+	Tags    []string     `json:"tags"`
+}
+
 // AddBackend inserts a new backend into
 // the cluster state.
-func AddBackend(b *bbb.Backend) *store.Command {
+func AddBackend(req *AddBackendRequest) *store.Command {
 	return &store.Command{
 		Action:   CmdAddBackend,
-		Params:   b,
+		Params:   req,
+		Deadline: store.NextDeadline(2 * time.Minute),
+	}
+}
+
+// RemoveBackendRequest declares the removal
+// of a backend node from the cluster state.
+type RemoveBackendRequest struct {
+	ID string `json:"id"`
+}
+
+// RemoveBackend will remove a given cluster
+// backend from the state.
+func RemoveBackend(req *RemoveBackendRequest) *store.Command {
+	return &store.Command{
+		Action:   CmdRemoveBackend,
+		Params:   req,
 		Deadline: store.NextDeadline(10 * time.Minute),
 	}
 }
 
-// RemoveBackendByID will remove a given cluster
-// backend from the state.
-func RemoveBackendByID(id string) *store.Command {
+// LoadBackendStateRequest describes intent loading
+// an entire state from a bbb instance.
+type LoadBackendStateRequest struct {
+	ID string // the backend state id
+}
+
+// LoadBackendState creates a load state command
+func LoadBackendState(req *LoadBackendStateRequest) *store.Command {
 	return &store.Command{
-		Action:   CmdRemoveBackendByID,
-		Params:   id,
+		Action:   CmdLoadBackendState,
+		Params:   req,
 		Deadline: store.NextDeadline(10 * time.Minute),
 	}
 }

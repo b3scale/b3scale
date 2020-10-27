@@ -38,7 +38,7 @@ CREATE TABLE backends (
 
     last_error text NULL DEFAULT NULL,
 
-    host    text NOT NULL,
+    host    text NOT NULL      UNIQUE,
     secret  text NOT NULL,
 
     tags    text ARRAY,

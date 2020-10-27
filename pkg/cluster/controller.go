@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -35,6 +35,9 @@ func NewController(conn *pgxpool.Pool) *Controller {
 func (c *Controller) Start() {
 	log.Println("Starting cluster controller")
 
+	// Create background tasks
+	c.StartBackground()
+
 	// Controller Main Loop
 	for {
 		// Process commands from queue
@@ -48,6 +51,16 @@ func (c *Controller) Start() {
 	}
 }
 
+// StartBackground will be run periodically triggered by
+// requests and should only add tasks to the command queue
+func (c *Controller) StartBackground() {
+	// Dispatch loading of the backend state if the
+	// last sync was verly long.
+	if err := c.requestSyncStale(); err != nil {
+		log.Println(err)
+	}
+}
+
 // Command callback handler: Decode the operation and
 // run the command specific handler. As this is invoked
 // by the CommandQueue, these functions are allowed
@@ -57,6 +70,8 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	switch cmd.Action {
 	case CmdAddBackend:
 		return c.handleAddBackend(cmd)
+	case CmdRemoveBackend:
+		return c.handleRemoveBackend(cmd)
 	case CmdLoadBackendState:
 		return c.handleLoadBackendState(cmd)
 	}
@@ -67,14 +82,42 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 // Command: AddBackend
 // Creates a new backend state and dispatches the initial
 // load state.
-func (c *Controller) handleAddBackend(cmd *store.Command) (interface{}, error) {
-	params := cmd.Params.(map[string]interface{})
-	backend := &bbb.Backend{
-		Host:   params["host"].(string),
-		Secret: params["secret"].(string),
+func (c *Controller) handleAddBackend(
+	cmd *store.Command,
+) (interface{}, error) {
+	req := &AddBackendRequest{}
+	if err := cmd.FetchParams(req); err != nil {
+		return nil, err
 	}
-	log.Println("AddBackend:", backend)
-	return backend, nil
+
+	// Create new backend state
+	state := store.InitBackendState(c.conn, &store.BackendState{
+		Backend: req.Backend,
+		Tags:    req.Tags,
+	})
+	if err := state.Save(); err != nil {
+		return nil, err
+	}
+
+	// Dispatch background job: Load instance state.
+	if err := c.cmds.Queue(
+		LoadBackendState(&LoadBackendStateRequest{
+			ID: state.ID,
+		})); err != nil {
+
+		return nil, err
+	}
+
+	return req.Backend, nil
+}
+
+// Command: RemoveBackend
+// Removes a backend state identified by id from the state
+func (c *Controller) handleRemoveBackend(
+	cmd *store.Command,
+) (interface{}, error) {
+	backendID := cmd.Params.(string)
+	return backendID, fmt.Errorf("implement me")
 }
 
 // Command: LoadBackendState
@@ -82,22 +125,53 @@ func (c *Controller) handleLoadBackendState(
 	cmd *store.Command,
 ) (interface{}, error) {
 	// Get backend from command
-	backendID, ok := cmd.Params.(string)
-	if !ok {
-		return false, fmt.Errorf("invalid backend id: %v", cmd.Params)
+	req := &LoadBackendStateRequest{}
+	if err := cmd.FetchParams(req); err != nil {
+		return nil, err
 	}
-	backend, err := c.GetBackend(store.NewQuery().Eq("id", backendID))
+	backend, err := c.GetBackend(
+		store.NewQuery().Eq("id", req.ID))
 	if err != nil {
 		return false, err
 	}
 	if backend == nil {
-		return false, fmt.Errorf("backend not found: %s", backendID)
+		return false, fmt.Errorf("backend not found: %s", req.ID)
 	}
 	err = backend.loadBackendState()
 	if err != nil {
+		// Set backend state to error and log last error
+		backend.state.NodeState = "error"
+		serr := fmt.Sprintf("%s", err)
+		backend.state.LastError = &serr
+		backend.state.Save()
 		return false, err
 	}
 	return true, nil
+}
+
+// requestSyncStale triggers a background sync of the
+// entire node state
+func (c *Controller) requestSyncStale() error {
+	stale, err := c.GetBackends(store.NewQuery().Filter(`
+		now() - COALESCE(
+			synced_at,
+			TIMESTAMP '0001-01-01 00:00:00')
+		`,
+		">", time.Duration(10*time.Minute)))
+	if err != nil {
+		return err
+	}
+	// For each stale backend create a new load instance
+	// state command
+	for _, b := range stale {
+		if err := c.cmds.Queue(
+			LoadBackendState(&LoadBackendStateRequest{
+				ID: b.state.ID,
+			})); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // GetBackends retrives backends with a store query

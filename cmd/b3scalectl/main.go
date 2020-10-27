@@ -23,9 +23,12 @@ func main() {
 		"postgres://postgres:postgres@localhost:5432/b3scale")
 	dbConn := store.Connect(dbConnStr)
 
-	cmd := cluster.AddBackend(&bbb.Backend{
-		Host:   "host1",
-		Secret: "secret",
+	cmd := cluster.AddBackend(&cluster.AddBackendRequest{
+		Backend: &bbb.Backend{
+			Host:   "https://bbbackend01.bastelgenosse.de/bigbluebutton/api",
+			Secret: "nwlly97dniqQxKTWHdbGItgieGEBSnyL6s8I3FtM28",
+		},
+		Tags: []string{"sip", "2.0.0"},
 	})
 	queue := store.NewCommandQueue(dbConn)
 	err := queue.Queue(cmd)

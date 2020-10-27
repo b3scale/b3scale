@@ -42,6 +42,18 @@ type Command struct {
 	StartedAt *time.Time
 	StoppedAt *time.Time
 	CreatedAt *time.Time
+
+	pool *pgxpool.Pool
+}
+
+// FetchParams loads the parameters and decodes them
+func (cmd *Command) FetchParams(req interface{}) error {
+	ctx := context.Background()
+	qry := `
+		SELECT params
+		  FROM commands WHERE id = $1
+	`
+	return cmd.pool.QueryRow(ctx, qry, cmd.ID).Scan(req)
 }
 
 // The CommandQueue is connected to the database and
@@ -114,7 +126,9 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 
 		// We periodically check our queue. We only check instantly
 		// if we got informed that there is a job waiting.
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			time.Second)
 		defer cancel()
 		// Await command, after a timeout just try to dequeue
 		_, err := q.subscription.Conn().WaitForNotification(ctx)
@@ -134,7 +148,8 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 			}
 		}
 
-		// Start processing
+		// Start processing in the background, so we can take
+		// care of the next incomming command.
 		go func(q *CommandQueue) {
 			err := q.process(handler)
 			if err != nil {
@@ -173,7 +188,6 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 			id,
 			seq,
 			action,
-			params,
 			deadline,
 			created_at
 		  FROM commands
@@ -192,12 +206,11 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	defer tx.Rollback(ctx)
 
 	// Select command
-	cmd := &Command{}
+	cmd := &Command{pool: q.pool}
 	err = tx.QueryRow(ctx, qry).Scan(
 		&cmd.ID,
 		&cmd.Seq,
 		&cmd.Action,
-		&cmd.Params,
 		&cmd.Deadline,
 		&cmd.CreatedAt)
 	if err != nil && err == pgx.ErrNoRows {

@@ -50,6 +50,7 @@ func (b *Backend) loadMeetingsState() error {
 	if err != nil {
 		return err
 	}
+	log.Println(b.state.ID, "get meetings")
 	meetingsRes := res.(*bbb.GetMeetingsResponse)
 
 	// Get meeting details
