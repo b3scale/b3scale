@@ -50,16 +50,16 @@ func (b *Backend) loadMeetingsState() error {
 	if err != nil {
 		return err
 	}
-	log.Println(b.state.ID, "get meetings")
 	meetingsRes := res.(*bbb.GetMeetingsResponse)
 
 	// Get meeting details
 	meetings := meetingsRes.Meetings
 	stateMeetings := make([]*bbb.Meeting, 0, len(meetings))
 	for _, m := range meetings {
+		log.Println("Get meeting details...:", m)
 		req = bbb.GetMeetingInfoRequest(bbb.Params{
 			bbb.ParamMeetingID: m.MeetingID,
-		})
+		}).WithBackend(b.state.Backend)
 		res, err = b.client.Do(req)
 		if err != nil {
 			return err // Sync must be complete.
@@ -68,13 +68,9 @@ func (b *Backend) loadMeetingsState() error {
 		stateMeetings = append(stateMeetings, meetingRes.Meeting)
 	}
 
-	log.Println("SET MEETINGS FOR BACKEND....")
-
-	/*
-		if err := b.state.SetMeetings(stateMeetings); err != nil {
-			return err
-		}
-	*/
+	if err := b.state.SetMeetings(stateMeetings); err != nil {
+		return err
+	}
 
 	log.Println(b.state.ID, "Meetings:", stateMeetings)
 	return nil

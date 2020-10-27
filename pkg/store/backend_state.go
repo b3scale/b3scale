@@ -2,7 +2,7 @@ package store
 
 import (
 	"context"
-	"fmt"
+	//	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -82,7 +82,7 @@ func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 		return nil, err
 	}
 	cmd := rows.CommandTag()
-	fmt.Println("Affected rows:", cmd.RowsAffected())
+	// fmt.Println("Affected rows:", cmd.RowsAffected())
 	results := make([]*BackendState, 0, cmd.RowsAffected())
 	for rows.Next() {
 		state, err := backendStateFromRow(conn, rows)
@@ -219,6 +219,42 @@ func (s *BackendState) update() error {
 		s.SyncedAt)
 
 	return err
+}
+
+// ClearMeetings will remove all meetings in the current state
+func (s *BackendState) ClearMeetings() error {
+	ctx := context.Background()
+	qry := `
+		DELETE FROM meetings WHERE backend_id = $1
+	`
+	_, err := s.conn.Exec(ctx, qry, s.ID)
+	return err
+}
+
+// SetMeetings will replace all meetings in the current state
+func (s *BackendState) SetMeetings(meetings bbb.MeetingsCollection) error {
+	ctx := context.Background()
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// First clear all meetings
+	if err := s.ClearMeetings(); err != nil {
+		return err
+	}
+
+	// The add all new states
+	for _, m := range meetings {
+		// Create meeting state
+		state := InitMeetingState(s.conn, &MeetingState{
+			Backend: s,
+			Meeting: m,
+		})
+	}
+
+	// We are done here
 }
 
 // GetMeetings retrievs all meetings for a meeting
