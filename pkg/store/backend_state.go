@@ -252,9 +252,21 @@ func (s *BackendState) SetMeetings(meetings bbb.MeetingsCollection) error {
 			Backend: s,
 			Meeting: m,
 		})
+		state.Save()
 	}
 
+	now := time.Now().UTC()
+	s.NodeState = "ready"
+	s.SyncedAt = &now
+	s.UpdatedAt = &now
+	s.Save()
+
 	// We are done here
+	err = tx.Commit(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetMeetings retrievs all meetings for a meeting
