@@ -24,8 +24,8 @@ func main() {
 	dbConn := store.Connect(dbConnStr)
 
 	cmd := cluster.AddBackend(&bbb.Backend{
-		Host:   "host1..",
-		Secret: "secret...",
+		Host:   "host1",
+		Secret: "secret",
 	})
 	queue := store.NewCommandQueue(dbConn)
 	err := queue.Queue(cmd)
