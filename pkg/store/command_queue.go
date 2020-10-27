@@ -97,12 +97,6 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 		return err
 	}
 
-	// Notify subscribers
-	_, err = q.pool.Exec(ctx, "NOTIFY "+cmdQueue)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -139,14 +133,14 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 				return err
 			}
 		}
-		dequeued, err := q.process(handler)
-		if err != nil {
-			return err
-		}
-		if dequeued {
-			// We processed a command
-			return nil
-		}
+
+		// Start processing
+		go func(q *CommandQueue) {
+			err := q.process(handler)
+			if err != nil {
+				log.Println("error while processing job:", err)
+			}
+		}(q)
 	}
 }
 
@@ -171,7 +165,7 @@ func safeExecHandler(
 // Process will dequeue a command and apply the
 // handler function to it. If not command was dequeued 'false'
 // will be returned.
-func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
+func (q *CommandQueue) process(handler CommandHandler) error {
 	// We dequeue and fetch a command within a transaction.
 	// During handling the command will be locked.
 	qry := `
@@ -193,7 +187,7 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 	ctx := context.Background()
 	tx, err := q.pool.Begin(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer tx.Rollback(ctx)
 
@@ -207,9 +201,9 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		&cmd.Deadline,
 		&cmd.CreatedAt)
 	if err != nil && err == pgx.ErrNoRows {
-		return false, nil // Ok. There was just nothing to do.
+		return nil // Ok. There was just nothing to do.
 	} else if err != nil {
-		return false, err
+		return err
 	}
 
 	// Check deadline
@@ -235,7 +229,7 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 	stoppedAt := time.Now()
 	data, err := json.Marshal(result)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// Write result
@@ -253,16 +247,16 @@ func (q *CommandQueue) process(handler CommandHandler) (bool, error) {
 		startedAt,
 		stoppedAt)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// End transaction
 	err = tx.Commit(ctx)
 	if err != nil {
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 // NextDeadline calculates the deadline for a
