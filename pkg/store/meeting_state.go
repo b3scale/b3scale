@@ -151,8 +151,22 @@ func (s *MeetingState) Save() error {
 	return s.Refresh()
 }
 
+// Add a new meeting to the database
 func (s *MeetingState) insert() (string, error) {
-	return "", fmt.Errorf("implement me")
+	ctx := context.Background()
+	qry := `
+		INSERT INTO meetings (
+			id,
+			state,
+
+			backend_id,
+			frontend_id,
+
+			created_at,
+			synced_at,
+			updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`
 }
 
 func (s *MeetingState) update() error {
