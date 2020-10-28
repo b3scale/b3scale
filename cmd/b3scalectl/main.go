@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -21,7 +22,10 @@ func main() {
 	dbConnStr := getopt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
-	dbConn := store.Connect(dbConnStr)
+	dbConn, err := store.Connect(dbConnStr)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	cmd := cluster.AddBackend(&cluster.AddBackendRequest{
 		Backend: &bbb.Backend{
@@ -31,7 +35,7 @@ func main() {
 		Tags: []string{"sip", "2.0.0"},
 	})
 	queue := store.NewCommandQueue(dbConn)
-	err := queue.Queue(cmd)
+	err = queue.Queue(cmd)
 	if err != nil {
 		fmt.Println(err)
 	}
