@@ -8,20 +8,25 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
-func TestGetBackendStateByID(t *testing.T) {
-	conn := connectTest(t)
-	rnd := uuid.New().String()
-	state := InitBackendState(conn, &BackendState{
+func backendStateFactory(pool *pgxpool.Pool) *BackendState {
+	state := InitBackendState(pool, &BackendState{
 		Backend: &bbb.Backend{
-			Host:   "testhost" + rnd,
+			Host:   "testhost-" + uuid.New().String(),
 			Secret: "testsecret",
 		},
 		Tags: []string{"2.0.0", "sip", "testing"},
 	})
+	return state
+}
+
+func TestGetBackendStateByID(t *testing.T) {
+	pool := connectTest(t)
+	state := backendStateFactory(pool)
 	err := state.Save()
 	if err != nil {
 		t.Error("save failed:", err)

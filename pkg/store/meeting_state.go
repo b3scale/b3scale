@@ -91,8 +91,8 @@ func meetingStateFromRow(
 ) (*MeetingState, error) {
 	state := InitMeetingState(conn, &MeetingState{})
 	var (
-		frontendID *string
-		backendID  *string
+		frontendID string
+		backendID  string
 	)
 
 	err := row.Scan(
@@ -107,13 +107,16 @@ func meetingStateFromRow(
 		return nil, err
 	}
 
-	// Get related backend state if present
-	if backendID != nil {
-		state.Backend, err = GetBackendState(conn, NewQuery().
-			Eq("id", *backendID))
-		if err != nil {
-			return nil, err
-		}
+	// Get related backend state
+	state.Backend, err = GetBackendState(conn, NewQuery().
+		Eq("id", backendID))
+	if err != nil {
+		return nil, err
+	}
+	state.Frontend, err = GetFrontendState(conn, NewQuery().
+		Eq("id", frontendID))
+	if err != nil {
+		return nil, err
 	}
 
 	return state, err
@@ -164,6 +167,7 @@ func (s *MeetingState) insert() (string, error) {
 	if s.Backend != nil {
 		backendID = &s.Backend.ID
 	}
+
 	now := time.Now().UTC()
 
 	ctx := context.Background()
@@ -178,15 +182,18 @@ func (s *MeetingState) insert() (string, error) {
 			synced_at
 		) VALUES (
 			$1, $2, $3, $4, $5
-		)`
+		) RETURNING id`
 	err := s.pool.QueryRow(ctx, qry,
 		id,
 		s.Meeting,
 		frontendID,
 		backendID,
 		now).Scan(&s.ID)
+	if err != nil {
+		return "", err
+	}
 
-	return s.ID, err
+	return s.ID, nil
 }
 
 func (s *MeetingState) update() error {
