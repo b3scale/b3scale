@@ -17,6 +17,7 @@ b3scalectl:
 test:
 	cd pkg/cluster && go test -v
 	cd pkg/config && go test -v
+	cd pkg/store && go test -v
 	cd pkg/bbb && go test -v
 	cd pkg/iface/http && go test -v
 	cd pkg/middlewares/routing && go test -v
