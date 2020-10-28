@@ -43,3 +43,23 @@ func TestFrontendStateSave(t *testing.T) {
 		t.Error("Unexpected updated at:", state.UpdatedAt)
 	}
 }
+
+func TestGetFrontendState(t *testing.T) {
+	pool := connectTest(t)
+	key := uuid.New().String()
+	state := InitFrontendState(pool, &FrontendState{
+		Frontend: &bbb.Frontend{
+			Key:    key,
+			Secret: "v3rys3cr37",
+		},
+		Active: true,
+	})
+	if err := state.Save(); err != nil {
+		t.Error(err)
+	}
+	ret, err := GetFrontendState(pool, NewQuery().Eq("key", key))
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(ret)
+}
