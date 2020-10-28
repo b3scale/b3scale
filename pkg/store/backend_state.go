@@ -232,7 +232,7 @@ func (s *BackendState) ClearMeetings() error {
 }
 
 // SetMeetings will replace all meetings in the current state
-func (s *BackendState) SetMeetings(meetings bbb.MeetingsCollection) error {
+func (s *BackendState) SetMeetings(meetings []*bbb.Meeting) error {
 	ctx := context.Background()
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {

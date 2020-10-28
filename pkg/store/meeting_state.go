@@ -153,20 +153,40 @@ func (s *MeetingState) Save() error {
 
 // Add a new meeting to the database
 func (s *MeetingState) insert() (string, error) {
+	id := s.Meeting.MeetingID
+	var (
+		frontendID *string
+		backendID  *string
+	)
+	if s.Frontend != nil {
+		frontendID = &s.Frontend.ID
+	}
+	if s.Backend != nil {
+		backendID = &s.Backend.ID
+	}
+	now := time.Now().UTC()
+
 	ctx := context.Background()
 	qry := `
 		INSERT INTO meetings (
 			id,
 			state,
 
-			backend_id,
 			frontend_id,
+			backend_id,
 
-			created_at,
-			synced_at,
-			updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
+			synced_at
+		) VALUES (
+			$1, $2, $3, $4, $5
+		)`
+	err := s.pool.QueryRow(ctx, qry,
+		id,
+		s.Meeting,
+		frontendID,
+		backendID,
+		now).Scan(&s.ID)
+
+	return s.ID, err
 }
 
 func (s *MeetingState) update() error {
