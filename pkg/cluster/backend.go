@@ -92,10 +92,13 @@ func (b *Backend) Create(req *bbb.Request) (
 	createRes := res.(*bbb.CreateResponse)
 
 	// Insert meeting into state
-	err = b.state.AddMeeting(req.Frontend, createRes.Meeting)
-	if err != nil {
-		return nil, err
-	}
+
+	/*
+		err = b.state.AddMeeting(req.Frontend, createRes.Meeting)
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	return createRes, nil
 }
