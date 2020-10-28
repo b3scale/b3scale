@@ -85,13 +85,13 @@ CREATE TABLE meetings (
     state   jsonb NOT NULL,
 
     -- Relations
-    frontend_id uuid NOT NULL
+    frontend_id uuid       NULL
                 REFERENCES frontends(id)
-                ON DELETE CASCADE,
+                ON DELETE  CASCADE,
 
-    backend_id uuid NOT NULL
-               REFERENCES backends(id)
-               ON DELETE CASCADE,
+    backend_id uuid        NOT NULL
+               REFERENCES  backends(id)
+               ON DELETE   CASCADE,
 
     -- Timestamps
     created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
