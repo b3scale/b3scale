@@ -91,7 +91,7 @@ func GetFrontendState(
 
 // Save will create or update a frontend state
 func (s *FrontendState) Save() error {
-	if s.ID == "" {
+	if s.CreatedAt.IsZero() {
 		return s.insert()
 	}
 	return s.update()
