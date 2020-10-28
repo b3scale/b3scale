@@ -8,25 +8,28 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-// Connect establishes a database connection
-// and will fataly fail if this is not possible.
+// Connect establishes a database connection and
+// checks the schema version of the database.
 func Connect(url string) *pgxpool.Pool {
 	// Initialize postgres connection
-	conn, err := pgxpool.Connect(context.Background(), url)
+	pool, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
 		log.Fatal("Error while connecting to database:", err)
 	}
+	if err = AssertDatabaseVersion(pool, 1); err != nil {
+		log.Fatal(err)
+	}
 
-	return conn
+	return pool
 }
 
 // AssertDatabaseVersion tests if the current
 // version of the database is equal to a required version
-func AssertDatabaseVersion(conn *pgxpool.Pool, version int) error {
+func AssertDatabaseVersion(pool *pgxpool.Pool, version int) error {
 	var current int
 	ctx := context.Background()
 	qry := `SELECT MAX(version) FROM __meta__`
-	err := conn.QueryRow(ctx, qry).Scan(&current)
+	err := pool.QueryRow(ctx, qry).Scan(&current)
 	if err != nil {
 		return err
 	}

@@ -33,8 +33,7 @@ func main() {
 		"postgres://postgres:postgres@localhost:5432/b3scale")
 
 	// Initialize postgres connection
-	dbConn := store.Connect(dbConnStr)
-	err := store.AssertDatabaseVersion(dbConn, 1)
+	dbConn, err := store.Connect(dbConnStr)
 	if err != nil {
 		log.Fatal(err)
 	}

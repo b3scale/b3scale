@@ -14,16 +14,7 @@ func connectTest(t *testing.T) *pgxpool.Pool {
 	if url == "" {
 		url = "postgres://postgres:postgres@localhost:5432/b3scale_test"
 	}
-
 	conn := Connect(url)
-
-	// Assert current version
-	err := AssertDatabaseVersion(conn, 1)
-	if err != nil {
-		t.Error(err)
-		return nil
-	}
-
 	return conn
 }
 
