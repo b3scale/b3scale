@@ -72,8 +72,8 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 		return c.handleAddBackend(cmd)
 	case CmdRemoveBackend:
 		return c.handleRemoveBackend(cmd)
-	case CmdLoadBackendState:
-		return c.handleLoadBackendState(cmd)
+	case CmdUpdateBackendState:
+		return c.handleUpdateBackendState(cmd)
 	}
 
 	return nil, ErrUnknownCommand
@@ -101,7 +101,7 @@ func (c *Controller) handleAddBackend(
 
 	// Dispatch background job: Load instance state.
 	if err := c.cmds.Queue(
-		LoadBackendState(&LoadBackendStateRequest{
+		UpdateBackendState(&UpdateBackendStateRequest{
 			ID: state.ID,
 		})); err != nil {
 
@@ -120,12 +120,12 @@ func (c *Controller) handleRemoveBackend(
 	return backendID, fmt.Errorf("implement me")
 }
 
-// Command: LoadBackendState
-func (c *Controller) handleLoadBackendState(
+// Command: UpdateBackendState
+func (c *Controller) handleUpdateBackendState(
 	cmd *store.Command,
 ) (interface{}, error) {
 	// Get backend from command
-	req := &LoadBackendStateRequest{}
+	req := &UpdateBackendStateRequest{}
 	if err := cmd.FetchParams(req); err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (c *Controller) requestSyncStale() error {
 	// state command
 	for _, b := range stale {
 		if err := c.cmds.Queue(
-			LoadBackendState(&LoadBackendStateRequest{
+			UpdateBackendState(&UpdateBackendStateRequest{
 				ID: b.state.ID,
 			})); err != nil {
 			return err

@@ -12,9 +12,14 @@ import (
 
 // Commands that can be handled by the controller
 const (
-	CmdAddBackend       = "add_backend"
-	CmdRemoveBackend    = "remove_backend"
-	CmdLoadBackendState = "load_backend_state"
+	// Frontend
+	CmdAddFrontend    = "add_frontend"
+	CmdRemoveFrontend = "remove_frontend"
+
+	// Backend
+	CmdAddBackend         = "add_backend"
+	CmdRemoveBackend      = "remove_backend"
+	CmdUpdateBackendState = "update_backend_state"
 )
 
 var (
@@ -23,13 +28,33 @@ var (
 	ErrUnknownCommand = errors.New("command unknown")
 )
 
-// FetchBackendState initiates the loading of the
-// entire state (meetings, recordings, text-tracks) from a backend
-func FetchBackendState(backend *Backend) *store.Command {
+// AddFrontendRequest holds all params for creating a frontend
+type AddFrontendRequest struct {
+	Frontend *bbb.Frontend `json:"frontend"`
+	Active   bool
+}
+
+// AddFrontend creates a new frontend in the state
+func AddFrontend(req *AddFrontendRequest) *store.Command {
 	return &store.Command{
-		Action:   CmdLoadBackendState,
-		Params:   backend.state.ID,
-		Deadline: store.NextDeadline(5 * time.Minute),
+		Action:   CmdAddFrontend,
+		Params:   req,
+		Deadline: store.NextDeadline(10 * time.Minute),
+	}
+
+}
+
+// RemoveFrontendRequest holds an identifier
+type RemoveFrontendRequest struct {
+	ID string `json:"id"`
+}
+
+// RemoveFrontend creates a new command
+func RemoveFrontend(req *RemoveFrontendRequest) *store.Command {
+	return &store.Command{
+		Action:   CmdRemoveFrontend,
+		Params:   req,
+		Deadline: store.NextDeadline(10 * time.Minute),
 	}
 }
 
@@ -66,16 +91,16 @@ func RemoveBackend(req *RemoveBackendRequest) *store.Command {
 	}
 }
 
-// LoadBackendStateRequest describes intent loading
+// UpdateBackendStateRequest describes intent loading
 // an entire state from a bbb instance.
-type LoadBackendStateRequest struct {
+type UpdateBackendStateRequest struct {
 	ID string // the backend state id
 }
 
-// LoadBackendState creates a load state command
-func LoadBackendState(req *LoadBackendStateRequest) *store.Command {
+// UpdateBackendState creates a load state command
+func UpdateBackendState(req *UpdateBackendStateRequest) *store.Command {
 	return &store.Command{
-		Action:   CmdLoadBackendState,
+		Action:   CmdUpdateBackendState,
 		Params:   req,
 		Deadline: store.NextDeadline(10 * time.Minute),
 	}
