@@ -188,7 +188,7 @@ func (res *GetMeetingInfoResponse) Merge(other Response) error {
 // GetMeetingsResponse contains a list of meetings.
 type GetMeetingsResponse struct {
 	*XMLResponse
-	Meetings MeetingsCollection `xml:"meetings>meeting"`
+	Meetings []*Meeting `xml:"meetings>meeting"`
 }
 
 // UnmarshalGetMeetingsResponse decodes the xml response
@@ -222,13 +222,10 @@ func (res *GetMeetingsResponse) Merge(other Response) error {
 	return nil
 }
 
-// RecordingsCollection is a list of recordings
-type RecordingsCollection []*Recording
-
 // GetRecordingsResponse is the response of the getRecordings resource
 type GetRecordingsResponse struct {
 	*XMLResponse
-	Recordings RecordingsCollection `xml:"recordings>recording"`
+	Recordings []*Recording `xml:"recordings>recording"`
 }
 
 // UnmarshalGetRecordingsResponse deserializes the response XML
@@ -583,39 +580,6 @@ func (m *Meeting) String() string {
 		"[Meeting id: %v, pc: %v, mc: %v, running: %v]",
 		m.MeetingID, m.ParticipantCount, m.ModeratorCount, m.Running,
 	)
-}
-
-// MeetingsCollection is a slice of meetings
-type MeetingsCollection []*Meeting
-
-// GetMeetingByID retrieves a meeting by its id
-func (col MeetingsCollection) GetMeetingByID(id string) *Meeting {
-	for _, m := range col {
-		if m.MeetingID == id {
-			return m
-		}
-	}
-	return nil
-}
-
-// Update the collection will either replace a
-// present meeting with the new one identified by ID,
-// or will append the meeting.
-func (col MeetingsCollection) Update(m *Meeting) MeetingsCollection {
-	if col.GetMeetingByID(m.MeetingID) == nil {
-		return append(col, m)
-	}
-
-	// Replace meeting
-	meetings := make(MeetingsCollection, 0, len(col))
-	for _, cur := range col {
-		if cur.MeetingID == m.MeetingID {
-			meetings = append(meetings, m) // Replace
-		} else {
-			meetings = append(meetings, cur)
-		}
-	}
-	return meetings
 }
 
 // Recording is a recorded bbb session

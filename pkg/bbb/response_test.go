@@ -559,23 +559,3 @@ func TestMarshalPutRecordingTextTrackResponse(t *testing.T) {
 		t.Error("Unexpected:", string(data), len(data))
 	}
 }
-
-func TestMeetingsCollectionUpdate(t *testing.T) {
-	m1 := &Meeting{MeetingID: "m1"}
-	m11 := &Meeting{MeetingID: "m1"}
-	m2 := &Meeting{MeetingID: "m2"}
-	meetings := MeetingsCollection{m1}
-
-	meetings = meetings.Update(m2)
-	if len(meetings) != 2 {
-		t.Error("Exeptected length of meetings:", len(meetings))
-	}
-	if m2 != meetings.GetMeetingByID("m2") {
-		t.Error("Expected m2 to be in the meetings collection")
-	}
-
-	meetings = meetings.Update(m11)
-	if m11 != meetings.GetMeetingByID("m1") {
-		t.Error("Expected *m1 to be replaced with *m11")
-	}
-}
