@@ -3,24 +3,23 @@ package store
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // Connect establishes a database connection and
 // checks the schema version of the database.
-func Connect(url string) *pgxpool.Pool {
+func Connect(url string) (*pgxpool.Pool, error) {
 	// Initialize postgres connection
 	pool, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
-		log.Fatal("Error while connecting to database:", err)
+		return nil, err
 	}
 	if err = AssertDatabaseVersion(pool, 1); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return pool
+	return pool, nil
 }
 
 // AssertDatabaseVersion tests if the current
