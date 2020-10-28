@@ -7,14 +7,17 @@ package store
 import (
 	"testing"
 
+	"github.com/google/uuid"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
 func TestGetBackendStateByID(t *testing.T) {
 	conn := connectTest(t)
+	rnd := uuid.New().String()
 	state := InitBackendState(conn, &BackendState{
 		Backend: &bbb.Backend{
-			Host:   "testhost",
+			Host:   "testhost" + rnd,
 			Secret: "testsecret",
 		},
 		Tags: []string{"2.0.0", "sip", "testing"},
@@ -27,9 +30,10 @@ func TestGetBackendStateByID(t *testing.T) {
 
 func TestBackendStateinsert(t *testing.T) {
 	conn := connectTest(t)
+	rnd := uuid.New().String()
 	state := InitBackendState(conn, &BackendState{
 		Backend: &bbb.Backend{
-			Host:   "testhost",
+			Host:   "testhost" + rnd,
 			Secret: "testsecret",
 		},
 		Tags: []string{"2.0.0", "sip", "testing"},
@@ -46,9 +50,10 @@ func TestBackendStateinsert(t *testing.T) {
 func TestBackendStateSave(t *testing.T) {
 	conn := connectTest(t)
 
+	rnd := uuid.New().String()
 	state := InitBackendState(conn, &BackendState{
 		Backend: &bbb.Backend{
-			Host:   "testhost",
+			Host:   "testhost" + rnd,
 			Secret: "testsecret",
 		},
 	})
@@ -63,7 +68,7 @@ func TestBackendStateSave(t *testing.T) {
 	}
 
 	// Update host
-	state.Backend.Host = "newhost"
+	state.Backend.Host = "newhost" + rnd
 	err = state.Save()
 	if err != nil {
 		t.Error(err)
