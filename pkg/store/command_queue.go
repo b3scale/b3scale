@@ -41,7 +41,7 @@ type Command struct {
 	Deadline  time.Time
 	StartedAt *time.Time
 	StoppedAt *time.Time
-	CreatedAt *time.Time
+	CreatedAt time.Time
 
 	pool *pgxpool.Pool
 }
@@ -103,11 +103,19 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 		deadline
 	  ) VALUES (
 		$1, $2, $3
-	  )`
-	_, err = q.pool.Exec(ctx, qry, cmd.Action, params, deadline)
+	  )
+	  RETURNING id`
+	var cmdID string
+	err = q.pool.
+		QueryRow(ctx, qry, cmd.Action, params, deadline).
+		Scan(&cmdID)
 	if err != nil {
 		return err
 	}
+
+	// Update command
+	cmd.ID = cmdID
+	cmd.CreatedAt = time.Now().UTC()
 
 	return nil
 }
