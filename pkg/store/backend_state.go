@@ -269,29 +269,8 @@ func (s *BackendState) SetMeetings(meetings bbb.MeetingsCollection) error {
 	return nil
 }
 
-// GetMeetings retrievs all meetings for a meeting
-// filterable with GetMeetingsOpts.
-func (s *BackendState) GetMeetings() (bbb.MeetingsCollection, error) {
+// GetMeetingStates retrievs all meeting states for
+// a given backend state.
+func (s *BackendState) GetMeetingStates(q *Query) ([]*MeetingState, error) {
 	return nil, nil
 }
-
-// AddMeeting persists a meeting in the store
-func (s *BackendState) AddMeeting(fe *bbb.Frontend, m *bbb.Meeting) error {
-	return nil
-}
-
-// RemoveMeeting will delete a meeting from the store
-func (s *BackendState) RemoveMeeting(m *bbb.Meeting) error {
-	return nil
-}
-
-/*
-
-	// Recordings
-	GetRecordings(*cluster.Backend) (bbb.RecordingsCollection, error)
-	SetRecordings(*cluster.Backend, bbb.RecordingsCollection) error
-
-	// Forget about the backend
-	Delete(*cluster.Backend)
-
-*/
