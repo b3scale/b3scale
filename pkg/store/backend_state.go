@@ -5,7 +5,7 @@ import (
 	//	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	// "github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -21,6 +21,9 @@ type BackendState struct {
 	AdminState string
 
 	LastError *string
+
+	Latency time.Duration
+	Load    float64
 
 	Backend *bbb.Backend
 
@@ -67,6 +70,8 @@ func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 
 		  last_error,
 
+		  latency,
+
 		  host,
 		  secret,
 
@@ -85,7 +90,19 @@ func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 	// fmt.Println("Affected rows:", cmd.RowsAffected())
 	results := make([]*BackendState, 0, cmd.RowsAffected())
 	for rows.Next() {
-		state, err := backendStateFromRow(conn, rows)
+		state := InitBackendState(conn, &BackendState{})
+		err := rows.Scan(
+			&state.ID,
+			&state.NodeState,
+			&state.AdminState,
+			&state.LastError,
+			&state.Latency,
+			&state.Backend.Host,
+			&state.Backend.Secret,
+			&state.Tags,
+			&state.CreatedAt,
+			&state.UpdatedAt,
+			&state.SyncedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -105,22 +122,6 @@ func GetBackendState(conn *pgxpool.Pool, q *Query) (*BackendState, error) {
 		return nil, nil
 	}
 	return states[0], nil
-}
-
-func backendStateFromRow(conn *pgxpool.Pool, row pgx.Row) (*BackendState, error) {
-	state := InitBackendState(conn, &BackendState{})
-	err := row.Scan(
-		&state.ID,
-		&state.NodeState,
-		&state.AdminState,
-		&state.LastError,
-		&state.Backend.Host,
-		&state.Backend.Secret,
-		&state.Tags,
-		&state.CreatedAt,
-		&state.UpdatedAt,
-		&state.SyncedAt)
-	return state, err
 }
 
 // Refresh the backend state from the database
@@ -194,13 +195,15 @@ func (s *BackendState) update() error {
 
 			   last_error   = $4,
 
-			   host         = $5,
-			   secret       = $6,
+			   latency      = $5,
 
-			   tags         = $7,
+			   host         = $6,
+			   secret       = $7,
 
-			   updated_at   = $8,
-			   synced_at    = $9
+			   tags         = $8,
+
+			   updated_at   = $9,
+			   synced_at    = $10
 
 		 WHERE id = $1
 	`
@@ -212,6 +215,7 @@ func (s *BackendState) update() error {
 		s.NodeState,
 		s.AdminState,
 		s.LastError,
+		s.Latency,
 		s.Backend.Host,
 		s.Backend.Secret,
 		s.Tags,
