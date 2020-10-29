@@ -76,8 +76,31 @@ func (q *Query) Eq(attr string, param interface{}) *Query {
 	return q.Filter(attr, "=", param)
 }
 
+// Lt adds a lower than test to the query
+func (q *Query) Lt(attr string, param interface{}) *Query {
+	return q.Filter(attr, "<", param)
+}
+
+// Lte adds a greater or equal test to the query
+func (q *Query) Lte(attr string, param interface{}) *Query {
+	return q.Filter(attr, "<=", param)
+}
+
+// Gt adds a greater than test to the query
+func (q *Query) Gt(attr string, param interface{}) *Query {
+	return q.Filter(attr, ">", param)
+}
+
+// Gte adds a greater or equal test to the query
+func (q *Query) Gte(attr string, param interface{}) *Query {
+	return q.Filter(attr, ">=", param)
+}
+
 // Internal where returns the WHERE query string
 func (q *Query) where() string {
+	if len(q.filters) == 0 {
+		return " 1 = 1 "
+	}
 	where := make([]string, 0, len(q.filters))
 	for _, f := range q.filters {
 		where = append(where, f.String())
