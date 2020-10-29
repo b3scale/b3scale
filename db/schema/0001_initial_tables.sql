@@ -36,6 +36,8 @@ CREATE TABLE backends (
     node_state  instance_state NOT NULL DEFAULT 'init',
     admin_state instance_state NOT NULL DEFAULT 'ready',
 
+    latency    INTEGER         NOT NULL DEFAULT 0.0,
+
     last_error text NULL DEFAULT NULL,
 
     host    text NOT NULL      UNIQUE,
