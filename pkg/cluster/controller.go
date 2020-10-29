@@ -72,8 +72,8 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 		return c.handleAddBackend(cmd)
 	case CmdRemoveBackend:
 		return c.handleRemoveBackend(cmd)
-	case CmdUpdateBackendState:
-		return c.handleUpdateBackendState(cmd)
+	case CmdUpdateNodeState:
+		return c.handleUpdateNodeState(cmd)
 	}
 
 	return nil, ErrUnknownCommand
@@ -101,7 +101,7 @@ func (c *Controller) handleAddBackend(
 
 	// Dispatch background job: Load instance state.
 	if err := c.cmds.Queue(
-		UpdateBackendState(&UpdateBackendStateRequest{
+		UpdateNodeState(&UpdateNodeStateRequest{
 			ID: state.ID,
 		})); err != nil {
 
@@ -120,12 +120,12 @@ func (c *Controller) handleRemoveBackend(
 	return backendID, fmt.Errorf("implement me")
 }
 
-// Command: UpdateBackendState
-func (c *Controller) handleUpdateBackendState(
+// Command: UpdateNodeState
+func (c *Controller) handleUpdateNodeState(
 	cmd *store.Command,
 ) (interface{}, error) {
 	// Get backend from command
-	req := &UpdateBackendStateRequest{}
+	req := &UpdateNodeStateRequest{}
 	if err := cmd.FetchParams(req); err != nil {
 		return nil, err
 	}
@@ -137,13 +137,9 @@ func (c *Controller) handleUpdateBackendState(
 	if backend == nil {
 		return false, fmt.Errorf("backend not found: %s", req.ID)
 	}
-	err = backend.loadBackendState()
+	err = backend.loadNodeState()
 	if err != nil {
-		// Set backend state to error and log last error
-		backend.state.NodeState = "error"
-		serr := fmt.Sprintf("%s", err)
-		backend.state.LastError = &serr
-		backend.state.Save()
+		log.Println(backend.state.Backend.Host, err)
 		return false, err
 	}
 	return true, nil
@@ -152,20 +148,20 @@ func (c *Controller) handleUpdateBackendState(
 // requestSyncStale triggers a background sync of the
 // entire node state
 func (c *Controller) requestSyncStale() error {
-	stale, err := c.GetBackends(store.NewQuery().Filter(`
-		now() - COALESCE(
-			synced_at,
-			TIMESTAMP '0001-01-01 00:00:00')
-		`,
-		">", time.Duration(10*time.Minute)))
+	stale, err := c.GetBackends(store.NewQuery().
+		Gt(`now() - COALESCE(
+				synced_at,
+				TIMESTAMP '0001-01-01 00:00:00')`,
+			time.Duration(10*time.Second)).
+		Eq("admin_state", "ready"))
 	if err != nil {
 		return err
 	}
-	// For each stale backend create a new load instance
-	// state command
+	// For each stale backend create a new update state
+	// request, which will try to reach the backend.
 	for _, b := range stale {
 		if err := c.cmds.Queue(
-			UpdateBackendState(&UpdateBackendStateRequest{
+			UpdateNodeState(&UpdateNodeStateRequest{
 				ID: b.state.ID,
 			})); err != nil {
 			return err

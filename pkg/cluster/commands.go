@@ -17,9 +17,9 @@ const (
 	CmdRemoveFrontend = "remove_frontend"
 
 	// Backend
-	CmdAddBackend         = "add_backend"
-	CmdRemoveBackend      = "remove_backend"
-	CmdUpdateBackendState = "update_backend_state"
+	CmdAddBackend      = "add_backend"
+	CmdRemoveBackend   = "remove_backend"
+	CmdUpdateNodeState = "update_node_state"
 )
 
 var (
@@ -91,16 +91,16 @@ func RemoveBackend(req *RemoveBackendRequest) *store.Command {
 	}
 }
 
-// UpdateBackendStateRequest describes intent loading
-// an entire state from a bbb instance.
-type UpdateBackendStateRequest struct {
+// UpdateNodeStateRequest requests a status update
+// from a backend identified by ID
+type UpdateNodeStateRequest struct {
 	ID string // the backend state id
 }
 
-// UpdateBackendState creates a load state command
-func UpdateBackendState(req *UpdateBackendStateRequest) *store.Command {
+// UpdateNodeState creates a update status command
+func UpdateNodeState(req *UpdateNodeStateRequest) *store.Command {
 	return &store.Command{
-		Action:   CmdUpdateBackendState,
+		Action:   CmdUpdateNodeState,
 		Params:   req,
 		Deadline: store.NextDeadline(10 * time.Minute),
 	}

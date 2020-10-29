@@ -1,8 +1,10 @@
 package cluster
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
@@ -36,6 +38,44 @@ func (b *Backend) loadBackendState() error {
 	}
 
 	return nil
+}
+
+// Backend State Sync: loadNodeState will make
+// a small request to get a meeting that does not
+// exist to check if the credentials are valid.
+func (b *Backend) loadNodeState() error {
+	log.Println(b.state.ID, "SYNC: node state")
+	defer b.state.Save()
+
+	// Measure latency
+	t0 := time.Now()
+	res, err := b.IsMeetingRunning(bbb.IsMeetingRunningRequest(
+		bbb.Params{
+			"meetingID": "00000000-0000-0000-0000-000000000001",
+		}))
+	t1 := time.Now()
+	latency := t1.Sub(t0)
+
+	if err != nil {
+		errMsg := fmt.Sprintf("%s", err)
+		b.state.NodeState = "error"
+		b.state.LastError = &errMsg
+		return errors.New(errMsg)
+	}
+
+	if res.Returncode != "SUCCESS" {
+		// Update backend state
+		errMsg := fmt.Sprintf("%s: %s", res.MessageKey, res.Message)
+		b.state.LastError = &errMsg
+		b.state.NodeState = "error"
+		return errors.New(errMsg)
+	}
+
+	// Update state
+	b.state.LastError = nil
+	b.state.Latency = latency
+	b.state.NodeState = "ready"
+	return err
 }
 
 // Backend State Sync: Loads the state from
@@ -125,15 +165,17 @@ func (b *Backend) Join(
 func (b *Backend) IsMeetingRunning(
 	req *bbb.Request,
 ) (*bbb.IsMeetingRunningResponse, error) {
+	req = req.WithBackend(b.state.Backend)
+	res, err := b.client.Do(req)
 
-	// Try With the server...
-
-	return nil, fmt.Errorf("implement me")
+	return res.(*bbb.IsMeetingRunningResponse), err
 }
 
 // End a meeting
 func (b *Backend) End(req *bbb.Request) (*bbb.EndResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	req = req.WithBackend(b.state.Backend)
+	res, err := b.client.Do(req)
+	return res.(*bbb.EndResponse), err
 }
 
 // GetMeetingInfo gets the meeting details
