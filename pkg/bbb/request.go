@@ -2,6 +2,7 @@ package bbb
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
@@ -92,6 +93,15 @@ func JoinRequest(params Params) *Request {
 	}
 }
 
+// EndRequest creates a meeting end request
+func EndRequest(params Params) *Request {
+	return &Request{
+		Method:   http.MethodGet,
+		Resource: ResourceEnd,
+		Params:   params,
+	}
+}
+
 // CreateRequest creates a new create request
 func CreateRequest(params Params, body []byte) *Request {
 	return &Request{
@@ -141,6 +151,28 @@ func (req *Request) calculateChecksum(secret string) []byte {
 	return []byte(hex.EncodeToString(shasum.Sum(nil)))
 }
 
+// Internal calculate checksum with a given secret.
+func (req *Request) calculateChecksumSHA1(secret string) []byte {
+	qry := req.Params.String()
+	// Calculate checksum with server secret
+	// Basically sign the endpoint + params
+	mac := []byte(req.Resource + qry + secret)
+	shasum := sha1.New()
+	shasum.Write(mac)
+	return []byte(hex.EncodeToString(shasum.Sum(nil)))
+}
+
+// Internal calculate checksum with a given secret.
+func (req *Request) calculateChecksumSHA256(secret string) []byte {
+	qry := req.Params.String()
+	// Calculate checksum with server secret
+	// Basically sign the endpoint + params
+	mac := []byte(req.Resource + qry + secret)
+	shasum := sha256.New()
+	shasum.Write(mac)
+	return []byte(hex.EncodeToString(shasum.Sum(nil)))
+}
+
 // Validate request coming from a frontend.
 // Compare checksum with the checksum calculated from the params
 // and the frontend secret
@@ -156,7 +188,7 @@ func (req *Request) Validate() error {
 // Sign a request, with the backend secret.
 func (req *Request) Sign() string {
 	secret := req.Backend.Secret
-	return string(req.calculateChecksum(secret))
+	return string(req.calculateChecksumSHA256(secret))
 }
 
 // URL builds the URL representation of the
