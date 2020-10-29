@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	//	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	//	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -39,16 +39,18 @@ func main() {
 		fmt.Println("L:", state.Latency)
 	}
 
-	cmd := cluster.AddBackend(&cluster.AddBackendRequest{
-		Backend: &bbb.Backend{
-			Host:   "https://bbbackend01.bastelgenosse.de/bigbluebutton/aapi",
-			Secret: "nwlly97dniqQxKTWHdbGItgieGEBSnyL6s8I3FtM28",
-		},
-		Tags: []string{"sip", "2.0.0"},
-	})
-	queue := store.NewCommandQueue(dbConn)
-	err = queue.Queue(cmd)
-	if err != nil {
-		fmt.Println(err)
-	}
+	/*
+		cmd := cluster.AddBackend(&cluster.AddBackendRequest{
+			Backend: &bbb.Backend{
+				Host:   "https://bbbackend01.bastelgenosse.de/bigbluebutton/aapi",
+				Secret: "nwlly97dniqQxKTWHdbGItgieGEBSnyL6s8I3FtM28",
+			},
+			Tags: []string{"sip", "2.0.0"},
+		})
+		queue := store.NewCommandQueue(dbConn)
+		err = queue.Queue(cmd)
+		if err != nil {
+			fmt.Println(err)
+		}
+	*/
 }
