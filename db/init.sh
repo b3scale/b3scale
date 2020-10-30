@@ -75,4 +75,5 @@ if [ $OPT_CLEAR -eq 1 ]; then
 fi
 
 ## Apply sql scripts
-$PSQL < schema/0001_initial_tables.sql
+$PSQL -v ON_ERROR_STOP=on < schema/0001_initial_tables.sql
+
