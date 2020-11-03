@@ -240,9 +240,9 @@ func (s *BackendState) ClearMeetings() error {
 	return err
 }
 
-// CreateMeeting will create a new meeting state for the
+// CreateMeetingState will create a new state for the
 // current backend state. A frontend is attached.
-func (s *BackendState) CreateMeeting(
+func (s *BackendState) CreateMeetingState(
 	frontend *bbb.Frontend,
 	meeting *bbb.Meeting,
 ) (*MeetingState, error) {

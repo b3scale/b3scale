@@ -169,7 +169,6 @@ func (s *MeetingState) insert() (string, error) {
 	}
 
 	now := time.Now().UTC()
-
 	ctx := context.Background()
 	qry := `
 		INSERT INTO meetings (
@@ -196,6 +195,38 @@ func (s *MeetingState) insert() (string, error) {
 	return s.ID, nil
 }
 
+// Update the meeting state
 func (s *MeetingState) update() error {
-	return fmt.Errorf("implement me")
+	ctx := context.Background()
+
+	var (
+		frontendID *string
+		backendID  *string
+	)
+	if s.Frontend != nil {
+		frontendID = &s.Frontend.ID
+	}
+	if s.Backend != nil {
+		backendID = &s.Backend.ID
+	}
+
+	qry := `
+		UPDATE meetings
+		   SET state		= $2,
+		       frontend_id  = $3,
+			   backend_id   = $4,
+		  	   synced_at    = $5,
+			   updated_at   = $6
+	 	 WHERE id = $1`
+	now := time.Now().UTC()
+	_, err := s.pool.Exec(ctx, qry,
+		s.ID,
+		s.Meeting,
+		frontendID,
+		backendID,
+		s.SyncedAt,
+		&now)
+	if err != nil {
+		return err
+	}
 }

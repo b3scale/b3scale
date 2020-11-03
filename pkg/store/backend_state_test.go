@@ -34,16 +34,8 @@ func TestGetBackendStateByID(t *testing.T) {
 }
 
 func TestBackendStateinsert(t *testing.T) {
-	conn := connectTest(t)
-	rnd := uuid.New().String()
-	state := InitBackendState(conn, &BackendState{
-		Backend: &bbb.Backend{
-			Host:   "testhost" + rnd,
-			Secret: "testsecret",
-		},
-		Tags: []string{"2.0.0", "sip", "testing"},
-	})
-
+	pool := connectTest(t)
+	state := backendStateFactory(pool)
 	id, err := state.insert()
 	if err != nil {
 		t.Error(err)
@@ -53,16 +45,8 @@ func TestBackendStateinsert(t *testing.T) {
 }
 
 func TestBackendStateSave(t *testing.T) {
-	conn := connectTest(t)
-
-	rnd := uuid.New().String()
-	state := InitBackendState(conn, &BackendState{
-		Backend: &bbb.Backend{
-			Host:   "testhost" + rnd,
-			Secret: "testsecret",
-		},
-	})
-
+	pool := connectTest(t)
+	state := backendStateFactory(pool)
 	err := state.Save()
 	if err != nil {
 		t.Error(err)
@@ -73,7 +57,7 @@ func TestBackendStateSave(t *testing.T) {
 	}
 
 	// Update host
-	state.Backend.Host = "newhost" + rnd
+	state.Backend.Host = "newhost" + uuid.New().String()
 	err = state.Save()
 	if err != nil {
 		t.Error(err)
@@ -83,6 +67,30 @@ func TestBackendStateSave(t *testing.T) {
 		t.Error("Update date should bet set.")
 	}
 	t.Log(state.UpdatedAt)
-
 	t.Log(state)
+}
+
+func TestCreateMeeting(t *testing.T) {
+	pool := connectTest(t)
+	bstate := backendStateFactory(pool)
+	if err := bstate.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+	fstate := frontendStateFactory(pool)
+	if err := fstate.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	// Create meeting state
+	mstate, err := bstate.CreateMeetingState(fstate.Frontend, &bbb.Meeting{
+		MeetingID:   uuid.New().String(),
+		MeetingName: "foo",
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Log(mstate.ID)
 }
