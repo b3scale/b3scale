@@ -52,18 +52,12 @@ func TestFrontendStateSave(t *testing.T) {
 
 func TestGetFrontendState(t *testing.T) {
 	pool := connectTest(t)
-	key := uuid.New().String()
-	state := InitFrontendState(pool, &FrontendState{
-		Frontend: &bbb.Frontend{
-			Key:    key,
-			Secret: "v3rys3cr37",
-		},
-		Active: true,
-	})
+	state := frontendStateFactory(pool)
 	if err := state.Save(); err != nil {
 		t.Error(err)
 	}
-	ret, err := GetFrontendState(pool, NewQuery().Eq("key", key))
+	ret, err := GetFrontendState(
+		pool, NewQuery().Eq("key", state.Frontend.Key))
 	if err != nil {
 		t.Error(err)
 	}

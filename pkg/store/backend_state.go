@@ -3,12 +3,18 @@ package store
 import (
 	"context"
 	//	"fmt"
+	"errors"
 	"time"
 
 	// "github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+)
+
+// Errors
+var (
+	ErrFrontendRequired = errors.New("meeting requires a frontend state")
 )
 
 // The BackendState is shared across b3scale instances
@@ -34,12 +40,12 @@ type BackendState struct {
 	SyncedAt  *time.Time
 
 	// DB
-	conn *pgxpool.Pool
+	pool *pgxpool.Pool
 }
 
 // InitBackendState initializes a new backend state with
 // an initial state.
-func InitBackendState(conn *pgxpool.Pool, init *BackendState) *BackendState {
+func InitBackendState(pool *pgxpool.Pool, init *BackendState) *BackendState {
 	// Add default values
 	if init.NodeState == "" {
 		init.NodeState = "init"
@@ -53,13 +59,12 @@ func InitBackendState(conn *pgxpool.Pool, init *BackendState) *BackendState {
 	if init.Tags == nil {
 		init.Tags = []string{}
 	}
-
-	init.conn = conn
+	init.pool = pool
 	return init
 }
 
 // GetBackendStates retrievs all backends
-func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
+func GetBackendStates(pool *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 	ctx := context.Background()
 	qry := `
 		SELECT
@@ -82,7 +87,7 @@ func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 		  synced_at
 		FROM backends ` + q.related() + `
 		WHERE ` + q.where()
-	rows, err := conn.Query(ctx, qry, q.params()...)
+	rows, err := pool.Query(ctx, qry, q.params()...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +95,7 @@ func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 	// fmt.Println("Affected rows:", cmd.RowsAffected())
 	results := make([]*BackendState, 0, cmd.RowsAffected())
 	for rows.Next() {
-		state := InitBackendState(conn, &BackendState{})
+		state := InitBackendState(pool, &BackendState{})
 		err := rows.Scan(
 			&state.ID,
 			&state.NodeState,
@@ -113,8 +118,8 @@ func GetBackendStates(conn *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 }
 
 // GetBackendState tries to retriev a single backend state
-func GetBackendState(conn *pgxpool.Pool, q *Query) (*BackendState, error) {
-	states, err := GetBackendStates(conn, q)
+func GetBackendState(pool *pgxpool.Pool, q *Query) (*BackendState, error) {
+	states, err := GetBackendStates(pool, q)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +133,7 @@ func GetBackendState(conn *pgxpool.Pool, q *Query) (*BackendState, error) {
 func (s *BackendState) Refresh() error {
 	// Load from database
 	q := NewQuery().Eq("id", s.ID)
-	next, err := GetBackendState(s.conn, q)
+	next, err := GetBackendState(s.pool, q)
 	if err != nil {
 		return err
 	}
@@ -172,7 +177,7 @@ func (s *BackendState) insert() (string, error) {
 		RETURNING id
 	`
 	insertID := ""
-	err := s.conn.QueryRow(ctx, qry,
+	err := s.pool.QueryRow(ctx, qry,
 		// Values
 		s.Backend.Host,
 		s.Backend.Secret,
@@ -207,7 +212,7 @@ func (s *BackendState) update() error {
 
 		 WHERE id = $1
 	`
-	_, err := s.conn.Exec(
+	_, err := s.pool.Exec(
 		ctx, qry,
 		// Identifier
 		s.ID,
@@ -231,50 +236,33 @@ func (s *BackendState) ClearMeetings() error {
 	qry := `
 		DELETE FROM meetings WHERE backend_id = $1
 	`
-	_, err := s.conn.Exec(ctx, qry, s.ID)
+	_, err := s.pool.Exec(ctx, qry, s.ID)
 	return err
 }
 
-// SetMeetings will replace all meetings in the current state
-func (s *BackendState) SetMeetings(meetings []*bbb.Meeting) error {
-	ctx := context.Background()
-	tx, err := s.conn.Begin(ctx)
+// CreateMeeting will create a new meeting state for the
+// current backend state. A frontend is attached.
+func (s *BackendState) CreateMeeting(
+	frontend *bbb.Frontend,
+	meeting *bbb.Meeting,
+) (*MeetingState, error) {
+	// Combine frontend and backend state together
+	// with meeting data into a meeting state.
+	fstate, err := GetFrontendState(s.pool, NewQuery().
+		Eq("key", frontend.Key))
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer tx.Rollback(ctx)
-
-	// First clear all meetings
-	if err := s.ClearMeetings(); err != nil {
-		return err
+	if fstate == nil {
+		return nil, ErrFrontendRequired
 	}
-
-	// The add all new states
-	for _, m := range meetings {
-		// Create meeting state
-		state := InitMeetingState(s.conn, &MeetingState{
-			Backend: s,
-			Meeting: m,
-		})
-		state.Save()
+	mstate := InitMeetingState(s.pool, &MeetingState{
+		Backend:  s,
+		Frontend: fstate,
+		Meeting:  meeting,
+	})
+	if err := mstate.Save(); err != nil {
+		return nil, err
 	}
-
-	now := time.Now().UTC()
-	s.NodeState = "ready"
-	s.SyncedAt = &now
-	s.UpdatedAt = &now
-	s.Save()
-
-	// We are done here
-	err = tx.Commit(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// GetMeetingStates retrievs all meeting states for
-// a given backend state.
-func (s *BackendState) GetMeetingStates(q *Query) ([]*MeetingState, error) {
-	return nil, nil
+	return mstate, nil
 }
