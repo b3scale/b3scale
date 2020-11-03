@@ -74,17 +74,16 @@ func (b *Backend) loadNodeState() error {
 func (b *Backend) Create(req *bbb.Request) (
 	*bbb.CreateResponse, error,
 ) {
-	req = req.WithBackend(b.state.Backend)
 	// Make request to the backend and update local
 	// meetings state
-	res, err := b.client.Do(req)
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
 	createRes := res.(*bbb.CreateResponse)
 
-	// Insert meeting into state
-	err = b.state.CreateMeeting(req.Frontend, createRes.Meeting)
+	// Create new meeting state in our store
+	_, err = b.state.CreateMeetingState(req.Frontend, createRes.Meeting)
 	if err != nil {
 		return nil, err
 	}
