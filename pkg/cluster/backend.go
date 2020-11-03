@@ -30,16 +30,6 @@ func NewBackend(state *store.BackendState) *Backend {
 	}
 }
 
-// Load current state from the node. This includes
-// all meetings, meetings in detail and recordings.
-func (b *Backend) loadBackendState() error {
-	if err := b.loadMeetingsState(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Backend State Sync: loadNodeState will make
 // a small request to get a meeting that does not
 // exist to check if the credentials are valid.
@@ -78,44 +68,6 @@ func (b *Backend) loadNodeState() error {
 	return err
 }
 
-// Backend State Sync: Loads the state from
-// the bbb backend and keeps it locally.
-// Meeting details will be fetched.
-func (b *Backend) loadMeetingsState() error {
-	log.Println(b.state.ID, "SYNC: meetings")
-	// Fetch meetings from backend
-	req := bbb.GetMeetingsRequest(bbb.Params{}).
-		WithBackend(b.state.Backend)
-	res, err := b.client.Do(req)
-	if err != nil {
-		return err
-	}
-	meetingsRes := res.(*bbb.GetMeetingsResponse)
-
-	// Get meeting details
-	meetings := meetingsRes.Meetings
-	stateMeetings := make([]*bbb.Meeting, 0, len(meetings))
-	for _, m := range meetings {
-		log.Println("Get meeting details...:", m)
-		req = bbb.GetMeetingInfoRequest(bbb.Params{
-			bbb.ParamMeetingID: m.MeetingID,
-		}).WithBackend(b.state.Backend)
-		res, err = b.client.Do(req)
-		if err != nil {
-			return err // Sync must be complete.
-		}
-		meetingRes := res.(*bbb.GetMeetingInfoResponse)
-		stateMeetings = append(stateMeetings, meetingRes.Meeting)
-	}
-
-	if err := b.state.SetMeetings(stateMeetings); err != nil {
-		return err
-	}
-
-	log.Println(b.state.ID, "Meetings:", stateMeetings)
-	return nil
-}
-
 // BBB API Implementation
 
 // Create a new Meeting
@@ -132,13 +84,10 @@ func (b *Backend) Create(req *bbb.Request) (
 	createRes := res.(*bbb.CreateResponse)
 
 	// Insert meeting into state
-
-	/*
-		err = b.state.AddMeeting(req.Frontend, createRes.Meeting)
-		if err != nil {
-			return nil, err
-		}
-	*/
+	err = b.state.CreateMeeting(req.Frontend, createRes.Meeting)
+	if err != nil {
+		return nil, err
+	}
 
 	return createRes, nil
 }
