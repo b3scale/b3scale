@@ -47,10 +47,40 @@ func TestMeetingStateSave(t *testing.T) {
 	state, err := meetingStateFactory(pool, nil)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	err = state.Save()
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	t.Log("New meeting state id:", state.ID)
+}
+
+func TestMeetingStateSaveUpdate(t *testing.T) {
+	pool := connectTest(t)
+	state, err := meetingStateFactory(pool, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+	if state.UpdatedAt != nil {
+		t.Error("unexpectected updated at:", state.UpdatedAt)
+	}
+
+	state.Meeting = &bbb.Meeting{
+		MeetingName: "bar",
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	if state.UpdatedAt == nil {
+		t.Error("expected updated at to be set")
+	}
 }

@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -226,7 +225,5 @@ func (s *MeetingState) update() error {
 		backendID,
 		s.SyncedAt,
 		&now)
-	if err != nil {
-		return err
-	}
+	return err
 }
