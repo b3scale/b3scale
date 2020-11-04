@@ -15,13 +15,13 @@ b3scalectl:
 .PHONY: clean test
 
 test:
-	cd pkg/cluster && go test -v
-	cd pkg/config && go test -v
-	cd pkg/store && go test -v
-	cd pkg/bbb && go test -v
-	cd pkg/iface/http && go test -v
-	cd pkg/middlewares/routing && go test -v
-	cd pkg/middlewares/requests && go test -v
+	cd pkg/cluster && go test
+	cd pkg/config && go test
+	cd pkg/store && go test
+	cd pkg/bbb && go test
+	cd pkg/iface/http && go test
+	cd pkg/middlewares/routing && go test
+	cd pkg/middlewares/requests && go test 
 
 clean:
 	rm -f cmd/b3scaled/b3scaled

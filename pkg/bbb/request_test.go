@@ -73,7 +73,7 @@ func TestSign(t *testing.T) {
 	}
 
 	checksum := req.Sign()
-	if checksum != "0b89c2ebcfefb76772cbcf19386c33561f66f6ae" {
+	if checksum != "94ec9a89c7dc53af01537aef9f8ecbae5e95cd7f37cd4bf18101b976a4a8b097" {
 		t.Error("Unexpected checksum:", checksum)
 	}
 }
@@ -134,7 +134,7 @@ func TestString(t *testing.T) {
 	expected := "https://bbbackend/create" +
 		"?attendeePW=111222&meetingID=abc123" +
 		"&moderatorPW=333444&name=Test+Meeting&" +
-		"checksum=0b89c2ebcfefb76772cbcf19386c33561f66f6ae"
+		"checksum=94ec9a89c7dc53af01537aef9f8ecbae5e95cd7f37cd4bf18101b976a4a8b097"
 	if reqURL != expected {
 		t.Error("Unexpected request URL:", reqURL)
 	}
@@ -143,7 +143,7 @@ func TestString(t *testing.T) {
 	req.Params = Params{}
 	reqURL = req.URL()
 	expected = "https://bbbackend/create" +
-		"?checksum=8a21c9b7e3b18541974c9e78c0d0bfa790c665eb"
+		"?checksum=272c9555258496a3f19c5ad8f599af2a4ebec031381ff1e37b34842c42c12284"
 	if reqURL != expected {
 		t.Error("Unexpected request URL:", reqURL)
 	}
