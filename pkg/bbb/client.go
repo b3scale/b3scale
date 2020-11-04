@@ -26,9 +26,12 @@ type Client struct {
 func NewClient() *Client {
 	conn := &http.Client{
 		Transport: &http.Transport{
+			ForceAttemptHTTP2:     true,
 			MaxIdleConnsPerHost:   20,
 			IdleConnTimeout:       300 * time.Second,
 			ResponseHeaderTimeout: 60 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
 
