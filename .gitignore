@@ -8,3 +8,7 @@ etc/b3scale/backends.conf
 etc/b3scale/frontends.conf
 
 .env
+
+develop/db
+develop/log
+develop/storage
