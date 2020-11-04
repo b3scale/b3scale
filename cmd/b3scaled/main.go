@@ -60,6 +60,7 @@ func main() {
 	// Start HTTP interface
 	ifaceHTTP := http.NewInterface(
 		listenHTTP,
+		ctrl,
 		gateway)
 
 	ifaceHTTP.Start()

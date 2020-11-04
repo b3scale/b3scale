@@ -12,7 +12,7 @@ import (
 func connectTest(t *testing.T) *pgxpool.Pool {
 	url := os.Getenv("B3SCALE_TEST_DB_URL")
 	if url == "" {
-		url = "postgres://postgres:postgres@localhost:4432/b3scale_test"
+		url = "postgres://postgres:postgres@localhost:5432/b3scale_test"
 	}
 	conn, err := Connect(url)
 	if err != nil {
