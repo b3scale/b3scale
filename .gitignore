@@ -6,3 +6,5 @@ cmd/b3scalectl/b3scalectl
 
 etc/b3scale/backends.conf
 etc/b3scale/frontends.conf
+
+.env
