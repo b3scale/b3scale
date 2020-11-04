@@ -35,6 +35,9 @@ func NewInterface(
 	}))
 	e.Use(middleware.Recover())
 
+	// We handle BBB requests in a custom middleware
+	e.Use(BBBRequestMiddleware("/bbb"))
+
 	// Prometheus Middleware
 	// Find it under /metrics
 	p := prometheus.NewPrometheus("echo", nil)
@@ -46,7 +49,7 @@ func NewInterface(
 		gateway: gateway,
 	}
 
-	// Register routers
+	// Register index route
 	e.GET("/", iface.httpIndex)
 
 	return iface
