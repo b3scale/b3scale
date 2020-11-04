@@ -21,6 +21,12 @@ func BBBRequestMiddleware(mountPoint string) echo.MiddlewareFunc {
 			if !strings.HasPrefix(path, mountPoint) {
 				return next(c) // nothing to do here.
 			}
+			// Strip prefix
+			path = path[len(mountPoint):]
+
+			// frontendKey, action := decodePath(path)
+
+			// Authenticate frontend
 
 			// Decode BBB request
 			fmt.Println(path)
@@ -29,4 +35,14 @@ func BBBRequestMiddleware(mountPoint string) echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+// decodePath extracts the frontend key and BBB
+// action from the request path
+func decodePath(path string) (string, string) {
+	tokens := strings.Split(path, "/")
+	if len(tokens) < 3 {
+		return "", ""
+	}
+	return tokens[1], tokens[len(tokens)-1]
 }
