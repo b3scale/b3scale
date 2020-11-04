@@ -97,14 +97,13 @@ func (b *Backend) Join(
 ) (*bbb.JoinResponse, error) {
 	// Make join request to the backend and update local
 	// meetings state
-	res, err := b.client.Do(req)
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
 	joinRes := res.(*bbb.JoinResponse)
 
 	// Update meeting attendee list
-	// ...
 
 	return joinRes, nil
 }
@@ -113,16 +112,21 @@ func (b *Backend) Join(
 func (b *Backend) IsMeetingRunning(
 	req *bbb.Request,
 ) (*bbb.IsMeetingRunningResponse, error) {
-	req = req.WithBackend(b.state.Backend)
-	res, err := b.client.Do(req)
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	isMeetingRunningRes := res.(*bbb.IsMeetingRunningResponse)
 
-	return res.(*bbb.IsMeetingRunningResponse), err
+	return isMeetingRunningRes, err
 }
 
 // End a meeting
 func (b *Backend) End(req *bbb.Request) (*bbb.EndResponse, error) {
-	req = req.WithBackend(b.state.Backend)
-	res, err := b.client.Do(req)
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
 	return res.(*bbb.EndResponse), err
 }
 
@@ -130,68 +134,108 @@ func (b *Backend) End(req *bbb.Request) (*bbb.EndResponse, error) {
 func (b *Backend) GetMeetingInfo(
 	req *bbb.Request,
 ) (*bbb.GetMeetingInfoResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.GetMeetingInfoResponse), nil
 }
 
 // GetMeetings retrieves a list of meetings
 func (b *Backend) GetMeetings(
 	req *bbb.Request,
 ) (*bbb.GetMeetingsResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.GetMeetingsResponse), nil
 }
 
 // GetRecordings retrieves a list of recordings
 func (b *Backend) GetRecordings(
 	req *bbb.Request,
 ) (*bbb.GetRecordingsResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.GetRecordingsResponse), nil
 }
 
 // PublishRecordings publishes a recording
 func (b *Backend) PublishRecordings(
 	req *bbb.Request,
 ) (*bbb.PublishRecordingsResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.PublishRecordingsResponse), nil
 }
 
 // DeleteRecordings deletes recordings
 func (b *Backend) DeleteRecordings(
 	req *bbb.Request,
 ) (*bbb.DeleteRecordingsResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.DeleteRecordingsResponse), nil
 }
 
 // UpdateRecordings updates recordings
 func (b *Backend) UpdateRecordings(
 	req *bbb.Request,
 ) (*bbb.UpdateRecordingsResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.UpdateRecordingsResponse), nil
 }
 
 // GetDefaultConfigXML retrieves the default config xml
 func (b *Backend) GetDefaultConfigXML(
 	req *bbb.Request,
 ) (*bbb.GetDefaultConfigXMLResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.GetDefaultConfigXMLResponse), nil
 }
 
 // SetConfigXML sets the? config xml
 func (b *Backend) SetConfigXML(
 	req *bbb.Request,
 ) (*bbb.SetConfigXMLResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.SetConfigXMLResponse), nil
 }
 
 // GetRecordingTextTracks retrievs all text tracks
 func (b *Backend) GetRecordingTextTracks(
 	req *bbb.Request,
 ) (*bbb.GetRecordingTextTracksResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.GetRecordingTextTracksResponse), nil
 }
 
 // PutRecordingTextTrack adds a text track
 func (b *Backend) PutRecordingTextTrack(
 	req *bbb.Request,
 ) (*bbb.PutRecordingTextTrackResponse, error) {
-	return nil, fmt.Errorf("implement me")
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.PutRecordingTextTrackResponse), nil
 }
