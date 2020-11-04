@@ -196,3 +196,32 @@ func (c *Controller) GetBackend(q *store.Query) (*Backend, error) {
 	}
 	return backends[0], nil
 }
+
+// GetFrontends retrieves all frontends from
+// the store matchig a query
+func (c *Controller) GetFrontends(q *store.Query) ([]*Frontend, error) {
+	states, err := store.GetFrontendStates(c.conn, q)
+	if err != nil {
+		return nil, err
+	}
+	// Make cluster backend from each state
+	frontends := make([]*Frontend, 0, len(states))
+	for _, s := range states {
+		frontends = append(frontends, NewFrontend(s))
+	}
+
+	return frontends, nil
+}
+
+// GetFrontend fetches a frontend with a state from
+// the store
+func (c *Controller) GetFrontend(q *store.Query) (*Frontend, error) {
+	frontends, err := c.GetFrontends(q)
+	if err != nil {
+		return nil, err
+	}
+	if len(frontends) == 0 {
+		return nil, nil
+	}
+	return frontends[0], nil
+}
