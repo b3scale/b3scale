@@ -24,6 +24,7 @@ import (
 func BBBRequestMiddleware(
 	mountPoint string,
 	ctrl *cluster.Controller,
+	gateway *cluster.Gateway,
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -34,7 +35,7 @@ func BBBRequestMiddleware(
 			// Decode HTTP request into a BBB request
 			// and verify it.
 			path = path[len(mountPoint):]
-			frontendKey, action := decodePath(path)
+			frontendKey, resource := decodePath(path)
 			frontend, err := ctrl.GetFrontend(
 				store.NewQuery().Eq("key", frontendKey))
 			if err != nil {
@@ -47,16 +48,25 @@ func BBBRequestMiddleware(
 
 			// We have an action, we have a frontend, now
 			// we need the query parameters and request body.
+			params := decodeParams(c)
+			checksum, _ := params.Checksum()
 			body := readRequestBody(c)
 
-			fmt.Println(action)
-			fmt.Println(frontend)
+			bbbReq := &bbb.Request{
+				Frontend: frontend.Frontend(),
+				Method:   c.Request().Method,
+				Resource: resource,
+				Params:   params,
+				Body:     body,
+				Checksum: checksum,
+			}
 
 			// Authenticate request
+			if err := bbbReq.Verify(); err != nil {
+				return handleAPIError(c, err)
+			}
 
-			// Decode BBB request
-			fmt.Println(path)
-			fmt.Println("query", c.QueryParams())
+			// Let the gateway handle the request
 
 			return c.String(netHTTP.StatusOK, "huhuuuuu")
 		}
@@ -97,4 +107,13 @@ func readRequestBody(c echo.Context) []byte {
 	// Reset after reading
 	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(body))
 	return body
+}
+
+func decodeParams(c echo.Context) bbb.Params {
+	values := c.QueryParams()
+	params := bbb.Params{}
+	for k := range values {
+		params[k] = values.Get(k)
+	}
+	return params
 }

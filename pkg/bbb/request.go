@@ -15,6 +15,7 @@ import (
 // Well known params
 const (
 	ParamMeetingID = "meetingID"
+	ParamChecksum  = "checksum"
 )
 
 // Params for the BBB API (we opt for stringly typed.)
@@ -47,6 +48,15 @@ func (p Params) MeetingID() (string, bool) {
 		return "", false
 	}
 	return id, true
+}
+
+// Checksum retrievs the well known checksum param
+func (p Params) Checksum() (string, bool) {
+	checksum, ok := p[ParamChecksum]
+	if !ok {
+		return "", false
+	}
+	return checksum, true
 }
 
 // Request is a bbb request as decoded from the

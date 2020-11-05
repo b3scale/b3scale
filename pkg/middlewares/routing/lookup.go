@@ -17,7 +17,7 @@ func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 		) ([]*cluster.Backend, error) {
 			// Get meeting id from params. If none is present,
 			// there is nothing to do for us here.
-			meetingID, ok := req.Params.GetMeetingID()
+			meetingID, ok := req.Params.MeetingID()
 			if !ok {
 				return backends, nil
 			}

@@ -38,7 +38,7 @@ func NewInterface(
 	e.Use(middleware.Recover())
 
 	// We handle BBB requests in a custom middleware
-	e.Use(BBBRequestMiddleware("/bbb", ctrl))
+	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
 
 	// Prometheus Middleware
 	// Find it under /metrics
