@@ -26,6 +26,10 @@ type Params map[string]string
 func (p Params) String() string {
 	keys := make([]string, 0, len(p))
 	for key := range p {
+		// We omit the checksum.
+		if key == "checksum" {
+			continue
+		}
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)

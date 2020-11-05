@@ -8,9 +8,10 @@ func TestParamsString(t *testing.T) {
 	tests := map[string]Params{
 		// Test parameter ordering
 		"a=23&b=true&c=foo": Params{
-			"c": "foo",
-			"a": "23",
-			"b": "true",
+			"c":        "foo",
+			"a":        "23",
+			"b":        "true",
+			"checksum": "fff0000000000fff",
 		},
 
 		// URL-safe encoding
