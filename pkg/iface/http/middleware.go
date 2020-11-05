@@ -67,8 +67,8 @@ func BBBRequestMiddleware(
 			}
 
 			// Let the gateway handle the request
-
-			return c.String(netHTTP.StatusOK, "huhuuuuu")
+			res := gateway.Dispatch(bbbReq)
+			return c.XML(netHTTP.StatusOK, res)
 		}
 	}
 }
