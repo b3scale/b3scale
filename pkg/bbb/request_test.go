@@ -9,8 +9,8 @@ func TestParamsString(t *testing.T) {
 		// Test parameter ordering
 		"a=23&b=true&c=foo": Params{
 			"c": "foo",
-			"a": 23,
-			"b": true,
+			"a": "23",
+			"b": "true",
 		},
 
 		// URL-safe encoding
@@ -37,7 +37,7 @@ func TestParamsGetMeetingID(t *testing.T) {
 	}
 
 	// Found
-	id, ok := p1.GetMeetingID()
+	id, ok := p1.MeetingID()
 	if !ok {
 		t.Error("expected meetingID")
 	}
@@ -46,11 +46,10 @@ func TestParamsGetMeetingID(t *testing.T) {
 	}
 
 	// Not Found
-	id, ok = p2.GetMeetingID()
+	id, ok = p2.MeetingID()
 	if ok {
 		t.Error("did not expect meetingID:", id)
 	}
-
 }
 
 func TestSign(t *testing.T) {
@@ -78,7 +77,7 @@ func TestSign(t *testing.T) {
 	}
 }
 
-func TestValidate(t *testing.T) {
+func TestVerify(t *testing.T) {
 	// We use the example from the api documentation, now
 	// for validating against a frontend secret.
 	// order, different to the example, we will end up with
@@ -95,18 +94,18 @@ func TestValidate(t *testing.T) {
 			"attendeePW":  "111222",
 			"moderatorPW": "333444",
 		},
-		Checksum: []byte("0b89c2ebcfefb76772cbcf19386c33561f66f6ae"),
+		Checksum: "0b89c2ebcfefb76772cbcf19386c33561f66f6ae",
 	}
 
 	// Success
-	err := req.Validate()
+	err := req.Verify()
 	if err != nil {
 		t.Error(err)
 	}
 
 	// Error
-	req.Checksum = []byte("foob4r")
-	err = req.Validate()
+	req.Checksum = "foob4r"
+	err = req.Verify()
 	if err == nil {
 		t.Error("Expected a checksum error.")
 	}

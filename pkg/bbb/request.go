@@ -17,8 +17,8 @@ const (
 	ParamMeetingID = "meetingID"
 )
 
-// Params for the BBB API
-type Params map[string]interface{}
+// Params for the BBB API (we opt for stringly typed.)
+type Params map[string]string
 
 // String of the query parameters.
 // The order of the parameters is deterministic.
@@ -33,20 +33,16 @@ func (p Params) String() string {
 	var q []string
 	for _, k := range keys {
 		v := p[k]
-		vStr := url.QueryEscape(fmt.Sprintf("%v", v))
+		vStr := url.QueryEscape(v)
 		q = append(q, fmt.Sprintf("%s=%s", k, vStr))
 	}
 	return strings.Join(q, "&")
 }
 
-// GetMeetingID retrievs the well known
-// parameter from the set of params.
-func (p Params) GetMeetingID() (string, bool) {
-	iID, ok := p[ParamMeetingID]
-	if !ok {
-		return "", false
-	}
-	id, ok := iID.(string)
+// MeetingID retrievs the well known meeting id
+// value from the set of params.
+func (p Params) MeetingID() (string, bool) {
+	id, ok := p[ParamMeetingID]
 	if !ok {
 		return "", false
 	}
@@ -64,7 +60,7 @@ type Request struct {
 	ContentType string
 	Params      Params
 	Body        []byte
-	Checksum    []byte
+	Checksum    string
 
 	Backend  *Backend
 	Frontend *Frontend
@@ -141,17 +137,6 @@ func IsMeetingRunningRequest(params Params) *Request {
 }
 
 // Internal calculate checksum with a given secret.
-func (req *Request) calculateChecksum(secret string) []byte {
-	qry := req.Params.String()
-	// Calculate checksum with server secret
-	// Basically sign the endpoint + params
-	mac := []byte(req.Resource + qry + secret)
-	shasum := sha1.New()
-	shasum.Write(mac)
-	return []byte(hex.EncodeToString(shasum.Sum(nil)))
-}
-
-// Internal calculate checksum with a given secret.
 func (req *Request) calculateChecksumSHA1(secret string) []byte {
 	qry := req.Params.String()
 	// Calculate checksum with server secret
@@ -173,13 +158,20 @@ func (req *Request) calculateChecksumSHA256(secret string) []byte {
 	return []byte(hex.EncodeToString(shasum.Sum(nil)))
 }
 
-// Validate request coming from a frontend.
+// Verify request coming from a frontend.
 // Compare checksum with the checksum calculated from the params
 // and the frontend secret
-func (req *Request) Validate() error {
+func (req *Request) Verify() error {
 	secret := req.Frontend.Secret
-	expected := req.calculateChecksum(secret)
-	if subtle.ConstantTimeCompare(expected, req.Checksum) != 1 {
+	var expected []byte
+	if len(req.Checksum) > 40 {
+		expected = req.calculateChecksumSHA256(secret)
+	} else {
+		expected = req.calculateChecksumSHA1(secret)
+	}
+	if subtle.ConstantTimeCompare(
+		expected,
+		[]byte(req.Checksum)) != 1 {
 		return fmt.Errorf("invalid checksum")
 	}
 	return nil
