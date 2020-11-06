@@ -83,10 +83,12 @@ func (b *Backend) Create(req *bbb.Request) (
 	createRes := res.(*bbb.CreateResponse)
 
 	// Create new meeting state in our store
-	_, err = b.state.CreateMeetingState(req.Frontend, createRes.Meeting)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		_, err = b.state.CreateMeetingState(req.Frontend, createRes.Meeting)
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	return createRes, nil
 }
