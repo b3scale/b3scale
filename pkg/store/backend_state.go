@@ -68,24 +68,24 @@ func GetBackendStates(pool *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 	ctx := context.Background()
 	qry := `
 		SELECT
-		  id,
+		  B.id,
 
-		  node_state,
-		  admin_state,
+		  B.node_state,
+		  B.admin_state,
 
-		  last_error,
+		  B.last_error,
 
-		  latency,
+		  B.latency,
 
-		  host,
-		  secret,
+		  B.host,
+		  B.secret,
 
-		  tags,
+		  B.tags,
 
-		  created_at,
-		  updated_at,
-		  synced_at
-		FROM backends ` + q.related() + `
+		  B.created_at,
+		  B.updated_at,
+		  B.synced_at
+		FROM backends AS B ` + q.related() + `
 		WHERE ` + q.where()
 	rows, err := pool.Query(ctx, qry, q.params()...)
 	if err != nil {

@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -104,6 +105,8 @@ func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
 	// Make cluster request and initialize context
 	res, err := gw.middleware(ctx, req)
 	if err != nil {
+		// Log the error
+		log.Println("gateway error:", err)
 		// We encode our error as a BBB error response
 		return &bbb.XMLResponse{
 			Returncode: "FAILED",

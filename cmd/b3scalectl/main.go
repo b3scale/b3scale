@@ -42,8 +42,8 @@ func main() {
 	// The following credential is obsolete.
 	cmd := cluster.AddBackend(&cluster.AddBackendRequest{
 		Backend: &bbb.Backend{
-			Host:   "https://bbbackend01.bastelgenosse.de/bigbluebutton/aapi",
-			Secret: "nwlly97dniqQxKTWHdbGItgieGEBSnyL6s8I3FtM28",
+			Host:   "https://bbbackend00.bastelgenosse.de/bigbluebutton/api",
+			Secret: "q2jjgDLtiIHO0thLwxWqIdf2WybsCQbK5uMusC938",
 		},
 		Tags: []string{"sip", "2.0.0"},
 	})
