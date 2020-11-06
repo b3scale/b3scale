@@ -100,7 +100,7 @@ func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
 	ctx := context.Background()
 
 	// Trigger backed jobs (// TODO this might need debouncing)
-	go gw.ctrl.StartBackground()
+	// go gw.ctrl.StartBackground()
 
 	// Make cluster request and initialize context
 	res, err := gw.middleware(ctx, req)
