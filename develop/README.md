@@ -10,4 +10,4 @@ the docker files:
 
     docker-compose -f docker-compose.yml -f greenlight.yml up
 
-As you allways have to add both files, using an alias is advised.
+As you always have to add both files, using an alias is advised.
