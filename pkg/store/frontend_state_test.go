@@ -56,8 +56,8 @@ func TestGetFrontendState(t *testing.T) {
 	if err := state.Save(); err != nil {
 		t.Error(err)
 	}
-	ret, err := GetFrontendState(
-		pool, NewQuery().Eq("key", state.Frontend.Key))
+	ret, err := GetFrontendState(pool, Q().
+		Where("key = ?", state.Frontend.Key))
 	if err != nil {
 		t.Error(err)
 	}

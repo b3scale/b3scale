@@ -26,8 +26,8 @@ func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 			// if there is one associated - otherwise return
 			// all possible backends.
 			backend, err := ctrl.GetBackend(store.Q().
-				Join("meetings", "backends.id = meetings.id").
-				Eq("meetings.id", meetingID))
+				Join("meetings ON meetings.backend_id = backends.id").
+				Where("meetings.id = ?", meetingID))
 			if err != nil {
 				return nil, err
 			}

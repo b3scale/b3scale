@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 
@@ -39,24 +40,17 @@ func InitMeetingState(
 // GetMeetingStates retrieves all meeting states
 func GetMeetingStates(
 	pool *pgxpool.Pool,
-	q *Query,
+	q sq.SelectBuilder,
 ) ([]*MeetingState, error) {
 	ctx := context.Background()
-	qry := `
-		SELECT
-		  id,
-
-		  frontend_id,
-		  backend_id,
-
-		  state,
-
-		  created_at,
-		  updated_at,
-		  synced_at
-		FROM  meetings ` + q.related() + `
-		WHERE ` + q.where()
-	rows, err := pool.Query(ctx, qry, q.params()...)
+	qry, params, _ := q.Columns(
+		"id",
+		"frontend_id", "backend_id",
+		"state",
+		"created_at", "updated_at", "synced_at").
+		From("meetings").
+		ToSql()
+	rows, err := pool.Query(ctx, qry, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +67,7 @@ func GetMeetingStates(
 }
 
 // GetMeetingState tries to retriev a single meeting state
-func GetMeetingState(conn *pgxpool.Pool, q *Query) (*MeetingState, error) {
+func GetMeetingState(conn *pgxpool.Pool, q sq.SelectBuilder) (*MeetingState, error) {
 	states, err := GetMeetingStates(conn, q)
 	if err != nil {
 		return nil, err
@@ -107,13 +101,13 @@ func meetingStateFromRow(
 	}
 
 	// Get related backend state
-	state.Backend, err = GetBackendState(conn, NewQuery().
-		Eq("id", backendID))
+	state.Backend, err = GetBackendState(conn, Q().
+		Where("id = ?", backendID))
 	if err != nil {
 		return nil, err
 	}
-	state.Frontend, err = GetFrontendState(conn, NewQuery().
-		Eq("id", frontendID))
+	state.Frontend, err = GetFrontendState(conn, Q().
+		Where("id = ?", frontendID))
 	if err != nil {
 		return nil, err
 	}
@@ -124,8 +118,8 @@ func meetingStateFromRow(
 // Refresh the backend state from the database
 func (s *MeetingState) Refresh() error {
 	// Load from database
-	next, err := GetMeetingState(s.pool, NewQuery().
-		Eq("id", s.ID))
+	next, err := GetMeetingState(s.pool, Q().
+		Where("id = ?", s.ID))
 	if err != nil {
 		return err
 	}
