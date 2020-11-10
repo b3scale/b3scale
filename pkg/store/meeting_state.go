@@ -222,5 +222,6 @@ func (s *MeetingState) update() error {
 // IsStale checks if the last sync is longer
 // ago than a given threashold.
 func (s *MeetingState) IsStale() bool {
-	return false
+	return time.Now().UTC().Sub(s.SyncedAt) > 1*time.Minute
+
 }
