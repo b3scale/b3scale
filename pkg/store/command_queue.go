@@ -73,6 +73,10 @@ func NewCommandQueue(pool *pgxpool.Pool) *CommandQueue {
 
 // Subscribe will let the queue listen for notifications
 func (q *CommandQueue) subscribe() error {
+	if q.subscription != nil {
+		q.subscription.Release()
+	}
+
 	ctx := context.Background()
 	conn, err := q.pool.Acquire(ctx)
 	if err != nil {
@@ -91,6 +95,7 @@ func (q *CommandQueue) subscribe() error {
 // Queue adds a new command to the queue
 func (q *CommandQueue) Queue(cmd *Command) error {
 	ctx := context.Background()
+
 	// Our command will always expire. For now 2 minutes.
 	deadline := time.Now().UTC().Add(120 * time.Second)
 	// Marshal payload

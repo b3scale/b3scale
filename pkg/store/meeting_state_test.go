@@ -2,6 +2,7 @@ package store
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -68,9 +69,6 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if state.UpdatedAt != nil {
-		t.Error("unexpectected updated at:", state.UpdatedAt)
-	}
 
 	state.Meeting = &bbb.Meeting{
 		MeetingName: "bar",
@@ -79,8 +77,37 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 		t.Error(err)
 		return
 	}
+}
 
-	if state.UpdatedAt == nil {
-		t.Error("expected updated at to be set")
+func TestMeetingStateIsStale(t *testing.T) {
+	pool := connectTest(t)
+	state, err := meetingStateFactory(pool, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	state.SyncedAt = time.Now().UTC()
+	err = state.Save()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if state.IsStale() {
+		t.Error("state should be fresh")
+	}
+
+	state.SyncedAt = time.Now().UTC().Add(-10 * time.Minute)
+	err = state.Save()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !state.IsStale() {
+		t.Error("state should be stale")
 	}
 }

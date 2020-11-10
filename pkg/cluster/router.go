@@ -99,8 +99,8 @@ func (r *Router) Middleware() RequestMiddleware {
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
 			// Filter backends and only accept state active
-			backends, err := r.ctrl.GetBackends(
-				store.NewQuery().Eq("node_state", "ready"))
+			backends, err := r.ctrl.GetBackends(store.Q().
+				Where("node_state = ?", "ready"))
 			if err != nil {
 				return nil, err
 			}

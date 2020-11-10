@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -18,7 +19,7 @@ type FrontendState struct {
 	Frontend *bbb.Frontend
 
 	CreatedAt time.Time
-	UpdatedAt *time.Time
+	UpdatedAt time.Time
 
 	pool *pgxpool.Pool
 }
@@ -35,22 +36,21 @@ func InitFrontendState(pool *pgxpool.Pool, init *FrontendState) *FrontendState {
 
 // GetFrontendStates retrievs all frontend states from
 // the database.
-func GetFrontendStates(pool *pgxpool.Pool, q *Query) ([]*FrontendState, error) {
+func GetFrontendStates(
+	pool *pgxpool.Pool,
+	q sq.SelectBuilder,
+) ([]*FrontendState, error) {
 	ctx := context.Background()
-	qry := `
-		SELECT
-		  id,
-
-		  key,
-		  secret,
-
-		  active,
-
-		  created_at,
-		  updated_at
-		FROM frontends ` + q.related() + `
-		WHERE ` + q.where()
-	rows, err := pool.Query(ctx, qry, q.params()...)
+	qry, params, _ := q.Columns(
+		"id",
+		"key",
+		"secret",
+		"active",
+		"created_at",
+		"updated_at").
+		From("frontends").
+		ToSql()
+	rows, err := pool.Query(ctx, qry, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func GetFrontendStates(pool *pgxpool.Pool, q *Query) ([]*FrontendState, error) {
 // This may return nil without an error.
 func GetFrontendState(
 	pool *pgxpool.Pool,
-	q *Query,
+	q sq.SelectBuilder,
 ) (*FrontendState, error) {
 	states, err := GetFrontendStates(pool, q)
 	if err != nil {
@@ -127,8 +127,7 @@ func (s *FrontendState) insert() error {
 
 // update a database row of a frontend state
 func (s *FrontendState) update() error {
-	now := time.Now().UTC()
-	s.UpdatedAt = &now
+	s.UpdatedAt = time.Now().UTC()
 	ctx := context.Background()
 	qry := `
 		UPDATE frontends

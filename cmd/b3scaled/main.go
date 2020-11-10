@@ -22,12 +22,15 @@ func getopt(key, fallback string) string {
 }
 
 func main() {
+	quit := make(chan bool)
 	banner() // Most important.
 	log.Println("Booting b3scaled...")
 
 	// Config
 	listenHTTP := getopt(
 		"B3SCALE_LISTEN_HTTP", "127.0.0.1:42353") // B3S
+	listenHTTP2 := getopt(
+		"B3SCALE_LISTEN_HTTP2", "127.0.0.1:42352") // B3S @ http2
 	dbConnStr := getopt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
@@ -58,10 +61,11 @@ func main() {
 	go ctrl.Start()
 
 	// Start HTTP interface
-	ifaceHTTP := http.NewInterface(
-		listenHTTP,
-		ctrl,
-		gateway)
+	ifaceHTTP := http.NewInterface("http", ctrl, gateway)
+	ifaceHTTP2 := http.NewInterface("http2", ctrl, gateway)
 
-	ifaceHTTP.Start()
+	go ifaceHTTP.Start(listenHTTP)
+	go ifaceHTTP2.StartCleartextHTTP2(listenHTTP2)
+
+	<-quit
 }

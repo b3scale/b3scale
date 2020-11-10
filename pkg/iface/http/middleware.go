@@ -36,8 +36,8 @@ func BBBRequestMiddleware(
 			// and verify it.
 			path = path[len(mountPoint):]
 			frontendKey, resource := decodePath(path)
-			frontend, err := ctrl.GetFrontend(
-				store.NewQuery().Eq("key", frontendKey))
+			frontend, err := ctrl.GetFrontend(store.Q().
+				Where("key = ?", frontendKey))
 			if err != nil {
 				return handleAPIError(c, err)
 			}

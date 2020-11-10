@@ -2,11 +2,11 @@ package store
 
 import (
 	"context"
-	//	"fmt"
 	"errors"
+	// "log"
 	"time"
 
-	// "github.com/jackc/pgx/v4"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -36,8 +36,8 @@ type BackendState struct {
 	Tags []string
 
 	CreatedAt time.Time
-	UpdatedAt *time.Time
-	SyncedAt  *time.Time
+	UpdatedAt time.Time
+	SyncedAt  time.Time
 
 	// DB
 	pool *pgxpool.Pool
@@ -64,30 +64,26 @@ func InitBackendState(pool *pgxpool.Pool, init *BackendState) *BackendState {
 }
 
 // GetBackendStates retrievs all backends
-func GetBackendStates(pool *pgxpool.Pool, q *Query) ([]*BackendState, error) {
+func GetBackendStates(
+	pool *pgxpool.Pool,
+	q sq.SelectBuilder,
+) ([]*BackendState, error) {
 	ctx := context.Background()
-	qry := `
-		SELECT
-		  B.id,
-
-		  B.node_state,
-		  B.admin_state,
-
-		  B.last_error,
-
-		  B.latency,
-
-		  B.host,
-		  B.secret,
-
-		  B.tags,
-
-		  B.created_at,
-		  B.updated_at,
-		  B.synced_at
-		FROM backends AS B ` + q.related() + `
-		WHERE ` + q.where()
-	rows, err := pool.Query(ctx, qry, q.params()...)
+	qry, params, _ := q.From("backends").Columns(
+		"backends.id",
+		"backends.node_state",
+		"backends.admin_state",
+		"backends.last_error",
+		"backends.latency",
+		"backends.host",
+		"backends.secret",
+		"backends.tags",
+		"backends.created_at",
+		"backends.updated_at",
+		"backends.synced_at").
+		ToSql()
+	// log.Println("SQL:", qry, params)
+	rows, err := pool.Query(ctx, qry, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +114,10 @@ func GetBackendStates(pool *pgxpool.Pool, q *Query) ([]*BackendState, error) {
 }
 
 // GetBackendState tries to retriev a single backend state
-func GetBackendState(pool *pgxpool.Pool, q *Query) (*BackendState, error) {
+func GetBackendState(
+	pool *pgxpool.Pool,
+	q sq.SelectBuilder,
+) (*BackendState, error) {
 	states, err := GetBackendStates(pool, q)
 	if err != nil {
 		return nil, err
@@ -132,8 +131,9 @@ func GetBackendState(pool *pgxpool.Pool, q *Query) (*BackendState, error) {
 // Refresh the backend state from the database
 func (s *BackendState) Refresh() error {
 	// Load from database
-	q := NewQuery().Eq("id", s.ID)
-	next, err := GetBackendState(s.pool, q)
+	next, err := GetBackendState(s.pool, Q().Where(
+		sq.Eq{"id": s.ID},
+	))
 	if err != nil {
 		return err
 	}
@@ -190,8 +190,6 @@ func (s *BackendState) insert() (string, error) {
 
 // Private update: updates the db row
 func (s *BackendState) update() error {
-	now := time.Now().UTC()
-	s.UpdatedAt = &now
 	ctx := context.Background()
 	qry := `
 		UPDATE backends
@@ -207,8 +205,8 @@ func (s *BackendState) update() error {
 
 			   tags         = $8,
 
-			   updated_at   = $9,
-			   synced_at    = $10
+			   synced_at    = $9,
+			   updated_at   = $10
 
 		 WHERE id = $1
 	`
@@ -224,8 +222,8 @@ func (s *BackendState) update() error {
 		s.Backend.Host,
 		s.Backend.Secret,
 		s.Tags,
-		s.UpdatedAt,
-		s.SyncedAt)
+		s.SyncedAt,
+		time.Now().UTC())
 
 	return err
 }
@@ -248,8 +246,8 @@ func (s *BackendState) CreateMeetingState(
 ) (*MeetingState, error) {
 	// Combine frontend and backend state together
 	// with meeting data into a meeting state.
-	fstate, err := GetFrontendState(s.pool, NewQuery().
-		Eq("key", frontend.Key))
+	fstate, err := GetFrontendState(s.pool, Q().
+		Where("key = ?", frontend.Key))
 	if err != nil {
 		return nil, err
 	}

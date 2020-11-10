@@ -3,11 +3,12 @@ package cluster
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -19,6 +20,9 @@ import (
 type Controller struct {
 	cmds *store.CommandQueue
 	conn *pgxpool.Pool
+
+	lastStartBackground time.Time
+	mtx                 sync.Mutex
 }
 
 // NewController will initialize the cluster controller
@@ -54,6 +58,14 @@ func (c *Controller) Start() {
 // StartBackground will be run periodically triggered by
 // requests and should only add tasks to the command queue
 func (c *Controller) StartBackground() {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	// Debounce calls to this function
+	if time.Now().Sub(c.lastStartBackground) < 1*time.Second {
+		return
+	}
+	c.lastStartBackground = time.Now()
+
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
 	if err := c.requestSyncStale(); err != nil {
@@ -130,7 +142,7 @@ func (c *Controller) handleUpdateNodeState(
 		return nil, err
 	}
 	backend, err := c.GetBackend(
-		store.NewQuery().Eq("id", req.ID))
+		store.Q().Where("id = ?", req.ID))
 	if err != nil {
 		return false, err
 	}
@@ -148,12 +160,12 @@ func (c *Controller) handleUpdateNodeState(
 // requestSyncStale triggers a background sync of the
 // entire node state
 func (c *Controller) requestSyncStale() error {
-	stale, err := c.GetBackends(store.NewQuery().
-		Gt(`now() - COALESCE(
+	stale, err := c.GetBackends(store.Q().
+		Where(`now() - COALESCE(
 				synced_at,
-				TIMESTAMP '0001-01-01 00:00:00')`,
+				TIMESTAMP '0001-01-01 00:00:00') > ?`,
 			time.Duration(10*time.Second)).
-		Eq("admin_state", "ready"))
+		Where("admin_state = ?", "ready"))
 	if err != nil {
 		return err
 	}
@@ -171,7 +183,7 @@ func (c *Controller) requestSyncStale() error {
 }
 
 // GetBackends retrives backends with a store query
-func (c *Controller) GetBackends(q *store.Query) ([]*Backend, error) {
+func (c *Controller) GetBackends(q sq.SelectBuilder) ([]*Backend, error) {
 	states, err := store.GetBackendStates(c.conn, q)
 	if err != nil {
 		return nil, err
@@ -186,7 +198,7 @@ func (c *Controller) GetBackends(q *store.Query) ([]*Backend, error) {
 }
 
 // GetBackend retrievs a single backend by query criteria
-func (c *Controller) GetBackend(q *store.Query) (*Backend, error) {
+func (c *Controller) GetBackend(q sq.SelectBuilder) (*Backend, error) {
 	backends, err := c.GetBackends(q)
 	if err != nil {
 		return nil, err
@@ -199,7 +211,7 @@ func (c *Controller) GetBackend(q *store.Query) (*Backend, error) {
 
 // GetFrontends retrieves all frontends from
 // the store matchig a query
-func (c *Controller) GetFrontends(q *store.Query) ([]*Frontend, error) {
+func (c *Controller) GetFrontends(q sq.SelectBuilder) ([]*Frontend, error) {
 	states, err := store.GetFrontendStates(c.conn, q)
 	if err != nil {
 		return nil, err
@@ -215,7 +227,7 @@ func (c *Controller) GetFrontends(q *store.Query) ([]*Frontend, error) {
 
 // GetFrontend fetches a frontend with a state from
 // the store
-func (c *Controller) GetFrontend(q *store.Query) (*Frontend, error) {
+func (c *Controller) GetFrontend(q sq.SelectBuilder) (*Frontend, error) {
 	frontends, err := c.GetFrontends(q)
 	if err != nil {
 		return nil, err

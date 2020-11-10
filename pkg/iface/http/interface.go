@@ -3,10 +3,12 @@ package http
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"golang.org/x/net/http2"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
@@ -14,7 +16,7 @@ import (
 // Interface provides the http server for the
 // application.
 type Interface struct {
-	listen     string
+	serviceID  string
 	echo       *echo.Echo
 	gateway    *cluster.Gateway
 	controller *cluster.Controller
@@ -23,7 +25,7 @@ type Interface struct {
 // NewInterface configures and creates a new
 // http interface to our cluster gateway.
 func NewInterface(
-	listen string,
+	serviceID string,
 	ctrl *cluster.Controller,
 	gateway *cluster.Gateway,
 ) *Interface {
@@ -42,12 +44,11 @@ func NewInterface(
 
 	// Prometheus Middleware
 	// Find it under /metrics
-	p := prometheus.NewPrometheus("echo", nil)
+	p := prometheus.NewPrometheus(serviceID, nil)
 	p.Use(e)
 
 	iface := &Interface{
 		echo:       e,
-		listen:     listen,
 		gateway:    gateway,
 		controller: ctrl,
 	}
@@ -59,9 +60,21 @@ func NewInterface(
 }
 
 // Start the HTTP interface
-func (iface *Interface) Start() {
+func (iface *Interface) Start(listen string) {
 	log.Println("Starting interface: HTTP")
-	log.Fatal(iface.echo.Start(iface.listen))
+	log.Fatal(iface.echo.Start(listen))
+}
+
+// StartCleartextHTTP2 starts a HTTP2 interface without
+// any TLS encryption.
+func (iface *Interface) StartCleartextHTTP2(listen string) {
+	log.Println("Starting interface: HTTP2")
+	s := &http2.Server{
+		MaxConcurrentStreams: 200,
+		MaxReadFrameSize:     1048576,
+		IdleTimeout:          10 * time.Second,
+	}
+	log.Fatal(iface.echo.StartH2CServer(listen, s))
 }
 
 // Index / Root Handler

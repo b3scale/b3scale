@@ -31,6 +31,19 @@ func TestGetBackendStateByID(t *testing.T) {
 	if err != nil {
 		t.Error("save failed:", err)
 	}
+
+	dbState, err := GetBackendState(pool, Q().
+		Where("id = ?", state.ID))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if dbState == nil {
+		t.Error("did not find backend by id")
+	}
+	if dbState.ID != state.ID {
+		t.Error("unexpected id:", dbState.ID)
+	}
 }
 
 func TestBackendStateinsert(t *testing.T) {
@@ -63,10 +76,7 @@ func TestBackendStateSave(t *testing.T) {
 		t.Error(err)
 	}
 
-	if state.UpdatedAt == nil {
-		t.Error("Update date should bet set.")
-	}
-	t.Log(state.UpdatedAt)
+	t.Log(state.SyncedAt)
 	t.Log(state)
 }
 

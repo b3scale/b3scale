@@ -1,124 +1,16 @@
 package store
 
 import (
-	"fmt"
-	"strings"
+	sq "github.com/Masterminds/squirrel"
 )
 
-// Filter provides query options for states
-type Filter struct {
-	q     *Query
-	idx   int
-	attr  string
-	op    string
-	param interface{}
-}
-
-// Make string from filter
-func (f *Filter) String() string {
-	return fmt.Sprintf(
-		"%s %s $%d",
-		f.attr, f.op, f.idx+f.q.offset+1)
-}
-
-// Query is a representation of the WHERE clause
-type Query struct {
-	offset  int
-	concat  string
-	filters []*Filter
-	joins   []string
-}
-
 // NewQuery creates a new query
-func NewQuery() *Query {
-	return &Query{
-		offset:  0,
-		concat:  " AND ",
-		filters: []*Filter{},
-		joins:   []string{},
-	}
+func NewQuery() sq.SelectBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	return sq.SelectBuilder(psql)
 }
 
 // Q is an alias for NewQuery
-func Q() *Query {
+func Q() sq.SelectBuilder {
 	return NewQuery()
-}
-
-// Offset updates the offset of the query
-func (q *Query) Offset(o int) *Query {
-	q.offset = o
-	return q
-}
-
-// Join includeds a join in the query
-func (q *Query) Join(table, on string) *Query {
-	join := fmt.Sprintf("JOIN %s ON %s", table, on)
-	q.joins = append(q.joins, join)
-	return q
-}
-
-// Filter adds a test to the query
-func (q *Query) Filter(attr, op string, param interface{}) *Query {
-	idx := len(q.filters)
-	f := &Filter{
-		q:     q,
-		idx:   idx,
-		attr:  attr,
-		op:    op,
-		param: param,
-	}
-	q.filters = append(q.filters, f)
-	return q
-}
-
-// Eq adds an equality test to the query
-func (q *Query) Eq(attr string, param interface{}) *Query {
-	return q.Filter(attr, "=", param)
-}
-
-// Lt adds a lower than test to the query
-func (q *Query) Lt(attr string, param interface{}) *Query {
-	return q.Filter(attr, "<", param)
-}
-
-// Lte adds a greater or equal test to the query
-func (q *Query) Lte(attr string, param interface{}) *Query {
-	return q.Filter(attr, "<=", param)
-}
-
-// Gt adds a greater than test to the query
-func (q *Query) Gt(attr string, param interface{}) *Query {
-	return q.Filter(attr, ">", param)
-}
-
-// Gte adds a greater or equal test to the query
-func (q *Query) Gte(attr string, param interface{}) *Query {
-	return q.Filter(attr, ">=", param)
-}
-
-// Internal where returns the WHERE query string
-func (q *Query) where() string {
-	if len(q.filters) == 0 {
-		return " 1 = 1 "
-	}
-	where := make([]string, 0, len(q.filters))
-	for _, f := range q.filters {
-		where = append(where, f.String())
-	}
-
-	return strings.Join(where, q.concat)
-}
-
-// Internal params, gets a list of all params
-func (q *Query) params() []interface{} {
-	params := make([]interface{}, 0, len(q.filters))
-	for _, f := range q.filters {
-		params = append(params, f.param)
-	}
-	return params
-}
-
-// Internal fetch from and related
-func (q *Query) related() string {
-	return strings.Join(q.joins, " ")
 }

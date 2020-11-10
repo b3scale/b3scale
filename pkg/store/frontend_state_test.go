@@ -37,15 +37,12 @@ func TestFrontendStateSave(t *testing.T) {
 	t.Log(state.ID)
 
 	// Update
-	if state.UpdatedAt != nil {
-		t.Error("Unexpected updated at:", state.UpdatedAt)
-	}
 	state.Active = false
 	if err := state.Save(); err != nil {
 		t.Error(err)
 	}
 
-	if state.UpdatedAt == nil {
+	if state.UpdatedAt.IsZero() {
 		t.Error("Unexpected updated at:", state.UpdatedAt)
 	}
 }
@@ -56,8 +53,8 @@ func TestGetFrontendState(t *testing.T) {
 	if err := state.Save(); err != nil {
 		t.Error(err)
 	}
-	ret, err := GetFrontendState(
-		pool, NewQuery().Eq("key", state.Frontend.Key))
+	ret, err := GetFrontendState(pool, Q().
+		Where("key = ?", state.Frontend.Key))
 	if err != nil {
 		t.Error(err)
 	}
