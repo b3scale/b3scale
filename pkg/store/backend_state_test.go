@@ -76,10 +76,7 @@ func TestBackendStateSave(t *testing.T) {
 		t.Error(err)
 	}
 
-	if state.UpdatedAt == nil {
-		t.Error("Update date should bet set.")
-	}
-	t.Log(state.UpdatedAt)
+	t.Log(state.SyncedAt)
 	t.Log(state)
 }
 

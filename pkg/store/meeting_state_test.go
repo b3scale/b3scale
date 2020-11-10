@@ -68,9 +68,6 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if state.UpdatedAt != nil {
-		t.Error("unexpectected updated at:", state.UpdatedAt)
-	}
 
 	state.Meeting = &bbb.Meeting{
 		MeetingName: "bar",
@@ -78,9 +75,5 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 	if err := state.Save(); err != nil {
 		t.Error(err)
 		return
-	}
-
-	if state.UpdatedAt == nil {
-		t.Error("expected updated at to be set")
 	}
 }

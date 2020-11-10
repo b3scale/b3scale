@@ -19,7 +19,7 @@ type FrontendState struct {
 	Frontend *bbb.Frontend
 
 	CreatedAt time.Time
-	UpdatedAt *time.Time
+	UpdatedAt time.Time
 
 	pool *pgxpool.Pool
 }
@@ -127,8 +127,7 @@ func (s *FrontendState) insert() error {
 
 // update a database row of a frontend state
 func (s *FrontendState) update() error {
-	now := time.Now().UTC()
-	s.UpdatedAt = &now
+	s.UpdatedAt = time.Now().UTC()
 	ctx := context.Background()
 	qry := `
 		UPDATE frontends

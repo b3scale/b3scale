@@ -37,15 +37,12 @@ func TestFrontendStateSave(t *testing.T) {
 	t.Log(state.ID)
 
 	// Update
-	if state.UpdatedAt != nil {
-		t.Error("Unexpected updated at:", state.UpdatedAt)
-	}
 	state.Active = false
 	if err := state.Save(); err != nil {
 		t.Error(err)
 	}
 
-	if state.UpdatedAt == nil {
+	if state.UpdatedAt.IsZero() {
 		t.Error("Unexpected updated at:", state.UpdatedAt)
 	}
 }

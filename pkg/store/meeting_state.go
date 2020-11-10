@@ -21,8 +21,8 @@ type MeetingState struct {
 	Backend  *BackendState
 
 	CreatedAt time.Time
-	UpdatedAt *time.Time
-	SyncedAt  *time.Time
+	UpdatedAt time.Time
+	SyncedAt  time.Time
 
 	pool *pgxpool.Pool
 }
@@ -161,7 +161,6 @@ func (s *MeetingState) insert() (string, error) {
 		backendID = &s.Backend.ID
 	}
 
-	now := time.Now().UTC()
 	ctx := context.Background()
 	qry := `
 		INSERT INTO meetings (
@@ -169,18 +168,15 @@ func (s *MeetingState) insert() (string, error) {
 			state,
 
 			frontend_id,
-			backend_id,
-
-			synced_at
+			backend_id
 		) VALUES (
-			$1, $2, $3, $4, $5
+			$1, $2, $3, $4
 		) RETURNING id`
 	err := s.pool.QueryRow(ctx, qry,
 		id,
 		s.Meeting,
 		frontendID,
-		backendID,
-		now).Scan(&s.ID)
+		backendID).Scan(&s.ID)
 	if err != nil {
 		return "", err
 	}
@@ -203,21 +199,28 @@ func (s *MeetingState) update() error {
 		backendID = &s.Backend.ID
 	}
 
+	s.UpdatedAt = time.Now().UTC()
+
 	qry := `
 		UPDATE meetings
 		   SET state		= $2,
 		       frontend_id  = $3,
 			   backend_id   = $4,
 		  	   synced_at    = $5,
-			   updated_at   = $6
+			   updated_at   = $6 
 	 	 WHERE id = $1`
-	now := time.Now().UTC()
 	_, err := s.pool.Exec(ctx, qry,
 		s.ID,
 		s.Meeting,
 		frontendID,
 		backendID,
 		s.SyncedAt,
-		&now)
+		s.UpdatedAt)
 	return err
+}
+
+// IsStale checks if the last sync is longer
+// ago than a given threashold.
+func (s *MeetingState) IsStale() bool {
+	return false
 }

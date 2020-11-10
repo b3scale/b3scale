@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 	"errors"
-	"log"
+	// "log"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -36,8 +36,8 @@ type BackendState struct {
 	Tags []string
 
 	CreatedAt time.Time
-	UpdatedAt *time.Time
-	SyncedAt  *time.Time
+	UpdatedAt time.Time
+	SyncedAt  time.Time
 
 	// DB
 	pool *pgxpool.Pool
@@ -82,7 +82,7 @@ func GetBackendStates(
 		"backends.updated_at",
 		"backends.synced_at").
 		ToSql()
-	log.Println("SQL:", qry, params)
+	// log.Println("SQL:", qry, params)
 	rows, err := pool.Query(ctx, qry, params...)
 	if err != nil {
 		return nil, err
@@ -190,8 +190,6 @@ func (s *BackendState) insert() (string, error) {
 
 // Private update: updates the db row
 func (s *BackendState) update() error {
-	now := time.Now().UTC()
-	s.UpdatedAt = &now
 	ctx := context.Background()
 	qry := `
 		UPDATE backends
@@ -207,8 +205,8 @@ func (s *BackendState) update() error {
 
 			   tags         = $8,
 
-			   updated_at   = $9,
-			   synced_at    = $10
+			   synced_at    = $9,
+			   updated_at   = $10
 
 		 WHERE id = $1
 	`
@@ -224,8 +222,8 @@ func (s *BackendState) update() error {
 		s.Backend.Host,
 		s.Backend.Secret,
 		s.Tags,
-		s.UpdatedAt,
-		s.SyncedAt)
+		s.SyncedAt,
+		time.Now().UTC())
 
 	return err
 }
