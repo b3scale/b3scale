@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -19,6 +20,9 @@ import (
 type Controller struct {
 	cmds *store.CommandQueue
 	conn *pgxpool.Pool
+
+	lastStartBackground time.Time
+	mtx                 sync.Mutex
 }
 
 // NewController will initialize the cluster controller
@@ -54,6 +58,14 @@ func (c *Controller) Start() {
 // StartBackground will be run periodically triggered by
 // requests and should only add tasks to the command queue
 func (c *Controller) StartBackground() {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+	// Debounce calls to this function
+	if time.Now().Sub(c.lastStartBackground) < 1*time.Second {
+		return
+	}
+	c.lastStartBackground = time.Now()
+
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
 	if err := c.requestSyncStale(); err != nil {
