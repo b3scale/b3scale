@@ -46,9 +46,9 @@ CREATE TABLE backends (
     tags    text ARRAY,
 
     -- Timestamps
-    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NULL DEFAULT NULL,
-    synced_at   TIMESTAMP NULL DEFAULT NULL
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
 -- Frontends
@@ -61,8 +61,9 @@ CREATE TABLE frontends (
     active  BOOLEAN NOT NULL DEFAULT true,
 
     -- Timestamps
-    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NULL DEFAULT NULL
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
 
@@ -96,17 +97,17 @@ CREATE TABLE meetings (
                ON DELETE   CASCADE,
 
     -- Timestamps
-    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NULL DEFAULT NULL,
-    synced_at   TIMESTAMP NULL DEFAULT NULL
+    created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced_at   TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Recordings are quite like meetings, however
 -- a foreign key relation exists to improve querying.
 CREATE TABLE recordings (
     -- The BBB record ID
-    id      uuid PRIMARY KEY,
-    state   jsonb NOT NULL,
+    id      uuid    PRIMARY KEY,
+    state   jsonb   NOT NULL,
 
     -- Relations
     backend_id uuid NOT NULL
@@ -118,27 +119,27 @@ CREATE TABLE recordings (
                ON DELETE CASCADE,
 
     -- Timestamps
-    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NULL DEFAULT NULL,
-    synced_at   TIMESTAMP NULL DEFAULT NULL
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- RecordingTextTracks are associated with recordings
 -- meetings through a foreign key relation for querying.
 CREATE TABLE recording_text_tracks (
     -- The BBB record ID
-    id      uuid PRIMARY KEY,
-    state   jsonb NOT NULL,
+    id      uuid                    PRIMARY KEY,
+    state   jsonb     NOT NULL,
 
     -- Relations
-    record_id   uuid NOT NULL
+    record_id   uuid  NOT NULL
                 REFERENCES recordings(id)
                 ON DELETE CASCADE,
 
     -- Timestamps
-    created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NULL DEFAULT NULL,
-    synced_at   TIMESTAMP NULL DEFAULT NULL
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -177,7 +178,7 @@ CREATE TABLE commands (
     deadline   TIMESTAMP  NOT NULL,
     started_at TIMESTAMP  NULL       DEFAULT NULL,
     stopped_at TIMESTAMP  NULL       DEFAULT NULL,
-    created_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP  NOT NULL   DEFAULT CURRENT_TIMESTAMP
 );
 
 -- AfterCommandsInsert
