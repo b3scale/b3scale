@@ -42,42 +42,6 @@ func NewClient() *Client {
 	return c
 }
 
-// Internal http request processing: Make net/http request
-// from bbb request. Read and return body.
-func (c *Client) httpDo(req *Request) ([]byte, error) {
-	var bodyReader io.Reader
-	if req.Body != nil {
-		bodyReader = bytes.NewReader(req.Body)
-	}
-	httpReq, err := http.NewRequest(
-		req.Method,
-		req.URL(),
-		bodyReader)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set content type and other request headers
-	if req.ContentType != "" {
-		httpReq.Header.Set("Content-Type", req.ContentType)
-	}
-
-	// Perform request and read response body
-	res, err := c.conn.Do(httpReq)
-	if err != nil {
-		return nil, err
-	}
-
-	// Read body
-	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
 // Internal response decoding
 func unmarshalRequestResponse(req *Request, data []byte) (Response, error) {
 	switch req.Resource {
@@ -123,9 +87,44 @@ func (c *Client) Do(req *Request) (Response, error) {
 	// TODO: Use some advanced logger or remove in production
 	// because this might expose sensitive data in logfiles
 	log.Println("[HTTP]", req.Method, req.URL())
-	data, err := c.httpDo(req)
+
+	var bodyReader io.Reader
+	if req.Body != nil {
+		bodyReader = bytes.NewReader(req.Body)
+	}
+	httpReq, err := http.NewRequest(
+		req.Method,
+		req.URL(),
+		bodyReader)
 	if err != nil {
 		return nil, err
 	}
-	return unmarshalRequestResponse(req, data)
+
+	// Set content type and other request headers
+	if req.ContentType != "" {
+		httpReq.Header.Set("Content-Type", req.ContentType)
+	}
+
+	// Perform request
+	httpRes, err := c.conn.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read body
+	defer httpRes.Body.Close()
+	data, err := ioutil.ReadAll(httpRes.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := unmarshalRequestResponse(req, data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set response headers
+	res.SetHeader(httpRes.Header)
+
+	return res, nil
 }

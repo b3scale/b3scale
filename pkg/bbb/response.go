@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 // ErrCantBeMerged is the error when two responses
@@ -23,6 +24,9 @@ var ErrMergeConflict = errors.New(
 type Response interface {
 	Marshal() ([]byte, error)
 	Merge(response Response) error
+
+	Header() http.Header
+	SetHeader(http.Header)
 }
 
 // A XMLResponse from the server
@@ -31,6 +35,8 @@ type XMLResponse struct {
 	Returncode string   `xml:"returncode"`
 	Message    string   `xml:"message,omitempty"`
 	MessageKey string   `xml:"messageKey,omitempty"`
+
+	header http.Header
 }
 
 // MergeXMLResponse is a specific merge
@@ -45,6 +51,7 @@ func (res *XMLResponse) MergeXMLResponse(other *XMLResponse) error {
 		return ErrMergeConflict
 	}
 
+	res.header = other.header
 	res.Message = other.Message
 	res.MessageKey = other.MessageKey
 	return nil
@@ -60,6 +67,16 @@ func (res *XMLResponse) Merge(other Response) error {
 func (res *XMLResponse) Marshal() ([]byte, error) {
 	data, err := xml.Marshal(res)
 	return data, err
+}
+
+// Header returns the HTTP response headers
+func (res *XMLResponse) Header() http.Header {
+	return res.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *XMLResponse) SetHeader(h http.Header) {
+	res.header = h
 }
 
 // CreateResponse is the resonse for the `create` API resource.
@@ -84,6 +101,16 @@ func (res *CreateResponse) Marshal() ([]byte, error) {
 // Merge another response
 func (res *CreateResponse) Merge(other Response) error {
 	return ErrCantBeMerged
+}
+
+// Header returns the HTTP response headers
+func (res *CreateResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *CreateResponse) SetHeader(h http.Header) {
+	res.header = h
 }
 
 // JoinResponse of the join resource
@@ -113,6 +140,16 @@ func (res *JoinResponse) Merge(other Response) error {
 	return ErrCantBeMerged
 }
 
+// Header returns the HTTP response headers
+func (res *JoinResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *JoinResponse) SetHeader(h http.Header) {
+	res.header = h
+}
+
 // IsMeetingRunningResponse is a meeting status resonse
 type IsMeetingRunningResponse struct {
 	*XMLResponse
@@ -138,6 +175,16 @@ func (res *IsMeetingRunningResponse) Merge(other Response) error {
 	return ErrCantBeMerged
 }
 
+// Header returns the HTTP response headers
+func (res *IsMeetingRunningResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *IsMeetingRunningResponse) SetHeader(h http.Header) {
+	res.header = h
+}
+
 // EndResponse is the resonse of the end resource
 type EndResponse struct {
 	*XMLResponse
@@ -158,6 +205,11 @@ func (res *EndResponse) Marshal() ([]byte, error) {
 // Merge EndResponses
 func (res *EndResponse) Merge(other Response) error {
 	return ErrCantBeMerged
+}
+
+// Header returns the HTTP response headers
+func (res *EndResponse) Header() http.Header {
+	return res.XMLResponse.header
 }
 
 // GetMeetingInfoResponse contains detailed meeting information
@@ -183,6 +235,16 @@ func (res *GetMeetingInfoResponse) Marshal() ([]byte, error) {
 // Merge GetMeetingInfoResponse
 func (res *GetMeetingInfoResponse) Merge(other Response) error {
 	return ErrCantBeMerged
+}
+
+// Header returns the HTTP response headers
+func (res *GetMeetingInfoResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *GetMeetingInfoResponse) SetHeader(h http.Header) {
+	res.header = h
 }
 
 // GetMeetingsResponse contains a list of meetings.
@@ -222,6 +284,16 @@ func (res *GetMeetingsResponse) Merge(other Response) error {
 	return nil
 }
 
+// Header returns the HTTP response headers
+func (res *GetMeetingsResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *GetMeetingsResponse) SetHeader(h http.Header) {
+	res.header = h
+}
+
 // GetRecordingsResponse is the response of the getRecordings resource
 type GetRecordingsResponse struct {
 	*XMLResponse
@@ -254,6 +326,16 @@ func (res *GetRecordingsResponse) Merge(other Response) error {
 	}
 	res.Recordings = append(res.Recordings, otherRes.Recordings...)
 	return nil
+}
+
+// Header returns the HTTP response headers
+func (res *GetRecordingsResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *GetRecordingsResponse) SetHeader(h http.Header) {
+	res.header = h
 }
 
 // PublishRecordingsResponse indicates if the recordings
@@ -302,6 +384,16 @@ func (res *PublishRecordingsResponse) Merge(other Response) error {
 	return nil
 }
 
+// Header returns the HTTP response headers
+func (res *PublishRecordingsResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *PublishRecordingsResponse) SetHeader(h http.Header) {
+	res.header = h
+}
+
 // DeleteRecordingsResponse indicates if the recording
 // was correctly deleted. Might fail successfully.
 // Same crap as with the publish resource
@@ -340,6 +432,16 @@ func (res *DeleteRecordingsResponse) Merge(other Response) error {
 		return ErrMergeConflict
 	}
 	return nil
+}
+
+// Header returns the HTTP response headers
+func (res *DeleteRecordingsResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *DeleteRecordingsResponse) SetHeader(h http.Header) {
+	res.header = h
 }
 
 // UpdateRecordingsResponse indicates if the update was successful
@@ -382,9 +484,21 @@ func (res *UpdateRecordingsResponse) Merge(other Response) error {
 	return nil
 }
 
+// Header returns the HTTP response headers
+func (res *UpdateRecordingsResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *UpdateRecordingsResponse) SetHeader(h http.Header) {
+	res.header = h
+}
+
 // GetDefaultConfigXMLResponse has the raw config xml data
 type GetDefaultConfigXMLResponse struct {
 	Config []byte
+
+	header http.Header
 }
 
 // UnmarshalGetDefaultConfigXMLResponse creates a new response
@@ -409,6 +523,16 @@ func (res *GetDefaultConfigXMLResponse) Marshal() ([]byte, error) {
 // Merge GetDefaultConfigXMLResponse
 func (res *GetDefaultConfigXMLResponse) Merge(other Response) error {
 	return ErrCantBeMerged
+}
+
+// Header returns the HTTP response headers
+func (res *GetDefaultConfigXMLResponse) Header() http.Header {
+	return res.header
+}
+
+// SetHeader sets the HTTP response headers
+func (res *GetDefaultConfigXMLResponse) SetHeader(h http.Header) {
+	res.header = h
 }
 
 // SetConfigXMLResponse encodes the result of setting the config
@@ -436,6 +560,11 @@ func (res *SetConfigXMLResponse) Merge(other Response) error {
 	return ErrCantBeMerged
 }
 
+// Header returns the HTTP response headers
+func (res *SetConfigXMLResponse) Header() http.Header {
+	return res.XMLResponse.header
+}
+
 // JSONResponse encapsulates a json reponse
 type JSONResponse struct {
 	Response interface{} `json:"response"`
@@ -447,6 +576,8 @@ type GetRecordingTextTracksResponse struct {
 	MessageKey string       `json:"messageKey,omitempty"`
 	Message    string       `json:"message,omitempty"`
 	Tracks     []*TextTrack `json:"tracks"`
+
+	header http.Header
 }
 
 // UnmarshalGetRecordingTextTracksResponse decodes the json
@@ -490,6 +621,16 @@ func (res *GetRecordingTextTracksResponse) Merge(other Response) error {
 	return nil
 }
 
+// Header returns the HTTP response headers
+func (res *GetRecordingTextTracksResponse) Header() http.Header {
+	return res.header
+}
+
+// SetHeader sets the HTTP response header
+func (res *GetRecordingTextTracksResponse) SetHeader(h http.Header) {
+	res.header = h
+}
+
 // PutRecordingTextTrackResponse is the response when uploading
 // a text track. Response is in JSON.
 type PutRecordingTextTrackResponse struct {
@@ -497,6 +638,8 @@ type PutRecordingTextTrackResponse struct {
 	MessageKey string `json:"messageKey,omitempty"`
 	Message    string `json:"message,omitempty"`
 	RecordID   string `json:"recordId,omitempty"`
+
+	header http.Header
 }
 
 // UnmarshalPutRecordingTextTrackResponse decodes the json response
@@ -519,6 +662,16 @@ func (res *PutRecordingTextTrackResponse) Marshal() ([]byte, error) {
 // Merge a put recording text track
 func (res *PutRecordingTextTrackResponse) Merge(other Response) error {
 	return ErrCantBeMerged
+}
+
+// Header returns the HTTP response headers
+func (res *PutRecordingTextTrackResponse) Header() http.Header {
+	return res.header
+}
+
+// SetHeader sets the HTTP response header
+func (res *PutRecordingTextTrackResponse) SetHeader(h http.Header) {
+	res.header = h
 }
 
 // Breakout info

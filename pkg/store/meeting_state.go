@@ -223,5 +223,4 @@ func (s *MeetingState) update() error {
 // ago than a given threashold.
 func (s *MeetingState) IsStale() bool {
 	return time.Now().UTC().Sub(s.SyncedAt) > 1*time.Minute
-
 }
