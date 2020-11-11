@@ -76,13 +76,19 @@ func BBBRequestMiddleware(
 // writeBBBResponse takes a response from the cluster
 // and writes it as a response to the request.
 func writeBBBResponse(c echo.Context, res bbb.Response) error {
+	// When the status is not set assume something went wrong
+	status := res.Status()
+	if status == 0 {
+		status = netHTTP.StatusInternalServerError
+	}
+
 	// Update and write headers
 	for key, values := range res.Header() {
 		for _, v := range values {
 			c.Response().Header().Add(key, v)
 		}
 	}
-	c.Response().WriteHeader(res.Status())
+	c.Response().WriteHeader(status)
 
 	// Serialize BBB response and send
 	data, err := res.Marshal()

@@ -158,6 +158,7 @@ func UnmarshalJoinResponse(data []byte) (*JoinResponse, error) {
 	res := &JoinResponse{}
 	err := xml.Unmarshal(data, res)
 	if err != nil {
+		res.XMLResponse = new(XMLResponse)
 		res.raw = data
 	}
 	return res, nil
@@ -167,6 +168,11 @@ func UnmarshalJoinResponse(data []byte) (*JoinResponse, error) {
 // not be decoded from XML data
 func (res *JoinResponse) IsRaw() bool {
 	return res.raw != nil
+}
+
+// SetRaw will set a raw content
+func (res *JoinResponse) SetRaw(data []byte) {
+	res.raw = data
 }
 
 // Marshal encodes a JoinResponse as XML

@@ -33,6 +33,9 @@ func NewClient() *Client {
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // Thou shalt not follow redirects
+		},
 	}
 
 	c := &Client{

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -97,17 +98,30 @@ func (b *Backend) Create(req *bbb.Request) (
 func (b *Backend) Join(
 	req *bbb.Request,
 ) (*bbb.JoinResponse, error) {
-	// Make join request to the backend and update local
-	// meetings state
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
-	if err != nil {
-		return nil, err
+
+	// Joining a meeting is a process entirely handled by the
+	// client. Because of a JSESSIONID which is used? I guess?
+	// Just passing through the location response did not work.
+
+	// For the reverseproxy feature we need to fix this.
+	// Even if it means tracking JSESSIONID cookie headers.
+
+	req = req.WithBackend(b.state.Backend)
+
+	// Create custom join response
+	res := &bbb.JoinResponse{
+		XMLResponse: new(bbb.XMLResponse),
 	}
-	joinRes := res.(*bbb.JoinResponse)
 
-	// Update meeting attendee list
+	// TODO: Create HTML fallback for redirect
+	res.SetStatus(http.StatusFound)
+	res.SetRaw([]byte("<html><body>redirect fallback.</html>"))
+	res.SetHeader(http.Header{
+		"content-type": []string{"text/html"},
+		"location":     []string{req.URL()},
+	})
 
-	return joinRes, nil
+	return res, nil
 }
 
 // IsMeetingRunning returns the is meeting running state
