@@ -125,7 +125,7 @@ func (res *CreateResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *CreateResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -138,7 +138,9 @@ func (res *CreateResponse) SetStatus(s int) {
 	res.XMLResponse.status = s
 }
 
-// JoinResponse of the join resource
+// JoinResponse of the join resource.
+// WARNING: the join response might be a html page without
+// any meaningful data.
 type JoinResponse struct {
 	*XMLResponse
 	MeetingID    string `xml:"meeting_id"`
@@ -146,17 +148,32 @@ type JoinResponse struct {
 	AuthToken    string `xml:"auth_token"`
 	SessionToken string `xml:"session_token"`
 	URL          string `xml:"url"`
+
+	// The join response might be a raw
+	raw []byte
 }
 
 // UnmarshalJoinResponse decodes the serialized XML data
 func UnmarshalJoinResponse(data []byte) (*JoinResponse, error) {
 	res := &JoinResponse{}
 	err := xml.Unmarshal(data, res)
-	return res, err
+	if err != nil {
+		res.raw = data
+	}
+	return res, nil
+}
+
+// IsRaw returns true if the response could
+// not be decoded from XML data
+func (res *JoinResponse) IsRaw() bool {
+	return res.raw != nil
 }
 
 // Marshal encodes a JoinResponse as XML
 func (res *JoinResponse) Marshal() ([]byte, error) {
+	if res.IsRaw() {
+		return res.raw, nil
+	}
 	return xml.Marshal(res)
 }
 
@@ -172,7 +189,7 @@ func (res *JoinResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *JoinResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -217,7 +234,7 @@ func (res *IsMeetingRunningResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *IsMeetingRunningResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -299,7 +316,7 @@ func (res *GetMeetingInfoResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *GetMeetingInfoResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -356,7 +373,7 @@ func (res *GetMeetingsResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *GetMeetingsResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -410,7 +427,7 @@ func (res *GetRecordingsResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *GetRecordingsResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -476,7 +493,7 @@ func (res *PublishRecordingsResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *PublishRecordingsResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -536,7 +553,7 @@ func (res *DeleteRecordingsResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *DeleteRecordingsResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
@@ -596,7 +613,7 @@ func (res *UpdateRecordingsResponse) Header() http.Header {
 
 // SetHeader sets the HTTP response headers
 func (res *UpdateRecordingsResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.XMLResponse.header = h
 }
 
 // Status returns the HTTP response status code
