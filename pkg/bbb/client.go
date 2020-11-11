@@ -123,8 +123,9 @@ func (c *Client) Do(req *Request) (Response, error) {
 		return nil, err
 	}
 
-	// Set response headers
+	// Set response header and status
 	res.SetHeader(httpRes.Header)
+	res.SetStatus(httpRes.StatusCode)
 
 	return res, nil
 }

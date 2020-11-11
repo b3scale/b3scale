@@ -27,6 +27,9 @@ type Response interface {
 
 	Header() http.Header
 	SetHeader(http.Header)
+
+	Status() int
+	SetStatus(int)
 }
 
 // A XMLResponse from the server
@@ -37,6 +40,7 @@ type XMLResponse struct {
 	MessageKey string   `xml:"messageKey,omitempty"`
 
 	header http.Header
+	status int
 }
 
 // MergeXMLResponse is a specific merge
@@ -51,6 +55,7 @@ func (res *XMLResponse) MergeXMLResponse(other *XMLResponse) error {
 		return ErrMergeConflict
 	}
 
+	res.status = other.status
 	res.header = other.header
 	res.Message = other.Message
 	res.MessageKey = other.MessageKey
@@ -77,6 +82,16 @@ func (res *XMLResponse) Header() http.Header {
 // SetHeader sets the HTTP response headers
 func (res *XMLResponse) SetHeader(h http.Header) {
 	res.header = h
+}
+
+// Status returns the HTTP response status code
+func (res *XMLResponse) Status() int {
+	return res.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *XMLResponse) SetStatus(s int) {
+	res.status = s
 }
 
 // CreateResponse is the resonse for the `create` API resource.
@@ -111,6 +126,16 @@ func (res *CreateResponse) Header() http.Header {
 // SetHeader sets the HTTP response headers
 func (res *CreateResponse) SetHeader(h http.Header) {
 	res.header = h
+}
+
+// Status returns the HTTP response status code
+func (res *CreateResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *CreateResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
 }
 
 // JoinResponse of the join resource
@@ -150,6 +175,16 @@ func (res *JoinResponse) SetHeader(h http.Header) {
 	res.header = h
 }
 
+// Status returns the HTTP response status code
+func (res *JoinResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *JoinResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
+}
+
 // IsMeetingRunningResponse is a meeting status resonse
 type IsMeetingRunningResponse struct {
 	*XMLResponse
@@ -185,6 +220,16 @@ func (res *IsMeetingRunningResponse) SetHeader(h http.Header) {
 	res.header = h
 }
 
+// Status returns the HTTP response status code
+func (res *IsMeetingRunningResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *IsMeetingRunningResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
+}
+
 // EndResponse is the resonse of the end resource
 type EndResponse struct {
 	*XMLResponse
@@ -210,6 +255,16 @@ func (res *EndResponse) Merge(other Response) error {
 // Header returns the HTTP response headers
 func (res *EndResponse) Header() http.Header {
 	return res.XMLResponse.header
+}
+
+// Status returns the HTTP response status code
+func (res *EndResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *EndResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
 }
 
 // GetMeetingInfoResponse contains detailed meeting information
@@ -245,6 +300,16 @@ func (res *GetMeetingInfoResponse) Header() http.Header {
 // SetHeader sets the HTTP response headers
 func (res *GetMeetingInfoResponse) SetHeader(h http.Header) {
 	res.header = h
+}
+
+// Status returns the HTTP response status code
+func (res *GetMeetingInfoResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *GetMeetingInfoResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
 }
 
 // GetMeetingsResponse contains a list of meetings.
@@ -294,6 +359,16 @@ func (res *GetMeetingsResponse) SetHeader(h http.Header) {
 	res.header = h
 }
 
+// Status returns the HTTP response status code
+func (res *GetMeetingsResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *GetMeetingsResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
+}
+
 // GetRecordingsResponse is the response of the getRecordings resource
 type GetRecordingsResponse struct {
 	*XMLResponse
@@ -336,6 +411,16 @@ func (res *GetRecordingsResponse) Header() http.Header {
 // SetHeader sets the HTTP response headers
 func (res *GetRecordingsResponse) SetHeader(h http.Header) {
 	res.header = h
+}
+
+// Status returns the HTTP response status code
+func (res *GetRecordingsResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *GetRecordingsResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
 }
 
 // PublishRecordingsResponse indicates if the recordings
@@ -394,6 +479,16 @@ func (res *PublishRecordingsResponse) SetHeader(h http.Header) {
 	res.header = h
 }
 
+// Status returns the HTTP response status code
+func (res *PublishRecordingsResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *PublishRecordingsResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
+}
+
 // DeleteRecordingsResponse indicates if the recording
 // was correctly deleted. Might fail successfully.
 // Same crap as with the publish resource
@@ -442,6 +537,16 @@ func (res *DeleteRecordingsResponse) Header() http.Header {
 // SetHeader sets the HTTP response headers
 func (res *DeleteRecordingsResponse) SetHeader(h http.Header) {
 	res.header = h
+}
+
+// Status returns the HTTP response status code
+func (res *DeleteRecordingsResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *DeleteRecordingsResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
 }
 
 // UpdateRecordingsResponse indicates if the update was successful
@@ -494,11 +599,22 @@ func (res *UpdateRecordingsResponse) SetHeader(h http.Header) {
 	res.header = h
 }
 
+// Status returns the HTTP response status code
+func (res *UpdateRecordingsResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *UpdateRecordingsResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
+}
+
 // GetDefaultConfigXMLResponse has the raw config xml data
 type GetDefaultConfigXMLResponse struct {
 	Config []byte
 
 	header http.Header
+	status int
 }
 
 // UnmarshalGetDefaultConfigXMLResponse creates a new response
@@ -535,6 +651,16 @@ func (res *GetDefaultConfigXMLResponse) SetHeader(h http.Header) {
 	res.header = h
 }
 
+// Status returns the HTTP response status code
+func (res *GetDefaultConfigXMLResponse) Status() int {
+	return res.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *GetDefaultConfigXMLResponse) SetStatus(s int) {
+	res.status = s
+}
+
 // SetConfigXMLResponse encodes the result of setting the config
 type SetConfigXMLResponse struct {
 	*XMLResponse
@@ -565,6 +691,16 @@ func (res *SetConfigXMLResponse) Header() http.Header {
 	return res.XMLResponse.header
 }
 
+// Status returns the HTTP response status code
+func (res *SetConfigXMLResponse) Status() int {
+	return res.XMLResponse.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *SetConfigXMLResponse) SetStatus(s int) {
+	res.XMLResponse.status = s
+}
+
 // JSONResponse encapsulates a json reponse
 type JSONResponse struct {
 	Response interface{} `json:"response"`
@@ -578,6 +714,7 @@ type GetRecordingTextTracksResponse struct {
 	Tracks     []*TextTrack `json:"tracks"`
 
 	header http.Header
+	status int
 }
 
 // UnmarshalGetRecordingTextTracksResponse decodes the json
@@ -631,6 +768,16 @@ func (res *GetRecordingTextTracksResponse) SetHeader(h http.Header) {
 	res.header = h
 }
 
+// Status returns the HTTP response status code
+func (res *GetRecordingTextTracksResponse) Status() int {
+	return res.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *GetRecordingTextTracksResponse) SetStatus(s int) {
+	res.status = s
+}
+
 // PutRecordingTextTrackResponse is the response when uploading
 // a text track. Response is in JSON.
 type PutRecordingTextTrackResponse struct {
@@ -640,6 +787,7 @@ type PutRecordingTextTrackResponse struct {
 	RecordID   string `json:"recordId,omitempty"`
 
 	header http.Header
+	status int
 }
 
 // UnmarshalPutRecordingTextTrackResponse decodes the json response
@@ -672,6 +820,16 @@ func (res *PutRecordingTextTrackResponse) Header() http.Header {
 // SetHeader sets the HTTP response header
 func (res *PutRecordingTextTrackResponse) SetHeader(h http.Header) {
 	res.header = h
+}
+
+// Status returns the HTTP response status code
+func (res *PutRecordingTextTrackResponse) Status() int {
+	return res.status
+}
+
+// SetStatus sets the HTTP response status code
+func (res *PutRecordingTextTrackResponse) SetStatus(s int) {
+	res.status = s
 }
 
 // Breakout info

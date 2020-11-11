@@ -68,9 +68,29 @@ func BBBRequestMiddleware(
 
 			// Let the gateway handle the request
 			res := gateway.Dispatch(bbbReq)
-			return c.XML(netHTTP.StatusOK, res)
+			return writeBBBResponse(c, res)
 		}
 	}
+}
+
+// writeBBBResponse takes a response from the cluster
+// and writes it as a response to the request.
+func writeBBBResponse(c echo.Context, res bbb.Response) error {
+	// Update and write headers
+	for key, values := range res.Header() {
+		for _, v := range values {
+			c.Response().Header().Add(key, v)
+		}
+	}
+	c.Response().WriteHeader(res.Status())
+
+	// Serialize BBB response and send
+	data, err := res.Marshal()
+	if err != nil {
+		return err
+	}
+	_, err = c.Response().Write(data)
+	return err
 }
 
 // decodePath extracts the frontend key and BBB
