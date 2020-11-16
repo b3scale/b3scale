@@ -75,25 +75,34 @@ func (b *Backend) loadNodeState() error {
 
 // BBB API Implementation
 
-// Create a new Meeting
-func (b *Backend) Create(req *bbb.Request) (
-	*bbb.CreateResponse, error,
-) {
+func meetingStateFromRequest(
+	pool *pgxpool.Pool,
+	req *bbb.Request,
+) (*store.MeetingState, error) {
 	meetingID, ok := req.Params.MeetingID()
 	if !ok {
 		return nil, fmt.Errorf("meetingID required")
 	}
 	// Check if meeting does exist
-	meetingState, err := store.GetMeetingState(b.pool, store.Q().
+	meetingState, err := store.GetMeetingState(pool, store.Q().
 		Where("id = ?", meetingID))
+	return meetingState, err
+}
+
+// Create a new Meeting
+func (b *Backend) Create(req *bbb.Request) (
+	*bbb.CreateResponse, error,
+) {
+	meetingState, err := meetingStateFromRequest(b.pool, req)
 	if err != nil {
 		return nil, err
 	}
 	if meetingState != nil {
 		// Check if meeting is runnnig
-		res, err := b.IsMeetingRunning(&bbb.IsMeetingRunningRequest{
-			"meetingID": meetingState.ID,
-		})
+		res, err := b.IsMeetingRunning(bbb.IsMeetingRunningRequest(
+			bbb.Params{
+				"meetingID": meetingState.ID,
+			}))
 		if err != nil {
 			return nil, err
 		}

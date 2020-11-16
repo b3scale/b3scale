@@ -101,12 +101,12 @@ func meetingStateFromRow(
 	}
 
 	// Get related backend state
-	state.Backend, err = GetBackendState(conn, Q().
+	state.Backend, err = GetBackendState(pool, Q().
 		Where("id = ?", backendID))
 	if err != nil {
 		return nil, err
 	}
-	state.Frontend, err = GetFrontendState(conn, Q().
+	state.Frontend, err = GetFrontendState(pool, Q().
 		Where("id = ?", frontendID))
 	if err != nil {
 		return nil, err

@@ -191,7 +191,7 @@ func (c *Controller) GetBackends(q sq.SelectBuilder) ([]*Backend, error) {
 	// Make cluster backend from each state
 	backends := make([]*Backend, 0, len(states))
 	for _, s := range states {
-		backends = append(backends, NewBackend(s))
+		backends = append(backends, NewBackend(c.pool, s))
 	}
 
 	return backends, nil
