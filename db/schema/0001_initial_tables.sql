@@ -92,9 +92,9 @@ CREATE TABLE meetings (
                 REFERENCES frontends(id)
                 ON DELETE  CASCADE,
 
-    backend_id uuid        NOT NULL
+    backend_id uuid        NULL
                REFERENCES  backends(id)
-               ON DELETE   CASCADE,
+               ON DELETE   SET NULL,
 
     -- Timestamps
     created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,

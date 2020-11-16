@@ -19,7 +19,7 @@ import (
 // The controller subscribes to commands.
 type Controller struct {
 	cmds *store.CommandQueue
-	conn *pgxpool.Pool
+	pool *pgxpool.Pool
 
 	lastStartBackground time.Time
 	mtx                 sync.Mutex
@@ -28,10 +28,10 @@ type Controller struct {
 // NewController will initialize the cluster controller
 // with a database connection. A BBB client will be created
 // which will be used by the backend instances.
-func NewController(conn *pgxpool.Pool) *Controller {
+func NewController(pool *pgxpool.Pool) *Controller {
 	return &Controller{
-		cmds: store.NewCommandQueue(conn),
-		conn: conn,
+		cmds: store.NewCommandQueue(pool),
+		pool: pool,
 	}
 }
 
@@ -103,7 +103,7 @@ func (c *Controller) handleAddBackend(
 	}
 
 	// Create new backend state
-	state := store.InitBackendState(c.conn, &store.BackendState{
+	state := store.InitBackendState(c.pool, &store.BackendState{
 		Backend: req.Backend,
 		Tags:    req.Tags,
 	})
@@ -184,7 +184,7 @@ func (c *Controller) requestSyncStale() error {
 
 // GetBackends retrives backends with a store query
 func (c *Controller) GetBackends(q sq.SelectBuilder) ([]*Backend, error) {
-	states, err := store.GetBackendStates(c.conn, q)
+	states, err := store.GetBackendStates(c.pool, q)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func (c *Controller) GetBackend(q sq.SelectBuilder) (*Backend, error) {
 // GetFrontends retrieves all frontends from
 // the store matchig a query
 func (c *Controller) GetFrontends(q sq.SelectBuilder) ([]*Frontend, error) {
-	states, err := store.GetFrontendStates(c.conn, q)
+	states, err := store.GetFrontendStates(c.pool, q)
 	if err != nil {
 		return nil, err
 	}

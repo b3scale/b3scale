@@ -67,8 +67,8 @@ func GetMeetingStates(
 }
 
 // GetMeetingState tries to retriev a single meeting state
-func GetMeetingState(conn *pgxpool.Pool, q sq.SelectBuilder) (*MeetingState, error) {
-	states, err := GetMeetingStates(conn, q)
+func GetMeetingState(pool *pgxpool.Pool, q sq.SelectBuilder) (*MeetingState, error) {
+	states, err := GetMeetingStates(pool, q)
 	if err != nil {
 		return nil, err
 	}
@@ -79,10 +79,10 @@ func GetMeetingState(conn *pgxpool.Pool, q sq.SelectBuilder) (*MeetingState, err
 }
 
 func meetingStateFromRow(
-	conn *pgxpool.Pool,
+	pool *pgxpool.Pool,
 	row pgx.Row,
 ) (*MeetingState, error) {
-	state := InitMeetingState(conn, &MeetingState{})
+	state := InitMeetingState(pool, &MeetingState{})
 	var (
 		frontendID string
 		backendID  string

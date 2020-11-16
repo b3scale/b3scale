@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v4/pgxpool"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -20,14 +22,16 @@ import (
 type Backend struct {
 	state  *store.BackendState
 	client *bbb.Client
+	pool   *pgxpool.Pool
 }
 
 // NewBackend creates a new backend instance with
 // a fresh bbb client.
-func NewBackend(state *store.BackendState) *Backend {
+func NewBackend(pool *pgxpool.Pool, state *store.BackendState) *Backend {
 	return &Backend{
 		client: bbb.NewClient(),
 		state:  state,
+		pool:   pool,
 	}
 }
 
@@ -75,21 +79,60 @@ func (b *Backend) loadNodeState() error {
 func (b *Backend) Create(req *bbb.Request) (
 	*bbb.CreateResponse, error,
 ) {
-	// Make request to the backend and update local
-	// meetings state
+	meetingID, ok := req.Params.MeetingID()
+	if !ok {
+		return nil, fmt.Errorf("meetingID required")
+	}
+	// Check if meeting does exist
+	meetingState, err := store.GetMeetingState(b.pool, store.Q().
+		Where("id = ?", meetingID))
+	if err != nil {
+		return nil, err
+	}
+	if meetingState != nil {
+		// Check if meeting is runnnig
+		res, err := b.IsMeetingRunning(&bbb.IsMeetingRunningRequest{
+			"meetingID": meetingState.ID,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if res.XMLResponse.Returncode == "SUCCESS" {
+			// We are good here, just return the current meeting
+			// state in a synthetic response.
+			res := &bbb.CreateResponse{
+				XMLResponse: &bbb.XMLResponse{
+					Returncode: "SUCCESS",
+				},
+				Meeting: meetingState.Meeting,
+			}
+			res.SetStatus(200)
+			return res, nil
+		}
+	}
+
+	// We don't know about the meeting, or is meeting
+	// running did not know about the meeting - anyhow
+	// we need to create it.
 	res, err := b.client.Do(req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
 	createRes := res.(*bbb.CreateResponse)
-
-	// Create new meeting state in our store
-	/*
+	// Update or save meeeting state
+	if meetingState == nil {
 		_, err = b.state.CreateMeetingState(req.Frontend, createRes.Meeting)
 		if err != nil {
 			return nil, err
 		}
-	*/
+	} else {
+		// Update state
+		meetingState.Meeting = createRes.Meeting
+		meetingState.SyncedAt = time.Now().UTC()
+		if err := meetingState.Save(); err != nil {
+			return nil, err
+		}
+	}
 
 	return createRes, nil
 }
@@ -98,7 +141,6 @@ func (b *Backend) Create(req *bbb.Request) (
 func (b *Backend) Join(
 	req *bbb.Request,
 ) (*bbb.JoinResponse, error) {
-
 	// Joining a meeting is a process entirely handled by the
 	// client. Because of a JSESSIONID which is used? I guess?
 	// Just passing through the location response did not work.
