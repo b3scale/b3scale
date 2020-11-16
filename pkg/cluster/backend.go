@@ -135,7 +135,7 @@ func (b *Backend) Create(req *bbb.Request) (
 			return nil, err
 		}
 	} else {
-		// Update state
+		// Update state, associate with backend and frontend
 		meetingState.Meeting = createRes.Meeting
 		meetingState.SyncedAt = time.Now().UTC()
 		if err := meetingState.Save(); err != nil {
@@ -184,6 +184,11 @@ func (b *Backend) IsMeetingRunning(
 		return nil, err
 	}
 	isMeetingRunningRes := res.(*bbb.IsMeetingRunningResponse)
+	meetingID, _ := req.Params.MeetingID()
+	if isMeetingRunningRes.Returncode == "ERROR" {
+		// Delete meeting
+		store.DeleteMeetingState(b.pool, &store.MeetingState{ID: meetingID})
+	}
 
 	return isMeetingRunningRes, err
 }

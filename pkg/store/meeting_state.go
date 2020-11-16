@@ -115,6 +115,17 @@ func meetingStateFromRow(
 	return state, err
 }
 
+// DeleteMeetingState will remove a meeting state.
+// It will succeed, even if no such meeting was present.
+func DeleteMeetingState(pool *pgxpool.Pool, s *MeetingState) error {
+	ctx := context.Background()
+	qry := `
+		DELETE FROM meetings WHERE id = $1
+	`
+	_, err := s.pool.Exec(ctx, qry, s.ID)
+	return err
+}
+
 // Refresh the backend state from the database
 func (s *MeetingState) Refresh() error {
 	// Load from database

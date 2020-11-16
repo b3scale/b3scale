@@ -264,3 +264,6 @@ func (s *BackendState) CreateMeetingState(
 	}
 	return mstate, nil
 }
+
+// UpdateMeetingState updates the meeting in t
+// meeting state and associates backend and frontend
