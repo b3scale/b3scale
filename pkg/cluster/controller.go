@@ -86,6 +86,8 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 		return c.handleRemoveBackend(cmd)
 	case CmdUpdateNodeState:
 		return c.handleUpdateNodeState(cmd)
+	case CmdUpdateMeetingState:
+		return c.handleUpdateMeetingState(cmd)
 	}
 
 	return nil, ErrUnknownCommand
@@ -154,6 +156,34 @@ func (c *Controller) handleUpdateNodeState(
 		log.Println(backend.state.Backend.Host, err)
 		return false, err
 	}
+	return true, nil
+}
+
+// handleUpdateMeetingState syncs the meeting state
+// from a backend
+func (c *Controller) handleUpdateMeetingState(
+	cmd *store.Command,
+) (interface{}, error) {
+	req := &UpdateMeetingStateRequest{}
+	if err := cmd.FetchParams(req); err != nil {
+		return nil, err
+	}
+
+	// Get meeting from store
+	mstate, err := store.GetMeetingState(c.pool, store.Q().
+		Where("id = ?", req.ID))
+
+	backend, err := c.GetBackend(
+		store.Q().Where("id = ?", mstate.Backend.ID))
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	if err := backend.refreshMeetingState(mstate); err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 

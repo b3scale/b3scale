@@ -23,6 +23,7 @@ type Backend struct {
 	state  *store.BackendState
 	client *bbb.Client
 	pool   *pgxpool.Pool
+	cmds   *store.CommandQueue
 }
 
 // NewBackend creates a new backend instance with
@@ -32,6 +33,7 @@ func NewBackend(pool *pgxpool.Pool, state *store.BackendState) *Backend {
 		client: bbb.NewClient(),
 		state:  state,
 		pool:   pool,
+		cmds:   store.NewCommandQueue(pool),
 	}
 }
 
@@ -71,6 +73,30 @@ func (b *Backend) loadNodeState() error {
 	b.state.Latency = latency
 	b.state.NodeState = "ready"
 	return err
+}
+
+// Meeting State Sync: loadMeetingState will make
+// a request to the backend with a get meeting info request
+func (b *Backend) refreshMeetingState(
+	state *store.MeetingState,
+) error {
+	req := bbb.GetMeetingInfoRequest(bbb.Params{
+		"meetingID": state.ID,
+	}).WithBackend(b.state.Backend)
+	rep, err := b.client.Do(req)
+	if err != nil {
+		return err
+	}
+	res := rep.(*bbb.GetMeetingInfoResponse)
+	if res.XMLResponse.Returncode != "SUCCESS" {
+		return fmt.Errorf("meeting sync error: %v",
+			res.XMLResponse.Message)
+	}
+
+	// Update meeting state
+	state.Meeting = res.Meeting
+	state.SyncedAt = time.Now().UTC()
+	return state.Save()
 }
 
 // BBB API Implementation
@@ -169,6 +195,12 @@ func (b *Backend) Join(
 		"content-type": []string{"text/html"},
 		"location":     []string{req.URL()},
 	})
+
+	// Dispatch updating the meeing state
+	meetingID, _ := req.Params.MeetingID()
+	b.cmds.Queue(UpdateMeetingState(&UpdateMeetingStateRequest{
+		ID: meetingID,
+	}))
 
 	return res, nil
 }

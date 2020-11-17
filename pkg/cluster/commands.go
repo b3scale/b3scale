@@ -20,6 +20,9 @@ const (
 	CmdAddBackend      = "add_backend"
 	CmdRemoveBackend   = "remove_backend"
 	CmdUpdateNodeState = "update_node_state"
+
+	// Meetings
+	CmdUpdateMeetingState = "update_meeting_state"
 )
 
 var (
@@ -101,6 +104,22 @@ type UpdateNodeStateRequest struct {
 func UpdateNodeState(req *UpdateNodeStateRequest) *store.Command {
 	return &store.Command{
 		Action:   CmdUpdateNodeState,
+		Params:   req,
+		Deadline: store.NextDeadline(10 * time.Minute),
+	}
+}
+
+// UpdateMeetingStateRequest requests the refresh of a meeting
+type UpdateMeetingStateRequest struct {
+	ID string // the meeting ID
+}
+
+// UpdateMeetingState makes a new meeting refresh command
+func UpdateMeetingState(
+	req *UpdateMeetingStateRequest,
+) *store.Command {
+	return &store.Command{
+		Action:   CmdUpdateMeetingState,
 		Params:   req,
 		Deadline: store.NextDeadline(10 * time.Minute),
 	}
