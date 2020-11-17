@@ -153,10 +153,8 @@ func (b *Backend) Join(
 	// Joining a meeting is a process entirely handled by the
 	// client. Because of a JSESSIONID which is used? I guess?
 	// Just passing through the location response did not work.
-
 	// For the reverseproxy feature we need to fix this.
 	// Even if it means tracking JSESSIONID cookie headers.
-
 	req = req.WithBackend(b.state.Backend)
 
 	// Create custom join response
@@ -206,22 +204,60 @@ func (b *Backend) End(req *bbb.Request) (*bbb.EndResponse, error) {
 func (b *Backend) GetMeetingInfo(
 	req *bbb.Request,
 ) (*bbb.GetMeetingInfoResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	rep, err := b.client.Do(req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
-	return res.(*bbb.GetMeetingInfoResponse), nil
+	res := rep.(*bbb.GetMeetingInfoResponse)
+
+	// Update our meeting in the store
+	if res.XMLResponse.Returncode == "SUCCESS" {
+		meetingID, _ := req.Params.MeetingID()
+		mstate, err := store.GetMeetingState(b.pool, store.Q().
+			Where("id = ?", meetingID))
+		if err != nil {
+			// We only log the error, as this might fail
+			// without impacting the service
+			log.Println(err)
+		} else {
+			// Update meeting state
+			mstate.Meeting = res.Meeting
+			mstate.SyncedAt = time.Now().UTC()
+			if err := mstate.Save(); err != nil {
+				log.Println(err)
+			}
+		}
+	}
+
+	return res, nil
 }
 
 // GetMeetings retrieves a list of meetings
 func (b *Backend) GetMeetings(
 	req *bbb.Request,
 ) (*bbb.GetMeetingsResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	// Get all meetings from our store associated
+	// with the requesting frontend.
+	mstates, err := store.GetMeetingStates(b.pool, store.Q().
+		Join("frontends ON frontends.id = meetings.frontend_id").
+		Where("frontend.key = ?", req.Frontend))
 	if err != nil {
 		return nil, err
 	}
-	return res.(*bbb.GetMeetingsResponse), nil
+	meetings := make([]*bbb.Meeting, 0, len(mstates))
+	for _, state := range mstates {
+		meetings = append(meetings, state.Meeting)
+	}
+
+	// Create response with all meetings
+	res := &bbb.GetMeetingsResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: "SUCCESS",
+		},
+		Meetings: meetings,
+	}
+
+	return res, nil
 }
 
 // GetRecordings retrieves a list of recordings

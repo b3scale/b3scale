@@ -44,10 +44,13 @@ func GetMeetingStates(
 ) ([]*MeetingState, error) {
 	ctx := context.Background()
 	qry, params, _ := q.Columns(
-		"id",
-		"frontend_id", "backend_id",
-		"state",
-		"created_at", "updated_at", "synced_at").
+		"meetings.id",
+		"meetings.frontend_id",
+		"meetings.backend_id",
+		"meetings.state",
+		"meetings.created_at",
+		"meetings.updated_at",
+		"meetings.synced_at").
 		From("meetings").
 		ToSql()
 	rows, err := pool.Query(ctx, qry, params...)
