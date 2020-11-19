@@ -36,7 +36,11 @@ CREATE TABLE backends (
     node_state  instance_state NOT NULL DEFAULT 'init',
     admin_state instance_state NOT NULL DEFAULT 'ready',
 
-    latency    INTEGER         NOT NULL DEFAULT 0.0,
+    -- Statistics: We make routing decision based on
+    -- these numbers
+    latency         INTEGER  NOT NULL DEFAULT 0.0,
+    meetings_count  INTEGER  NOT NULL DEFAULT 0,
+    attendees_count INTEGER  NOT NULL DEFAULT 0, 
 
     last_error text NULL DEFAULT NULL,
 

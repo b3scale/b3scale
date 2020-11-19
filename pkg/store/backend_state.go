@@ -28,8 +28,9 @@ type BackendState struct {
 
 	LastError *string
 
-	Latency time.Duration
-	Load    float64
+	Latency        time.Duration
+	MeetingsCount  int
+	AttendeesCount int
 
 	Backend *bbb.Backend
 
@@ -75,6 +76,8 @@ func GetBackendStates(
 		"backends.admin_state",
 		"backends.last_error",
 		"backends.latency",
+		"backends.meetings_count",
+		"backends.attendees_count",
 		"backends.host",
 		"backends.secret",
 		"backends.tags",
@@ -234,6 +237,26 @@ func (s *BackendState) ClearMeetings() error {
 	qry := `
 		DELETE FROM meetings WHERE backend_id = $1
 	`
+	_, err := s.pool.Exec(ctx, qry, s.ID)
+	return err
+}
+
+// IncMeetingsCount increments the meetings counter
+func (s *BackendState) IncMeetingsCount() error {
+	ctx := context.Background()
+	s.MeetingsCount++
+	qry := `UPDATE backends SET meetings_count = meetings_count + 1
+  			 WHERE id = $1`
+	_, err := s.pool.Exec(ctx, qry, s.ID)
+	return err
+}
+
+// IncAttendeesCount increments the attendees counter
+func (s *BackendState) IncAttendeesCount() error {
+	ctx := context.Background()
+	s.MeetingsCount++
+	qry := `UPDATE backends SET attendees_count = attendees_count + 1
+  			 WHERE id = $1`
 	_, err := s.pool.Exec(ctx, qry, s.ID)
 	return err
 }
