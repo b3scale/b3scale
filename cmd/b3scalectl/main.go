@@ -1,13 +1,9 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -23,33 +19,15 @@ func main() {
 	dbConnStr := getopt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
-	dbConn, err := store.Connect(dbConnStr)
+	dbPool, err := store.Connect(dbConnStr)
 	if err != nil {
 		log.Fatal(err)
 	}
+	queue := store.NewCommandQueue(dbPool)
 
-	states, err := store.GetBackendStates(dbConn, store.NewQuery())
-	if err != nil {
+	// Start the CLI
+	cli := NewCli(queue, dbPool)
+	if err := cli.Run(os.Args); err != nil {
 		log.Fatal(err)
-	}
-
-	for _, state := range states {
-		res, _ := json.Marshal(state)
-		fmt.Println(string(res))
-		fmt.Println("L:", state.Latency)
-	}
-
-	// The following credential is obsolete.
-	cmd := cluster.AddBackend(&cluster.AddBackendRequest{
-		Backend: &bbb.Backend{
-			Host:   "https://bbbackend00.bastelgenosse.de/bigbluebutton/api",
-			Secret: "q2jjgDLtiIHO0thLwxWqIdf2WybsCQbK5uMusC938",
-		},
-		Tags: []string{"sip", "2.0.0"},
-	})
-	queue := store.NewCommandQueue(dbConn)
-	err = queue.Queue(cmd)
-	if err != nil {
-		fmt.Println(err)
 	}
 }
