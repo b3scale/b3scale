@@ -101,6 +101,8 @@ func GetBackendStates(
 			&state.AdminState,
 			&state.LastError,
 			&state.Latency,
+			&state.MeetingsCount,
+			&state.AttendeesCount,
 			&state.Backend.Host,
 			&state.Backend.Secret,
 			&state.Tags,
