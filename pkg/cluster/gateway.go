@@ -27,7 +27,7 @@ type Gateway struct {
 func NewGateway(ctrl *Controller) *Gateway {
 	return &Gateway{
 		ctrl:       ctrl,
-		middleware: dispatchBackendHandler,
+		middleware: dispatchBackendHandler(ctrl),
 	}
 }
 
@@ -35,55 +35,69 @@ func NewGateway(ctrl *Controller) *Gateway {
 // middleware chain and is the default handler for requests.
 // It expects the presence of a "backend" in the current
 // context. Otherwise it will fail.
-func dispatchBackendHandler(
-	ctx context.Context, req *bbb.Request,
-) (bbb.Response, error) {
-	// Get backend by id
-	backend := BackendFromContext(ctx)
-	if backend == nil {
-		return nil, fmt.Errorf("no backend in context")
-	}
+func dispatchBackendHandler(ctrl *Controller) RequestHandler {
+	return func(
+		ctx context.Context, req *bbb.Request,
+	) (bbb.Response, error) {
+		// Get backend by id
+		backend := BackendFromContext(ctx)
+		if backend == nil {
+			return nil, fmt.Errorf("no backend in context")
+		}
 
-	// Check if the backend is ready to accept requests:
-	if backend.state.NodeState != BackendStateReady {
-		return nil, fmt.Errorf("backend not ready")
-		// This should however not happen!
-	}
+		// Check if the backend is ready to accept requests:
+		if backend.state.NodeState != BackendStateReady {
+			return nil, fmt.Errorf("backend not ready")
+			// This should however not happen!
+		}
 
-	// Dispatch API resources
-	switch req.Resource {
-	case bbb.ResourceJoin:
-		return backend.Join(req)
-	case bbb.ResourceCreate:
-		return backend.Create(req)
-	case bbb.ResourceIsMeetingRunning:
-		return backend.IsMeetingRunning(req)
-	case bbb.ResourceEnd:
-		return backend.End(req)
-	case bbb.ResourceGetMeetingInfo:
-		return backend.GetMeetingInfo(req)
-	case bbb.ResourceGetMeetings:
-		return backend.GetMeetings(req)
-	case bbb.ResourceGetRecordings:
-		return backend.GetRecordings(req)
-	case bbb.ResourcePublishRecordings:
-		return backend.PublishRecordings(req)
-	case bbb.ResourceDeleteRecordings:
-		return backend.DeleteRecordings(req)
-	case bbb.ResourceUpdateRecordings:
-		return backend.UpdateRecordings(req)
-	case bbb.ResourceGetDefaultConfigXML:
-		return backend.GetDefaultConfigXML(req)
-	case bbb.ResourceSetConfigXML:
-		return backend.SetConfigXML(req)
-	case bbb.ResourceGetRecordingTextTracks:
-		return backend.GetRecordingTextTracks(req)
-	case bbb.ResourcePutRecordingTextTrack:
-		return backend.PutRecordingTextTrack(req)
+		// Make sure the meeting is associated with the backend
+		if meetingID, ok := req.Params.MeetingID(); ok {
+			meeting, err := ctrl.GetMeetingStateByID(meetingID)
+			if err != nil {
+				log.Println(err)
+			} else {
+				if err := meeting.SetBackendID(backend.ID()); err != nil {
+					log.Println(err)
+				}
+			}
+		}
+
+		// Dispatch API resources
+		switch req.Resource {
+		case bbb.ResourceJoin:
+			return backend.Join(req)
+		case bbb.ResourceCreate:
+			return backend.Create(req)
+		case bbb.ResourceIsMeetingRunning:
+			return backend.IsMeetingRunning(req)
+		case bbb.ResourceEnd:
+			return backend.End(req)
+		case bbb.ResourceGetMeetingInfo:
+			return backend.GetMeetingInfo(req)
+		case bbb.ResourceGetMeetings:
+			return backend.GetMeetings(req)
+		case bbb.ResourceGetRecordings:
+			return backend.GetRecordings(req)
+		case bbb.ResourcePublishRecordings:
+			return backend.PublishRecordings(req)
+		case bbb.ResourceDeleteRecordings:
+			return backend.DeleteRecordings(req)
+		case bbb.ResourceUpdateRecordings:
+			return backend.UpdateRecordings(req)
+		case bbb.ResourceGetDefaultConfigXML:
+			return backend.GetDefaultConfigXML(req)
+		case bbb.ResourceSetConfigXML:
+			return backend.SetConfigXML(req)
+		case bbb.ResourceGetRecordingTextTracks:
+			return backend.GetRecordingTextTracks(req)
+		case bbb.ResourcePutRecordingTextTrack:
+			return backend.PutRecordingTextTrack(req)
+		}
+		// We could not dispatch this
+		return nil, fmt.Errorf(
+			"unknown resource: %s", req.Resource)
 	}
-	// We could not dispatch this
-	return nil, fmt.Errorf(
-		"unknown resource: %s", req.Resource)
 }
 
 // Use registers a middleware function

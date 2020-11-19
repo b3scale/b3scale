@@ -174,7 +174,7 @@ func (c *Controller) handleUpdateMeetingState(
 		Where("id = ?", req.ID))
 
 	backend, err := c.GetBackend(
-		store.Q().Where("id = ?", mstate.Backend.ID))
+		store.Q().Where("id = ?", mstate.BackendID))
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -266,4 +266,15 @@ func (c *Controller) GetFrontend(q sq.SelectBuilder) (*Frontend, error) {
 		return nil, nil
 	}
 	return frontends[0], nil
+}
+
+// GetMeetingStateByID fetches a meeting state from the store
+func (c *Controller) GetMeetingStateByID(id string) (*store.MeetingState, error) {
+	state, err := store.GetMeetingState(c.pool, store.Q().
+		Where("id = ?", id))
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
 }

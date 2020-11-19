@@ -280,9 +280,9 @@ func (s *BackendState) CreateMeetingState(
 		return nil, ErrFrontendRequired
 	}
 	mstate := InitMeetingState(s.pool, &MeetingState{
-		Backend:  s,
-		Frontend: fstate,
-		Meeting:  meeting,
+		BackendID:  &s.ID,
+		FrontendID: &fstate.ID,
+		Meeting:    meeting,
 	})
 	if err := mstate.Save(); err != nil {
 		return nil, err

@@ -17,19 +17,21 @@ func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState,
 			ID: uuid.New().String(),
 		}
 	}
-	// A meeting can not exist without a backend and
+	// A meeting should not exist without a backend and
 	// frontend.
-	if init.Frontend == nil {
-		init.Frontend = frontendStateFactory(pool)
-		if err := init.Frontend.Save(); err != nil {
+	if init.frontend == nil {
+		init.frontend = frontendStateFactory(pool)
+		if err := init.frontend.Save(); err != nil {
 			return nil, err
 		}
+		init.FrontendID = &init.frontend.ID
 	}
-	if init.Backend == nil {
-		init.Backend = backendStateFactory(pool)
-		if err := init.Backend.Save(); err != nil {
+	if init.backend == nil {
+		init.backend = backendStateFactory(pool)
+		if err := init.backend.Save(); err != nil {
 			return nil, err
 		}
+		init.BackendID = &init.backend.ID
 	}
 
 	if init.Meeting == nil {
@@ -50,6 +52,11 @@ func TestMeetingStateSave(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	t.Log("meeting state after factory:", state)
+	t.Log(
+		"backendID:", state.BackendID,
+		"frontendID:", state.FrontendID)
+
 	err = state.Save()
 	if err != nil {
 		t.Error(err)
@@ -86,10 +93,12 @@ func TestMeetingStateIsStale(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	t.Log("before SavE()")
 	if err := state.Save(); err != nil {
 		t.Error(err)
 		return
 	}
+	t.Log("after SavE()")
 
 	state.SyncedAt = time.Now().UTC()
 	err = state.Save()

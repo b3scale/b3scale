@@ -37,6 +37,11 @@ func NewBackend(pool *pgxpool.Pool, state *store.BackendState) *Backend {
 	}
 }
 
+// ID retrievs the backend id
+func (b *Backend) ID() string {
+	return b.state.ID
+}
+
 // Backend State Sync: loadNodeState will make
 // a small request to get a meeting that does not
 // exist to check if the credentials are valid.
@@ -169,6 +174,11 @@ func (b *Backend) Create(req *bbb.Request) (
 		}
 	}
 
+	// Increment meeting counter
+	if err := b.state.IncMeetingsCount(); err != nil {
+		log.Println(b.state.Backend.Host, err)
+	}
+
 	return createRes, nil
 }
 
@@ -178,9 +188,12 @@ func (b *Backend) Join(
 ) (*bbb.JoinResponse, error) {
 	// Joining a meeting is a process entirely handled by the
 	// client. Because of a JSESSIONID which is used? I guess?
+	// Or maybe the referrer?
 	// Just passing through the location response did not work.
 	// For the reverseproxy feature we need to fix this.
-	// Even if it means tracking JSESSIONID cookie headers.
+	// Even if it means tracking JSESSIONID cookie headers
+	// or the referrer and injecting them back through some
+	// nxing magic on the BBB side.
 	req = req.WithBackend(b.state.Backend)
 
 	// Create custom join response

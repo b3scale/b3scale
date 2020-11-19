@@ -37,6 +37,10 @@ func NewRouter(ctrl *Controller) *Router {
 // This pretty much applies to all state mutating
 // API resources like join or create.
 //
+// EDIT: For now we are just using a single
+//       backend and let the backend implementation
+//       hit the database instead of the actual backends.
+//
 // We use the selectDiscardHandler as the end of our
 // middleware chain.
 func selectDiscardHandler(
@@ -55,13 +59,13 @@ func selectDiscardHandler(
 	case bbb.ResourceGetMeetingInfo:
 		return selectFirst(backends), nil
 	case bbb.ResourceGetMeetings:
-		return backends, nil
+		return selectFirst(backends), nil
 	case bbb.ResourceGetRecordings:
-		return backends, nil
+		return selectFirst(backends), nil
 	case bbb.ResourcePublishRecordings:
-		return backends, nil
+		return selectFirst(backends), nil
 	case bbb.ResourceDeleteRecordings:
-		return backends, nil
+		return selectFirst(backends), nil
 	case bbb.ResourceUpdateRecordings:
 		return selectFirst(backends), nil
 	case bbb.ResourceGetDefaultConfigXML:

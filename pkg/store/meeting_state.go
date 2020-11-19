@@ -16,9 +16,13 @@ import (
 type MeetingState struct {
 	ID string
 
-	Meeting  *bbb.Meeting
-	Frontend *FrontendState
-	Backend  *BackendState
+	Meeting *bbb.Meeting
+
+	FrontendID *string
+	frontend   *FrontendState
+
+	BackendID *string
+	backend   *BackendState
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -86,15 +90,10 @@ func meetingStateFromRow(
 	row pgx.Row,
 ) (*MeetingState, error) {
 	state := InitMeetingState(pool, &MeetingState{})
-	var (
-		frontendID string
-		backendID  string
-	)
-
 	err := row.Scan(
 		&state.ID,
-		&frontendID,
-		&backendID,
+		&state.FrontendID,
+		&state.BackendID,
 		&state.Meeting,
 		&state.CreatedAt,
 		&state.UpdatedAt,
@@ -103,19 +102,49 @@ func meetingStateFromRow(
 		return nil, err
 	}
 
-	// Get related backend state
-	state.Backend, err = GetBackendState(pool, Q().
-		Where("id = ?", backendID))
-	if err != nil {
-		return nil, err
+	return state, err
+}
+
+// GetBackendState loads the backend state
+func (s *MeetingState) GetBackendState() (*BackendState, error) {
+	if s.BackendID == nil {
+		return nil, nil
 	}
-	state.Frontend, err = GetFrontendState(pool, Q().
-		Where("id = ?", frontendID))
+
+	if s.backend != nil {
+		return s.backend, nil
+	}
+
+	// Get related backend state
+	var err error
+	s.backend, err = GetBackendState(s.pool, Q().
+		Where("id = ?", s.BackendID))
 	if err != nil {
 		return nil, err
 	}
 
-	return state, err
+	return s.backend, nil
+}
+
+// GetFrontendState loads the frontend state for the meeting
+func (s *MeetingState) GetFrontendState() (*FrontendState, error) {
+	if s.FrontendID == nil {
+		return nil, nil
+	}
+
+	if s.frontend != nil {
+		return s.frontend, nil
+	}
+
+	// Load frontend state from database
+	var err error
+	s.frontend, err = GetFrontendState(s.pool, Q().
+		Where("id = ?", s.FrontendID))
+	if err != nil {
+		return nil, err
+	}
+
+	return s.frontend, nil
 }
 
 // DeleteMeetingState will remove a meeting state.
@@ -164,17 +193,6 @@ func (s *MeetingState) Save() error {
 // Add a new meeting to the database
 func (s *MeetingState) insert() (string, error) {
 	id := s.Meeting.MeetingID
-	var (
-		frontendID *string
-		backendID  *string
-	)
-	if s.Frontend != nil {
-		frontendID = &s.Frontend.ID
-	}
-	if s.Backend != nil {
-		backendID = &s.Backend.ID
-	}
-
 	ctx := context.Background()
 	qry := `
 		INSERT INTO meetings (
@@ -189,8 +207,8 @@ func (s *MeetingState) insert() (string, error) {
 	err := s.pool.QueryRow(ctx, qry,
 		id,
 		s.Meeting,
-		frontendID,
-		backendID).Scan(&s.ID)
+		s.FrontendID,
+		s.BackendID).Scan(&s.ID)
 	if err != nil {
 		return "", err
 	}
@@ -202,19 +220,7 @@ func (s *MeetingState) insert() (string, error) {
 func (s *MeetingState) update() error {
 	ctx := context.Background()
 
-	var (
-		frontendID *string
-		backendID  *string
-	)
-	if s.Frontend != nil {
-		frontendID = &s.Frontend.ID
-	}
-	if s.Backend != nil {
-		backendID = &s.Backend.ID
-	}
-
 	s.UpdatedAt = time.Now().UTC()
-
 	qry := `
 		UPDATE meetings
 		   SET state		= $2,
@@ -226,10 +232,25 @@ func (s *MeetingState) update() error {
 	_, err := s.pool.Exec(ctx, qry,
 		s.ID,
 		s.Meeting,
-		frontendID,
-		backendID,
+		s.FrontendID,
+		s.BackendID,
 		s.SyncedAt,
 		s.UpdatedAt)
+	return err
+}
+
+// SetBackendID associates a meeting with a backend
+func (s *MeetingState) SetBackendID(id string) error {
+	if s.BackendID != nil && *s.BackendID == id {
+		return nil // nothing to do here
+	}
+
+	// Bind backend
+	s.BackendID = &id
+	ctx := context.Background()
+	qry := `UPDATE meetings SET backend_id = $2
+			WHERE id = $1`
+	_, err := s.pool.Exec(ctx, qry, s.ID, id)
 	return err
 }
 
