@@ -4,13 +4,16 @@
 # @created     : Sunday Aug 16, 2020 19:24:54 CEST
 ######################################################################
 
-all: b3scaled b3scalectl
+all: b3scaled b3scalectl b3scalesnitch
 
 b3scaled:
 	cd cmd/b3scaled && go build
 
 b3scalectl:
 	cd cmd/b3scalectl && go build
+
+b3scalesnitch:
+	cd cmd/b3scalesnitch && go build
 
 .PHONY: clean test
 
