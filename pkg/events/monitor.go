@@ -130,10 +130,11 @@ func decodeUserJoinedMeetingEvent(m *Message) bbb.Event {
 	return &bbb.UserJoinedMeetingEvent{
 		InternalMeetingID: meetingID,
 		Attendee: &bbb.Attendee{
-			UserID:     user["extId"].(string),
-			FullName:   user["name"].(string),
-			Role:       user["role"].(string),
-			ClientType: user["clientType"].(string),
+			UserID:         user["extId"].(string),
+			InternalUserID: user["intId"].(string),
+			FullName:       user["name"].(string),
+			Role:           user["role"].(string),
+			ClientType:     user["clientType"].(string),
 		},
 	}
 }

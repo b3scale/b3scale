@@ -50,5 +50,4 @@ func main() {
 			log.Println("event handler error:", err)
 		}
 	}
-
 }
