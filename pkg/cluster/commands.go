@@ -12,12 +12,7 @@ import (
 
 // Commands that can be handled by the controller
 const (
-	// Frontend
-	CmdAddFrontend    = "add_frontend"
-	CmdRemoveFrontend = "remove_frontend"
-
 	// Backend
-	CmdAddBackend      = "add_backend"
 	CmdRemoveBackend   = "remove_backend"
 	CmdUpdateNodeState = "update_node_state"
 

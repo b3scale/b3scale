@@ -80,8 +80,6 @@ func (c *Controller) StartBackground() {
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
-	case CmdAddBackend:
-		return c.handleAddBackend(cmd)
 	case CmdRemoveBackend:
 		return c.handleRemoveBackend(cmd)
 	case CmdUpdateNodeState:
@@ -91,38 +89,6 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	}
 
 	return nil, ErrUnknownCommand
-}
-
-// Command: AddBackend
-// Creates a new backend state and dispatches the initial
-// load state.
-func (c *Controller) handleAddBackend(
-	cmd *store.Command,
-) (interface{}, error) {
-	req := &AddBackendRequest{}
-	if err := cmd.FetchParams(req); err != nil {
-		return nil, err
-	}
-
-	// Create new backend state
-	state := store.InitBackendState(c.pool, &store.BackendState{
-		Backend: req.Backend,
-		Tags:    req.Tags,
-	})
-	if err := state.Save(); err != nil {
-		return nil, err
-	}
-
-	// Dispatch background job: Load instance state.
-	if err := c.cmds.Queue(
-		UpdateNodeState(&UpdateNodeStateRequest{
-			ID: state.ID,
-		})); err != nil {
-
-		return nil, err
-	}
-
-	return req.Backend, nil
 }
 
 // Command: RemoveBackend
