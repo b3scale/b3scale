@@ -8,6 +8,7 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/events"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // Get configuration from environment with

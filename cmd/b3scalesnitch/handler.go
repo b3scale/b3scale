@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -20,5 +22,6 @@ func NewEventHandler(pool *pgxpool.Pool) *EventHandler {
 
 // Dispatch invokes the handler functions on the BBB event
 func (h *EventHandler) Dispatch(e bbb.Event) error {
+	fmt.Printf("EVENT %T: %v\n", e, e)
 	return nil
 }
