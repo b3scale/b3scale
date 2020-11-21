@@ -230,7 +230,7 @@ func (b *Backend) IsMeetingRunning(
 	meetingID, _ := req.Params.MeetingID()
 	if isMeetingRunningRes.Returncode == "ERROR" {
 		// Delete meeting
-		store.DeleteMeetingState(b.pool, &store.MeetingState{ID: meetingID})
+		store.DeleteMeetingStateByID(b.pool, meetingID)
 	}
 
 	return isMeetingRunningRes, err
