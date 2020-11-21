@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
 // Errors
@@ -31,9 +34,9 @@ func NewMonitor(rdb *redis.Client) *Monitor {
 // Subscribe subscribes to the redis store and
 // retrievs messsges. These are decoded and returned
 // through a channel.
-func (m *Monitor) Subscribe() chan Event {
-	events := make(chan Event)
-	go func(events chan Event) {
+func (m *Monitor) Subscribe() chan bbb.Event {
+	events := make(chan bbb.Event)
+	go func(events chan bbb.Event) {
 		ctx := context.Background()
 		pubsub := m.rdb.PSubscribe(ctx, "*akka-apps-redis-channel")
 		for {
@@ -45,7 +48,7 @@ func (m *Monitor) Subscribe() chan Event {
 	return events
 }
 
-func receiveMessages(events chan Event, sub *redis.PubSub) error {
+func receiveMessages(events chan bbb.Event, sub *redis.PubSub) error {
 	ctx := context.Background()
 	if _, err := sub.Receive(ctx); err != nil {
 		return err
@@ -64,12 +67,81 @@ func receiveMessages(events chan Event, sub *redis.PubSub) error {
 }
 
 // Decode incoming message into a BBB event
-func decodeEvent(msg *redis.Message) Event {
+func decodeEvent(msg *redis.Message) bbb.Event {
 	m := &Message{}
 	if err := json.Unmarshal([]byte(msg.Payload), m); err != nil {
 		log.Println(err)
 		return nil
 	}
 
-	return m
+	// Decode event body
+	switch m.Envelope.Name {
+	case "MeetingCreatedEvtMsg":
+		return safeDecode(decodeMeetingCreatedEvent, m)
+	case "MeetingEndedEvtMsg":
+		return safeDecode(decodeMeetingEndedEvent, m)
+	case "MeetingDestroyedEvtMsg":
+		return safeDecode(decodeMeetingDestroyedEvent, m)
+	case "UserJoinedMeetingEvtMsg":
+		return safeDecode(decodeUserJoinedMeetingEvent, m)
+	case "UserLeftMeetingEvtMsg":
+		return safeDecode(decodeUserLeftMeetingEvent, m)
+	}
+
+	return nil
+}
+
+type decoderFunc func(m *Message) bbb.Event
+
+func safeDecode(decoder decoderFunc, m *Message) bbb.Event {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from:", r)
+		}
+	}()
+	return decoder(m)
+}
+
+func decodeMeetingCreatedEvent(m *Message) bbb.Event {
+	// Decode "props"
+	props := m.Core.Body["props"].(map[string]interface{})
+	mprops := props["meetingProp"].(map[string]interface{})
+	return &bbb.MeetingCreatedEvent{
+		MeetingID:         mprops["extId"].(string),
+		InternalMeetingID: mprops["intId"].(string),
+	}
+}
+
+func decodeMeetingEndedEvent(m *Message) bbb.Event {
+	return &bbb.MeetingEndedEvent{
+		InternalMeetingID: m.Core.Body["meetingId"].(string),
+	}
+}
+
+func decodeMeetingDestroyedEvent(m *Message) bbb.Event {
+	return &bbb.MeetingDestroyedEvent{
+		InternalMeetingID: m.Core.Body["meetingId"].(string),
+	}
+}
+
+func decodeUserJoinedMeetingEvent(m *Message) bbb.Event {
+	user := m.Core.Body
+	meetingID := m.Core.Header["meetingId"].(string)
+	return &bbb.UserJoinedMeetingEvent{
+		InternalMeetingID: meetingID,
+		Attendee: &bbb.Attendee{
+			UserID:     user["extId"].(string),
+			FullName:   user["name"].(string),
+			Role:       user["role"].(string),
+			ClientType: user["clientType"].(string),
+		},
+	}
+}
+
+func decodeUserLeftMeetingEvent(m *Message) bbb.Event {
+	header := m.Core.Header
+	return &bbb.UserLeftMeetingEvent{
+		InternalMeetingID: header["meetingId"].(string),
+		InternalUserID:    header["userId"].(string),
+	}
 }

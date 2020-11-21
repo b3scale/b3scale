@@ -15,6 +15,6 @@ type MessageEnvelope struct {
 
 // The MessageCore is a "core-message"
 type MessageCore struct {
-	Header map[string]string      `json:"header"`
+	Header map[string]interface{} `json:"header"`
 	Body   map[string]interface{} `json:"body"`
 }
