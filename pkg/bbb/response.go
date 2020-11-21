@@ -867,6 +867,7 @@ type Breakout struct {
 type Attendee struct {
 	XMLName         xml.Name `xml:"attendee"`
 	UserID          string   `xml:"userID"`
+	InternalUserID  string   `xml:"internalUserID,omit"`
 	FullName        string   `xml:"fullName"`
 	Role            string   `xml:"role"`
 	IsPresenter     bool     `xml:"isPresenter"`

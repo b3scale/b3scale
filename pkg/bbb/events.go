@@ -5,50 +5,39 @@ package bbb
 // and belong to a meeting.
 type Event interface{}
 
-// MeetingStartedEvent indicates a meeting start
-type MeetingStartedEvent struct {
-	MeetingID string
+// MeetingCreatedEvent indicates the start of a meeting
+type MeetingCreatedEvent struct {
+	MeetingID         string
+	InternalMeetingID string
 }
 
 // MeetingEndedEvent indicates the end of a meeting
 type MeetingEndedEvent struct {
-	MeetingID string
+	InternalMeetingID string
 }
 
 // MeetingDestroyedEvent indicates a meeting destroyed
 type MeetingDestroyedEvent struct {
-	MeetingID string
+	InternalMeetingID string
 }
 
 // UserJoinedMeetingEvent indicates that a user joined the meeting
 type UserJoinedMeetingEvent struct {
-	MeetingID   string
-	UserID      string
-	InternalID  string
-	ExternalID  string
-	Name        string
-	Role        string
-	Guest       bool
-	Authed      bool
-	GuestStatus string
-	Emoji       string
-	Presenter   bool
-	Locked      bool
-	Avatar      string
-	ClientType  string
+	InternalMeetingID string
+	Attendee          *Attendee
 }
 
 // UserLeftMeetingEvent indicates that a user has left the meeting
 type UserLeftMeetingEvent struct {
-	MeetingID  string
-	UserID     string
-	InternalID string
+	InternalMeetingID string
+	InternalUserID    string
+	InternalID        string
 }
 
 // BreakoutRoomStartedEvent indicates the start of a breakout room
 type BreakoutRoomStartedEvent struct {
-	ParentMeetingID string
-	Breakout        *BreakoutInfo
+	ParentInternalMeetingID string
+	Breakout                *BreakoutInfo
 }
 
 // BreakoutInfo contains breakout room information
