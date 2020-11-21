@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // The EventHandler processes BBB Events and updates
@@ -46,7 +47,21 @@ func (h *EventHandler) onMeetingCreated(
 	e *bbb.MeetingCreatedEvent,
 ) error {
 	log.Println("meeting created:", e.MeetingID, e.InternalMeetingID)
-	return nil
+	// The meeting should be already known, becuase it was created
+	// through the scaled. So we try to get the meeting and update
+	// it.
+	mstate, err := store.GetMeetingState(h.pool, store.Q().
+		Where("internal_id = ?", e.InternalMeetingID))
+	if err != nil {
+		return err
+	}
+	if mstate == nil {
+		log.Println(
+			"WARNING: meeting id", e.InternalMeetingID,
+			"is not unknown to the cluster")
+	}
+	mstate.Meeting.Running = true
+	return mstate.Save()
 }
 
 // handle event: MeetingEnded
@@ -54,7 +69,19 @@ func (h *EventHandler) onMeetingEnded(
 	e *bbb.MeetingEndedEvent,
 ) error {
 	log.Println("meeting ended:", e.InternalMeetingID)
-	return nil
+	mstate, err := store.GetMeetingState(h.pool, store.Q().
+		Where("internal_id = ?", e.InternalMeetingID))
+	if err != nil {
+		return err
+	}
+	if mstate == nil {
+		log.Println(
+			"WARNING: meeting id", e.InternalMeetingID,
+			"is not unknown to the cluster")
+	}
+	mstate.Meeting.Running = false
+	mstate.Meeting.Attendees = []*bbb.Attendee{}
+	return mstate.Save()
 }
 
 // handle event: MeetingDestroyed
@@ -62,7 +89,9 @@ func (h *EventHandler) onMeetingDestroyed(
 	e *bbb.MeetingDestroyedEvent,
 ) error {
 	log.Println("meeting destroyed:", e.InternalMeetingID)
-	return nil
+	// Delete meeting state
+	return store.DeleteMeetingStateByInternalID(h.pool, e.InternalMeetingID)
+
 }
 
 // handle event: UserJoinedMeeting
