@@ -290,5 +290,26 @@ func (s *BackendState) CreateMeetingState(
 	return mstate, nil
 }
 
-// UpdateMeetingState updates the meeting in t
-// meeting state and associates backend and frontend
+// DecMeetingsCountForBackendID decrement meeting account for backend
+func DecMeetingsCountForBackendID(pool *pgxpool.Pool, id string) error {
+	ctx := context.Background()
+	qry := `
+		UPDATE backends
+		   SET meetings_count = MAX(meetings_count - 1, 0)
+		 WHERE id = $1
+	`
+	_, err := pool.Exec(ctx, qry, id)
+	return err
+}
+
+// DecAttendeesCountForBackendID decrement meeting account for backend
+func DecAttendeesCountForBackendID(pool *pgxpool.Pool, id string) error {
+	ctx := context.Background()
+	qry := `
+		UPDATE backends
+		   SET attendees_count = MAX(attendees_count - 1, 0)
+		 WHERE id = $1
+	`
+	_, err := pool.Exec(ctx, qry, id)
+	return err
+}

@@ -122,3 +122,37 @@ func TestMeetingStateIsStale(t *testing.T) {
 		t.Error("state should be stale")
 	}
 }
+
+func TestDeleteMeetingStateByInternalID(t *testing.T) {
+	pool := connectTest(t)
+	state, err := meetingStateFactory(pool, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+	}
+
+	// Now delete the meeting state
+	if err := DeleteMeetingStateByInternalID(pool, state.InternalID); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDeleteMeetingStateByID(t *testing.T) {
+	pool := connectTest(t)
+	state, err := meetingStateFactory(pool, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+	}
+
+	// Now delete the meeting state
+	if err := DeleteMeetingStateByID(pool, state.ID); err != nil {
+		t.Error(err)
+	}
+}

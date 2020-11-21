@@ -152,24 +152,89 @@ func (s *MeetingState) GetFrontendState() (*FrontendState, error) {
 
 // DeleteMeetingStateByID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
+// TODO: merge with DeleteMeetingStateByInternalID
 func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 	ctx := context.Background()
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Get affected backend
+	var backendID string
 	qry := `
+		SELECT backends.id 
+		  FROM backends 
+		  JOIN meetings ON backends.id = meetings.backend_id
+		 WHERE meetings.id = $1
+	`
+	if err := tx.QueryRow(ctx, qry, id).Scan(&backendID); err != nil {
+		return err
+	}
+	ctx = context.Background()
+	qry = `
 		DELETE FROM meetings WHERE id = $1
 	`
-	_, err := pool.Exec(ctx, qry, id)
-	return err
+	if _, err := tx.Exec(ctx, qry, id); err != nil {
+		return err
+	}
+	// Update meeting counter
+	qry = `
+		UPDATE backends
+		   SET meetings_count = (
+		   	   SELECT COUNT(1) FROM meetings
+			    WHERE meetings.backend_id = backends.id)
+		 WHERE backends.id = $1
+	`
+	if _, err := tx.Exec(ctx, qry, id); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // DeleteMeetingStateByInternalID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
 func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
 	ctx := context.Background()
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Get affected backend
+	var backendID string
 	qry := `
+		SELECT backends.id 
+		  FROM backends 
+		  JOIN meetings ON backends.id = meetings.backend_id
+		 WHERE meetings.internal_id = $1
+	`
+	if err := tx.QueryRow(ctx, qry, id).Scan(&backendID); err != nil {
+		return err
+	}
+	ctx = context.Background()
+	qry = `
 		DELETE FROM meetings WHERE internal_id = $1
 	`
-	_, err := pool.Exec(ctx, qry, id)
-	return err
+	if _, err := tx.Exec(ctx, qry, id); err != nil {
+		return err
+	}
+	// Update meeting counter
+	qry = `
+		UPDATE backends
+		   SET meetings_count = (
+		   	   SELECT COUNT(1) FROM meetings
+			    WHERE meetings.backend_id = backends.id)
+		 WHERE backends.id = $1
+	`
+	if _, err := tx.Exec(ctx, qry, id); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // Refresh the backend state from the database
