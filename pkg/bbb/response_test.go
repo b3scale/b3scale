@@ -43,7 +43,7 @@ func TestMarshalCreateResponse(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if len(data1) != 1039 {
+	if len(data1) != 1044 {
 		t.Error("Unexpected data:", string(data1), len(data1))
 	}
 }
@@ -262,7 +262,7 @@ func TestMarshalGetMeetingInfoResponse(t *testing.T) {
 		t.Error(err)
 	}
 
-	if len(data1) != 1442 {
+	if len(data1) != 1508 {
 		t.Error("Unexpected data:", string(data1), len(data1))
 	}
 }
