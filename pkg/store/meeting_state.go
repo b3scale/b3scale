@@ -150,14 +150,25 @@ func (s *MeetingState) GetFrontendState() (*FrontendState, error) {
 	return s.frontend, nil
 }
 
-// DeleteMeetingState will remove a meeting state.
+// DeleteMeetingStateByID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
-func DeleteMeetingState(pool *pgxpool.Pool, s *MeetingState) error {
+func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 	ctx := context.Background()
 	qry := `
 		DELETE FROM meetings WHERE id = $1
 	`
-	_, err := s.pool.Exec(ctx, qry, s.ID)
+	_, err := pool.Exec(ctx, qry, id)
+	return err
+}
+
+// DeleteMeetingStateByInternalID will remove a meeting state.
+// It will succeed, even if no such meeting was present.
+func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
+	ctx := context.Background()
+	qry := `
+		DELETE FROM meetings WHERE internal_id = $1
+	`
+	_, err := pool.Exec(ctx, qry, id)
 	return err
 }
 
