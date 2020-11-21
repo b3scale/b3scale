@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -25,53 +24,6 @@ var (
 	// understood by the controller.
 	ErrUnknownCommand = errors.New("command unknown")
 )
-
-// AddFrontendRequest holds all params for creating a frontend
-type AddFrontendRequest struct {
-	Frontend *bbb.Frontend `json:"frontend"`
-	Active   bool
-}
-
-// AddFrontend creates a new frontend in the state
-func AddFrontend(req *AddFrontendRequest) *store.Command {
-	return &store.Command{
-		Action:   CmdAddFrontend,
-		Params:   req,
-		Deadline: store.NextDeadline(10 * time.Minute),
-	}
-
-}
-
-// RemoveFrontendRequest holds an identifier
-type RemoveFrontendRequest struct {
-	ID string `json:"id"`
-}
-
-// RemoveFrontend creates a new command
-func RemoveFrontend(req *RemoveFrontendRequest) *store.Command {
-	return &store.Command{
-		Action:   CmdRemoveFrontend,
-		Params:   req,
-		Deadline: store.NextDeadline(10 * time.Minute),
-	}
-}
-
-// AddBackendRequest is a collection of params
-// for creating a new backend state.
-type AddBackendRequest struct {
-	Backend *bbb.Backend `json:"backend"`
-	Tags    []string     `json:"tags"`
-}
-
-// AddBackend inserts a new backend into
-// the cluster state.
-func AddBackend(req *AddBackendRequest) *store.Command {
-	return &store.Command{
-		Action:   CmdAddBackend,
-		Params:   req,
-		Deadline: store.NextDeadline(2 * time.Minute),
-	}
-}
 
 // RemoveBackendRequest declares the removal
 // of a backend node from the cluster state.

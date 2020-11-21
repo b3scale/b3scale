@@ -45,21 +45,44 @@ func NewCli(
 				},
 			},
 			{
-				Name:    "add",
+				Name:    "set",
 				Aliases: []string{"a"},
-				Usage:   "adds a node or frontend to the cluster",
+				Usage:   "sets a backend or frontend config in the cluster",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "dry",
+						Usage: "perform a dry run",
+					},
+				},
 				Subcommands: []*cli.Command{
 					{
 						Name:  "backend",
-						Usage: "add a new backend",
+						Usage: "set backend params",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:    "tags",
 								Aliases: []string{"t"},
 								Usage:   "a csv list of tags for the backend",
 							},
+							&cli.StringFlag{
+								Name:    "secret",
+								Aliases: []string{"s"},
+								Usage:   "the bbb secret",
+							},
 						},
-						Action: c.addBackend,
+						Action: c.setBackend,
+					},
+					{
+						Name:  "frontend",
+						Usage: "set frontend params",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "secret",
+								Required: true,
+								Usage:    "the frontend specific bbb secret",
+							},
+						},
+						Action: c.setFrontend,
 					},
 				},
 			},
@@ -68,37 +91,155 @@ func NewCli(
 	return c
 }
 
-// addBackend adds a backend to the cluster
-func (c *Cli) addBackend(ctx *cli.Context) error {
-	// Args should be host and secret
-	if ctx.NArg() < 2 {
-		return fmt.Errorf("require: <host> <secret>")
+// setFrontend manages a forntend
+func (c *Cli) setFrontend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+
+	// Args should be frontend key
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("require: <frontend key>")
+	}
+
+	key := ctx.Args().Get(0)
+	secret := ctx.String("secret")
+
+	// Get or create frontend
+	state, err := store.GetFrontendState(c.pool, store.Q().
+		Where("key = ?", key))
+	if err != nil {
+		return err
+	}
+
+	if state == nil {
+		// Create frontend
+		if secret == "" {
+			return fmt.Errorf("secret may not be empty")
+		}
+		state = store.InitFrontendState(c.pool, &store.FrontendState{
+			Frontend: &bbb.Frontend{
+				Key:    key,
+				Secret: secret,
+			},
+		})
+		if !dry {
+			if err := state.Save(); err != nil {
+				return err
+			}
+			fmt.Println("created frontend:", state.ID, state.Frontend.Key)
+		} else {
+			fmt.Println("skipped creating frontend")
+		}
+	} else {
+		// Update Frontend
+		changes := false
+		if ctx.IsSet("secret") {
+			if secret == "" {
+				return fmt.Errorf("secret may not be empty")
+			}
+			changes = true
+			state.Frontend.Secret = secret
+		}
+
+		if !changes {
+			fmt.Println("no changes")
+		} else {
+			if !dry {
+				if err := state.Save(); err != nil {
+					return err
+				}
+				fmt.Println("updated frontend")
+			} else {
+				fmt.Println("skipped saving changes in frontend")
+			}
+		}
+	}
+
+	return nil
+}
+
+// setBackend manages the backends in the cluster
+func (c *Cli) setBackend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+
+	// Args should be host
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("require: <host>")
 	}
 
 	host := ctx.Args().Get(0)
-	secret := ctx.Args().Get(1)
-
 	if !strings.HasPrefix(host, "http") {
 		return fmt.Errorf("host should start with http(s)://")
 	}
 	if !strings.HasSuffix(host, "/") {
 		host += "/"
 	}
-
-	fmt.Println("adding backend:", host)
-
+	// Check if backend exists
+	state, err := store.GetBackendState(c.pool, store.Q().
+		Where("host = ?", host))
+	if err != nil {
+		return err
+	}
 	tags := strings.Split(ctx.String("tags"), ",")
+	if state == nil {
+		if !ctx.IsSet("secret") {
+			return fmt.Errorf("need secret to create host")
+		}
+		// Create Backend
+		state = store.InitBackendState(c.pool, &store.BackendState{
+			Backend: &bbb.Backend{
+				Host:   host,
+				Secret: ctx.String("secret"),
+			},
+			Tags: tags,
+		})
+		if !dry {
+			if err := state.Save(); err != nil {
+				return err
+			}
+			fmt.Println("created backend:", state.ID, state.Backend.Host)
+		} else {
+			fmt.Println("skipped creating backend")
+		}
+	} else {
+		// The state is known to use. Just make updates
+		changes := false
+		if ctx.IsSet("secret") {
+			secret := ctx.String("secret")
+			if secret == "" {
+				return fmt.Errorf("secret may not be empty")
+			}
+			state.Backend.Secret = secret
+			changes = true
+		}
+		if ctx.IsSet("tags") {
+			state.Tags = tags
+			changes = true
+		}
+		if changes {
+			if !dry {
+				if err := state.Save(); err != nil {
+					return err
+				}
+				fmt.Println("updated backend")
+			} else {
+				fmt.Println("skipping backend update")
+			}
+		} else {
+			fmt.Println("no changes")
+		}
+	}
 
 	// Create command and enqueue
-	cmd := cluster.AddBackend(&cluster.AddBackendRequest{
-		Backend: &bbb.Backend{
-			Host:   host,
-			Secret: secret,
-		},
-		Tags: tags,
-	})
+	if !dry {
+		cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
+			ID: state.ID,
+		})
+		if err := c.queue.Queue(cmd); err != nil {
+			return err
+		}
+	}
 
-	return c.queue.Queue(cmd)
+	return nil
 }
 
 // showBackends displays a list of our backends
