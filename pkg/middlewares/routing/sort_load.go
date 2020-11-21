@@ -17,15 +17,16 @@ func (b BackendsByLoad) Len() int { return len(b) }
 func (b BackendsByLoad) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
 // Less compares two backends
-func (b BackendsByLoad) Less(i, j int) {
+func (b BackendsByLoad) Less(i, j int) bool {
 	return b[i].Stress() < b[j].Stress()
 }
 
 // SortLoad sorts Backends by load
-func SortLoad(next cluster.RouterHander) cluster.RouterHander {
+func SortLoad(next cluster.RouterHandler) cluster.RouterHandler {
 	return func(
 		backends []*cluster.Backend, req *bbb.Request,
 	) ([]*cluster.Backend, error) {
+		sort.Sort(BackendsByLoad(backends))
 		return backends, nil
 	}
 }
