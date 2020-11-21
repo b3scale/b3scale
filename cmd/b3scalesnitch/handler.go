@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -61,7 +62,26 @@ func (h *EventHandler) onMeetingCreated(
 			"is not unknown to the cluster")
 	}
 	mstate.Meeting.Running = true
-	return mstate.Save()
+	if err := mstate.Save(); err != nil {
+		return err
+	}
+
+	// Do a meeting recount
+	ctx := context.Background()
+	qry := `
+		UPDATE backends
+		   SET meetings_count = (
+		   	     SELECT COUNT(1) FROM meetings
+			      WHERE meetings.backend_id = backends.id)
+		  JOIN meetings
+		    ON meetings.backend_id = backends.id
+		 WHERE meetings.internal_id = $1
+	`
+	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // handle event: MeetingEnded
@@ -79,8 +99,12 @@ func (h *EventHandler) onMeetingEnded(
 			"WARNING: meeting id", e.InternalMeetingID,
 			"is not unknown to the cluster")
 	}
+	// Reset meeting state
 	mstate.Meeting.Running = false
 	mstate.Meeting.Attendees = []*bbb.Attendee{}
+	if err := mstate.Save(); err != nil {
+		return err
+	}
 	return mstate.Save()
 }
 
@@ -91,7 +115,6 @@ func (h *EventHandler) onMeetingDestroyed(
 	log.Println("meeting destroyed:", e.InternalMeetingID)
 	// Delete meeting state
 	return store.DeleteMeetingStateByInternalID(h.pool, e.InternalMeetingID)
-
 }
 
 // handle event: UserJoinedMeeting
