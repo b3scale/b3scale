@@ -42,6 +42,11 @@ func (b *Backend) ID() string {
 	return b.state.ID
 }
 
+// Stress calculates the current node load
+func (b *Backend) Stress() uint {
+	return b.state.MeetingsCount + b.state.AttendeesCount
+}
+
 // Backend State Sync: loadNodeState will make
 // a small request to get a meeting that does not
 // exist to check if the credentials are valid.
@@ -172,11 +177,6 @@ func (b *Backend) Create(req *bbb.Request) (
 		if err := meetingState.Save(); err != nil {
 			return nil, err
 		}
-	}
-
-	// Increment meeting counter
-	if err := b.state.IncMeetingsCount(); err != nil {
-		log.Println(b.state.Backend.Host, err)
 	}
 
 	return createRes, nil

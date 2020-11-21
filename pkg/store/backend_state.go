@@ -29,8 +29,8 @@ type BackendState struct {
 	LastError *string
 
 	Latency        time.Duration
-	MeetingsCount  int
-	AttendeesCount int
+	MeetingsCount  uint
+	AttendeesCount uint
 
 	Backend *bbb.Backend
 
