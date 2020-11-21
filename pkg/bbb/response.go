@@ -889,7 +889,7 @@ type Meeting struct {
 	DialNumber            string    `xml:"dialNumber"`
 	AttendeePW            string    `xml:"attendeePW"`
 	ModeratorPW           string    `xml:"moderatorPW"`
-	Running               string    `xml:"running"`
+	Running               bool      `xml:"running"`
 	Duration              int       `xml:"duration"`
 	Recording             string    `xml:"recording"`
 	HasBeenForciblyEnded  string    `xml:"hasBeenForciblyEnded"`
