@@ -95,8 +95,9 @@ func TestCreateMeeting(t *testing.T) {
 
 	// Create meeting state
 	mstate, err := bstate.CreateMeetingState(fstate.Frontend, &bbb.Meeting{
-		MeetingID:   uuid.New().String(),
-		MeetingName: "foo",
+		MeetingID:         uuid.New().String(),
+		InternalMeetingID: uuid.New().String(),
+		MeetingName:       "foo",
 	})
 	if err != nil {
 		t.Error(err)

@@ -14,7 +14,8 @@ func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState,
 	// We start with a blank meeting
 	if init == nil {
 		init = &MeetingState{
-			ID: uuid.New().String(),
+			ID:         uuid.New().String(),
+			InternalID: uuid.New().String(),
 		}
 	}
 	// A meeting should not exist without a backend and
@@ -36,8 +37,9 @@ func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState,
 
 	if init.Meeting == nil {
 		init.Meeting = &bbb.Meeting{
-			MeetingID:   uuid.New().String(),
-			MeetingName: "MyMeetingName-" + uuid.New().String(),
+			MeetingID:         init.ID,
+			InternalMeetingID: init.InternalID,
+			MeetingName:       "MyMeetingName-" + uuid.New().String(),
 		}
 	}
 

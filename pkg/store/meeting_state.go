@@ -217,7 +217,7 @@ func (s *MeetingState) insert() (string, error) {
 			frontend_id,
 			backend_id
 		) VALUES (
-			$1, $2, $3, $4
+			$1, $2, $3, $4, $5
 		) RETURNING id`
 	err := s.pool.QueryRow(ctx, qry,
 		s.Meeting.MeetingID,
