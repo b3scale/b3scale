@@ -14,7 +14,8 @@ import (
 // The MeetingState holds a meeting and it's relations
 // to a backend and frontend.
 type MeetingState struct {
-	ID string
+	ID         string
+	InternalID string
 
 	Meeting *bbb.Meeting
 
@@ -49,6 +50,7 @@ func GetMeetingStates(
 	ctx := context.Background()
 	qry, params, _ := q.Columns(
 		"meetings.id",
+		"meetings.internal_id",
 		"meetings.frontend_id",
 		"meetings.backend_id",
 		"meetings.state",
@@ -92,6 +94,7 @@ func meetingStateFromRow(
 	state := InitMeetingState(pool, &MeetingState{})
 	err := row.Scan(
 		&state.ID,
+		&state.InternalID,
 		&state.FrontendID,
 		&state.BackendID,
 		&state.Meeting,
@@ -192,11 +195,12 @@ func (s *MeetingState) Save() error {
 
 // Add a new meeting to the database
 func (s *MeetingState) insert() (string, error) {
-	id := s.Meeting.MeetingID
 	ctx := context.Background()
 	qry := `
 		INSERT INTO meetings (
 			id,
+			internal_id,
+
 			state,
 
 			frontend_id,
@@ -205,7 +209,8 @@ func (s *MeetingState) insert() (string, error) {
 			$1, $2, $3, $4
 		) RETURNING id`
 	err := s.pool.QueryRow(ctx, qry,
-		id,
+		s.Meeting.MeetingID,
+		s.Meeting.InternalMeetingID,
 		s.Meeting,
 		s.FrontendID,
 		s.BackendID).Scan(&s.ID)

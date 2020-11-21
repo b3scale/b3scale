@@ -27,7 +27,11 @@ func main() {
 	dbConnStr := getopt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
-	_ = dbConnStr
+	// Initialize postgres connection
+	dbConn, err := store.Connect(dbConnStr)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Make redis client
 	redisOpts, err := redis.ParseURL(redisURL)
@@ -37,13 +41,13 @@ func main() {
 
 	rdb := redis.NewClient(redisOpts)
 	monitor := events.NewMonitor(rdb)
-
+	handler := NewEventHandler(dbConn)
 	channel := monitor.Subscribe()
 	for ev := range channel {
-		msg := ev.(*events.Message)
-		log.Printf("[%s] %v",
-			msg.Envelope,
-			msg.Core)
+		err := handler.Dispatch(ev)
+		if err != nil {
+			log.Println("event handler error:", err)
+		}
 	}
 
 }

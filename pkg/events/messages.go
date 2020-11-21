@@ -1,10 +1,5 @@
 package events
 
-import ()
-
-// An Event is an BBB event of a type and payload
-type Event interface{}
-
 // A Message represents an akka message on the channel
 type Message struct {
 	Envelope *MessageEnvelope `json:"envelope"`
@@ -18,8 +13,8 @@ type MessageEnvelope struct {
 	Timestamp int               `json:"timestamp"`
 }
 
-// The MessageCore is the 'core' of the message
+// The MessageCore is a "core-message"
 type MessageCore struct {
-	Header map[string]string
-	Body   map[string]interface{}
+	Header map[string]string      `json:"header"`
+	Body   map[string]interface{} `json:"body"`
 }
