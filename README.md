@@ -11,7 +11,7 @@ The following environment variables can be configured:
  * `B3SCALE_LISTEN_HTTP2` Accept http2 connections here.
     Default: `127.0.0.1:42352`
 
- * `B3SCALE_DATABASE_URL` is the connect string passed to the
+ * `B3SCALE_DB_URL` is the connect string passed to the
     database connection.  Default is `postgres://postgres:postgres@localhost:5432/b3scale`
 
     You can use either the DSN format or an URL format:
