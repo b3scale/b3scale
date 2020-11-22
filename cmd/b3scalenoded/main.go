@@ -22,7 +22,7 @@ func getopt(key, fallback string) string {
 }
 
 func main() {
-	fmt.Println("b3scale event monitor		v.0.1.0")
+	fmt.Println("b3scale node agent		v.0.1.0")
 	redisURL := getopt(
 		"BBB_REDIS_URL", "redis://localhost:6379/1")
 	dbConnStr := getopt(

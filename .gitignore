@@ -3,7 +3,7 @@
 
 cmd/b3scaled/b3scaled
 cmd/b3scalectl/b3scalectl
-cmd/b3scalesnitch/b3scalesnitch
+cmd/b3scalenoded/b3scalenoded
 
 etc/b3scale/backends.conf
 etc/b3scale/frontends.conf
