@@ -57,8 +57,10 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 			if err != nil {
 				log.Println(err)
 			} else {
-				if err := meeting.SetBackendID(backend.ID()); err != nil {
-					log.Println(err)
+				if meeting != nil {
+					if err := meeting.SetBackendID(backend.ID()); err != nil {
+						log.Println(err)
+					}
 				}
 			}
 		}
