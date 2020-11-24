@@ -6,6 +6,8 @@
 
 all: b3scaled b3scalectl b3scalenoded
 
+static: b3scaled_static b3scalectl_static b3scalenoded_static
+
 b3scaled:
 	cd cmd/b3scaled && go build
 
@@ -14,6 +16,16 @@ b3scalectl:
 
 b3scalenoded:
 	cd cmd/b3scalenoded && go build
+
+b3scaled_static:
+	cd cmd/b3scaled && CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' .
+
+b3scalectl_static:
+	cd cmd/b3scalectl && CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' .
+
+b3scalenoded_static:
+	cd cmd/b3scalenoded && CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' .
+
 
 .PHONY: clean test
 
