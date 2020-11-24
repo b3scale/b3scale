@@ -233,6 +233,16 @@ func (s *BackendState) update() error {
 	return err
 }
 
+// Delete will remove the backend from the store
+func (s *BackendState) Delete() error {
+	ctx := context.Background()
+	qry := `
+		DELETE FROM backends WHERE id = $1
+	`
+	_, err := s.pool.Exec(ctx, qry, s.ID)
+	return err
+}
+
 // ClearMeetings will remove all meetings in the current state
 func (s *BackendState) ClearMeetings() error {
 	ctx := context.Background()

@@ -147,3 +147,13 @@ func (s *FrontendState) update() error {
 	}
 	return nil
 }
+
+// Delete will remove a frontend state from the store
+func (s *FrontendState) Delete() error {
+	ctx := context.Background()
+	qry := `
+		DELETE FROM frontends WHERE id = $1
+	`
+	_, err := s.pool.Exec(ctx, qry, s.ID)
+	return err
+}

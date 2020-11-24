@@ -30,4 +30,11 @@ func main() {
 	if err := cli.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+
+	// A note about the return code:
+	// Operations will usually return a success (0)
+	// or an error 1. However, we distinguish between
+	// a successful operation (0) and an operation, which
+	// was not applied because there was no change (64)
+	os.Exit(cli.returnCode)
 }

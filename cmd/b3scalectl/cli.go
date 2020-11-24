@@ -12,11 +12,16 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
+// RetNoChange indicates the return code, that no
+// change was applied.
+const RetNoChange = 64
+
 // Cli is the main command line interface application
 type Cli struct {
-	app   *cli.App
-	queue *store.CommandQueue
-	pool  *pgxpool.Pool
+	app        *cli.App
+	queue      *store.CommandQueue
+	pool       *pgxpool.Pool
+	returnCode int
 }
 
 // NewCli initializes the CLI application
@@ -41,6 +46,11 @@ func NewCli(
 						Name:   "backends",
 						Usage:  "show the cluster backends",
 						Action: c.showBackends,
+					},
+					{
+						Name:   "frontends",
+						Usage:  "show all frontends",
+						Action: c.showFrontends,
 					},
 				},
 			},
@@ -83,6 +93,28 @@ func NewCli(
 							},
 						},
 						Action: c.setFrontend,
+					},
+				},
+			},
+			{
+				Name:    "delete",
+				Aliases: []string{"d", "del"},
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "dry",
+						Usage: "perform a dry run",
+					},
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:   "backend",
+						Usage:  "delete backend",
+						Action: c.deleteBackend,
+					},
+					{
+						Name:   "frontend",
+						Usage:  "delete frontend",
+						Action: c.deleteFrontend,
 					},
 				},
 			},
@@ -142,6 +174,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 
 		if !changes {
 			fmt.Println("no changes")
+			c.returnCode = RetNoChange
 		} else {
 			if !dry {
 				if err := state.Save(); err != nil {
@@ -154,6 +187,45 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 		}
 	}
 
+	return nil
+}
+
+// deleteFrontend removes a frontend from the cluster
+func (c *Cli) deleteFrontend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+
+	// Args should be host
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("require: <key>")
+	}
+	key := ctx.Args().Get(0)
+	state, err := store.GetFrontendState(c.pool, store.Q().
+		Where("key = ?", key))
+	if err != nil {
+		return err
+	}
+	if state == nil {
+		return fmt.Errorf("no such frontend")
+	}
+
+	if dry {
+		fmt.Println("skipping delete (dry)")
+		return nil
+	}
+
+	fmt.Println("delete frontend:", state.ID)
+	return state.Delete()
+}
+
+// show a list of all frontends
+func (c *Cli) showFrontends(ctx *cli.Context) error {
+	states, err := store.GetFrontendStates(c.pool, store.Q())
+	if err != nil {
+		return err
+	}
+	for _, f := range states {
+		fmt.Printf("%s\t%s\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret)
+	}
 	return nil
 }
 
@@ -226,6 +298,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			}
 		} else {
 			fmt.Println("no changes")
+			c.returnCode = RetNoChange
 		}
 	}
 
@@ -268,13 +341,43 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 			b.MeetingsCount,
 			ratio)
 		fmt.Printf("  Latency:\t%v\n", b.Latency)
-		if b.NodeState == "error" {
-			fmt.Println("  LastError:", b.LastError)
+		if b.NodeState == "error" && b.LastError != nil {
+			fmt.Println("  LastError:", *b.LastError)
 		}
 		fmt.Println("")
 	}
 
 	return nil
+}
+
+// delete backend removes a backend from the store
+func (c *Cli) deleteBackend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+	// Args should be host
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("require: <host>")
+	}
+	host := ctx.Args().Get(0)
+	state, err := store.GetBackendState(c.pool, store.Q().
+		Where("host = ?", host))
+	if err != nil {
+		return err
+	}
+	if state == nil {
+		return fmt.Errorf("no such frontend")
+	}
+
+	if state.NodeState == "ready" {
+		return fmt.Errorf("can not remove active backend")
+	}
+
+	if dry {
+		fmt.Println("skipping delete backend (dry run)")
+		return nil
+	}
+
+	fmt.Println("deleting backend")
+	return state.Delete()
 }
 
 // Run starts the CLI
