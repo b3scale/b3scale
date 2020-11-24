@@ -192,7 +192,8 @@ CREATE FUNCTION after_commands_insert() RETURNS TRIGGER AS $$
 BEGIN
   -- Housekeeping: Remove expired commands.
   DELETE FROM commands
-   WHERE (deadline + interval '1 minute') < now();
+   WHERE (deadline + interval '1 minute') 
+         < now() AT TIME ZONE 'utc';
 
   -- Finally inform instances, that a new command
   -- was queued.

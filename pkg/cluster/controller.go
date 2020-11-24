@@ -81,10 +81,13 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
 	case CmdRemoveBackend:
+		log.Println("EXEC CMD: RemoveBackend")
 		return c.handleRemoveBackend(cmd)
 	case CmdUpdateNodeState:
+		log.Println("EXEC CMD: UpdateNodeState")
 		return c.handleUpdateNodeState(cmd)
 	case CmdUpdateMeetingState:
+		log.Println("EXEC CMD: UpdateMeetingState")
 		return c.handleUpdateMeetingState(cmd)
 	}
 
@@ -145,7 +148,6 @@ func (c *Controller) handleUpdateMeetingState(
 		log.Println(err)
 		return nil, err
 	}
-
 	if err := backend.refreshMeetingState(mstate); err != nil {
 		return false, err
 	}
@@ -156,6 +158,7 @@ func (c *Controller) handleUpdateMeetingState(
 // requestSyncStale triggers a background sync of the
 // entire node state
 func (c *Controller) requestSyncStale() error {
+	log.Println("refreshing stale nodes")
 	stale, err := c.GetBackends(store.Q().
 		Where(`now() - COALESCE(
 				synced_at,
@@ -168,6 +171,7 @@ func (c *Controller) requestSyncStale() error {
 	// For each stale backend create a new update state
 	// request, which will try to reach the backend.
 	for _, b := range stale {
+		log.Println("DISPATCH CMD: UpdateNodeState", b.state.ID)
 		if err := c.cmds.Queue(
 			UpdateNodeState(&UpdateNodeStateRequest{
 				ID: b.state.ID,
