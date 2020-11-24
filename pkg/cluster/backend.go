@@ -81,8 +81,11 @@ func (b *Backend) loadNodeState() error {
 	// Update state
 	b.state.LastError = nil
 	b.state.Latency = latency
-	b.state.NodeState = "ready"
-	return err
+	if b.state.AdminState == "ready" {
+		b.state.NodeState = "ready"
+	}
+
+	return b.state.Save()
 }
 
 // Meeting State Sync: loadMeetingState will make
