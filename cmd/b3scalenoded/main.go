@@ -28,6 +28,8 @@ func main() {
 	dbConnStr := getopt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
+	log.Println("using database:", dbConnStr)
+
 	// Initialize postgres connection
 	dbConn, err := store.Connect(dbConnStr)
 	if err != nil {
