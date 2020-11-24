@@ -41,4 +41,5 @@ test:
 clean:
 	rm -f cmd/b3scaled/b3scaled
 	rm -f cmd/b3scalectl/b3scalectl
+	rm -f cmd/b3scalectl/b3scalenoded
 
