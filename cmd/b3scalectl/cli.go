@@ -56,7 +56,7 @@ func NewCli(
 			},
 			{
 				Name:    "set",
-				Aliases: []string{"update", "u"},
+				Aliases: []string{"update", "u", "add", "a"},
 				Usage:   "sets a backend or frontend config in the cluster",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
