@@ -40,10 +40,12 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 		ctx context.Context, req *bbb.Request,
 	) (bbb.Response, error) {
 		// Get backend by id
-		backend := BackendFromContext(ctx)
-		if backend == nil {
+		backends := BackendsFromContext(ctx)
+		// backend := BackendFromContext(ctx)
+		if len(backends) == 0 {
 			return nil, fmt.Errorf("no backend in context")
 		}
+		backend := backends[0]
 
 		// Check if the backend is ready to accept requests:
 		if backend.state.NodeState != BackendStateReady {

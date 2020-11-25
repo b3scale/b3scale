@@ -6,7 +6,6 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
-	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -54,7 +53,7 @@ func main() {
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
 	gateway := cluster.NewGateway(ctrl)
-	gateway.Use(requests.NewDispatchMerge())
+	// gateway.Use(requests.NewDispatchMerge()) // should not be required anymore
 	gateway.Use(router.Middleware())
 
 	// Start cluster controller

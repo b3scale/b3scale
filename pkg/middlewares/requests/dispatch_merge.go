@@ -23,7 +23,6 @@ type dispatchResult struct {
 func NewDispatchMerge() cluster.RequestMiddleware {
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
 		return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {
-
 			return dispatchMerge(ctx, next, req)
 		}
 	}

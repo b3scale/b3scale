@@ -11,7 +11,16 @@ import (
 // checks the schema version of the database.
 func Connect(url string) (*pgxpool.Pool, error) {
 	// Initialize postgres connection
-	pool, err := pgxpool.Connect(context.Background(), url)
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, err
+	}
+
+	// We need some more connections
+	cfg.MaxConns = 256
+	cfg.MinConns = 8
+
+	pool, err := pgxpool.ConnectConfig(context.Background(), cfg)
 	if err != nil {
 		return nil, err
 	}
