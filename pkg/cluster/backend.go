@@ -204,9 +204,11 @@ func (b *Backend) Join(
 		XMLResponse: new(bbb.XMLResponse),
 	}
 
-	// TODO: Create HTML fallback for redirect
+	url := req.URL()
+	body := TmplRedirect(url)
+
 	res.SetStatus(http.StatusFound)
-	res.SetRaw([]byte("<html><body>redirect fallback.</html>"))
+	res.SetRaw(body)
 	res.SetHeader(http.Header{
 		"content-type": []string{"text/html"},
 		"location":     []string{req.URL()},

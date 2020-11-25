@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"bytes"
 	"html/template"
 )
 
@@ -26,5 +27,12 @@ var tmplRedirect *template.Template
 
 // TmplRedirect applies the redirect template
 func TmplRedirect(url string) []byte {
+	if tmplRedirect == nil {
+		tmplRedirect = compileTmplRedirect()
+	}
 
+	// Render template
+	res := new(bytes.Buffer)
+	tmplRedirect.Execute(res, url)
+	return res.Bytes()
 }
