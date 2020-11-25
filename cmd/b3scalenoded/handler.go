@@ -154,10 +154,11 @@ func (h *EventHandler) onUserLeftMeeting(
 	ctx := context.Background()
 	qry := `
 		UPDATE backends
-		   SET attendees_count = MAX(0, attendees_count - 1)
+		   SET attendees_count = attendees_count - 1
 		  JOIN meetings
 		    ON meetings.backend_id = backends.id
 		 WHERE meetings.internal_id = $1
+		   AND attendees_count >= 1
 	`
 	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
 		return err
