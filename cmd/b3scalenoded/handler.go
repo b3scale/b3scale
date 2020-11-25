@@ -114,7 +114,26 @@ func (h *EventHandler) onMeetingDestroyed(
 ) error {
 	log.Println("meeting destroyed:", e.InternalMeetingID)
 	// Delete meeting state
-	return store.DeleteMeetingStateByInternalID(h.pool, e.InternalMeetingID)
+	err := store.DeleteMeetingStateByInternalID(h.pool, e.InternalMeetingID)
+	if err != nil {
+		return nil
+	}
+
+	// Do a meeting recount
+	ctx := context.Background()
+	qry := `
+		UPDATE backends
+		   SET meetings_count = (
+		   	     SELECT COUNT(1) FROM meetings
+			      WHERE meetings.backend_id = backends.id)
+		  JOIN meetings
+		    ON meetings.backend_id = backends.id
+		 WHERE meetings.internal_id = $1
+	`
+	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
+		return err
+	}
+	return nil
 }
 
 // handle event: UserJoinedMeeting
