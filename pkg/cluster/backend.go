@@ -290,6 +290,7 @@ func (b *Backend) GetMeetings(
 	// with the requesting frontend.
 	mstates, err := store.GetMeetingStates(b.pool, store.Q().
 		Join("frontends ON frontends.id = meetings.frontend_id").
+		Where("meetings.backend_id IS NOT NULL").
 		Where("frontend.key = ?", req.Frontend))
 	if err != nil {
 		return nil, err

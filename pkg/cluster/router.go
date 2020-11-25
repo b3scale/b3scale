@@ -51,7 +51,8 @@ func selectDiscardHandler(
 	case bbb.ResourceJoin:
 		return selectFirst(backends), nil
 	case bbb.ResourceCreate:
-		return selectFirst(backends), nil
+		return selectFirst(
+			discardShutdown(backends)), nil
 	case bbb.ResourceIsMeetingRunning:
 		return selectFirst(backends), nil
 	case bbb.ResourceEnd:
@@ -89,6 +90,18 @@ func selectFirst(backends []*Backend) []*Backend {
 		return backends
 	}
 	return backends[:1]
+}
+
+// Keep only backends with admin state ready
+func discardShutdown(backends []*Backend) []*Backend {
+	filtered := make([]*Backend, 0, len(backends))
+	for _, b := range backends {
+		if b.state.AdminState != "ready" {
+			continue
+		}
+		filtered = append(filtered, b)
+	}
+	return filtered
 }
 
 // Use will insert a middleware into the chain
