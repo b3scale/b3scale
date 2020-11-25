@@ -21,3 +21,10 @@ func compileTmplRedirect() *template.Template {
 	t, _ := template.New("redirect").Parse(tmpl)
 	return t
 }
+
+var tmplRedirect *template.Template
+
+// TmplRedirect applies the redirect template
+func TmplRedirect(url string) []byte {
+
+}
