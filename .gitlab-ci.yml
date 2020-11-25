@@ -1,0 +1,53 @@
+image: golang:1.14
+
+stages:
+  - build
+  - verify
+
+default:
+  before_script:
+    - mkdir -p /go/src/gitlab.com/infra.run/public /go/src/_/builds
+    - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/infra.run/public/b3scale
+    - ln -s /go/src/gitlab.com/infra.run/public/b3scale /go/src/_/builds/b3scale
+
+build:
+  stage: build
+  tags:
+    - docker
+  script:
+    - make static
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
+      - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
+      - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
+
+fmt:
+  stage: verify
+  tags:
+    - docker
+  script:
+    - test -z $(gofmt -l ./...)
+
+lint:
+  stage: verify
+  tags:
+    - docker
+  script:
+    - go get -u golang.org/x/lint/golint
+    - golint -set_exit_status ./...
+
+vet:
+  stage: verify
+  tags:
+    - docker
+  script:
+    - go vet ./...
+
+test:
+  stage: verify
+  tags:
+    - docker
+  script:
+    - make test
+
