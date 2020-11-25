@@ -1,8 +1,8 @@
 image: golang:1.14
 
 stages:
+  - check
   - build
-  - verify
 
 default:
   before_script:
@@ -23,14 +23,14 @@ build:
       - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
 
 fmt:
-  stage: verify
+  stage: check 
   tags:
     - docker
   script:
     - test -z $(gofmt -l ./...)
 
 lint:
-  stage: verify
+  stage: check 
   tags:
     - docker
   script:
@@ -38,16 +38,17 @@ lint:
     - golint -set_exit_status ./...
 
 vet:
-  stage: verify
+  stage: check 
   tags:
     - docker
   script:
     - go vet ./...
 
-test:
-  stage: verify
-  tags:
-    - docker
-  script:
-    - make test
+#
+#test:
+#  stage: check
+#  tags:
+#    - docker
+#  script:
+#    - make test
 
