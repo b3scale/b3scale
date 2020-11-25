@@ -40,7 +40,10 @@ func GetFrontendStates(
 	pool *pgxpool.Pool,
 	q sq.SelectBuilder,
 ) ([]*FrontendState, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry, params, _ := q.Columns(
 		"id",
 		"key",
@@ -100,7 +103,10 @@ func (s *FrontendState) Save() error {
 // insert will create a new row with the frontend
 // state in the database
 func (s *FrontendState) insert() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		INSERT INTO frontends (
 			key, secret, active
@@ -128,7 +134,10 @@ func (s *FrontendState) insert() error {
 // update a database row of a frontend state
 func (s *FrontendState) update() error {
 	s.UpdatedAt = time.Now().UTC()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		UPDATE frontends
 		   SET key        = $2,
@@ -150,7 +159,10 @@ func (s *FrontendState) update() error {
 
 // Delete will remove a frontend state from the store
 func (s *FrontendState) Delete() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		DELETE FROM frontends WHERE id = $1
 	`

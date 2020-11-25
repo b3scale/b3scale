@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -115,7 +116,10 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 // encoded as an BBB XML Response.
 func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
 	// Make initial context
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		60*time.Second)
+	defer cancel()
 
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()

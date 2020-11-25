@@ -47,7 +47,10 @@ func GetMeetingStates(
 	pool *pgxpool.Pool,
 	q sq.SelectBuilder,
 ) ([]*MeetingState, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry, params, _ := q.Columns(
 		"meetings.id",
 		"meetings.internal_id",
@@ -154,7 +157,10 @@ func (s *MeetingState) GetFrontendState() (*FrontendState, error) {
 // It will succeed, even if no such meeting was present.
 // TODO: merge with DeleteMeetingStateByInternalID
 func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -197,7 +203,10 @@ func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 // DeleteMeetingStateByInternalID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
 func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -271,7 +280,10 @@ func (s *MeetingState) Save() error {
 
 // Add a new meeting to the database
 func (s *MeetingState) insert() (string, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		INSERT INTO meetings (
 			id,
@@ -299,7 +311,9 @@ func (s *MeetingState) insert() (string, error) {
 
 // Update the meeting state
 func (s *MeetingState) update() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
 
 	s.UpdatedAt = time.Now().UTC()
 	qry := `
@@ -328,7 +342,10 @@ func (s *MeetingState) SetBackendID(id string) error {
 
 	// Bind backend
 	s.BackendID = &id
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `UPDATE meetings SET backend_id = $2
 			WHERE id = $1`
 	_, err := s.pool.Exec(ctx, qry, s.ID, id)

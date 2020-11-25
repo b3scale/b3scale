@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
@@ -35,7 +36,10 @@ func Connect(url string) (*pgxpool.Pool, error) {
 // version of the database is equal to a required version
 func AssertDatabaseVersion(pool *pgxpool.Pool, version int) error {
 	var current int
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), time.Second)
+	defer cancel()
+
 	qry := `SELECT MAX(version) FROM __meta__`
 	err := pool.QueryRow(ctx, qry).Scan(&current)
 	if err != nil {

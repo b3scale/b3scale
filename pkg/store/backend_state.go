@@ -69,7 +69,10 @@ func GetBackendStates(
 	pool *pgxpool.Pool,
 	q sq.SelectBuilder,
 ) ([]*BackendState, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry, params, _ := q.From("backends").Columns(
 		"backends.id",
 		"backends.node_state",
@@ -167,7 +170,10 @@ func (s *BackendState) Save() error {
 
 // Private insert: adds a new row to the backends table
 func (s *BackendState) insert() (string, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		INSERT INTO backends (
 			host,
@@ -195,7 +201,10 @@ func (s *BackendState) insert() (string, error) {
 
 // Private update: updates the db row
 func (s *BackendState) update() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		UPDATE backends
 		   SET node_state   = $2,
@@ -235,7 +244,10 @@ func (s *BackendState) update() error {
 
 // Delete will remove the backend from the store
 func (s *BackendState) Delete() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		DELETE FROM backends WHERE id = $1
 	`
@@ -245,7 +257,9 @@ func (s *BackendState) Delete() error {
 
 // ClearMeetings will remove all meetings in the current state
 func (s *BackendState) ClearMeetings() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
 	qry := `
 		DELETE FROM meetings WHERE backend_id = $1
 	`
@@ -255,7 +269,9 @@ func (s *BackendState) ClearMeetings() error {
 
 // IncMeetingsCount increments the meetings counter
 func (s *BackendState) IncMeetingsCount() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
 	s.MeetingsCount++
 	qry := `UPDATE backends SET meetings_count = meetings_count + 1
   			 WHERE id = $1`
@@ -265,7 +281,9 @@ func (s *BackendState) IncMeetingsCount() error {
 
 // IncAttendeesCount increments the attendees counter
 func (s *BackendState) IncAttendeesCount() error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
 	s.MeetingsCount++
 	qry := `UPDATE backends SET attendees_count = attendees_count + 1
   			 WHERE id = $1`
@@ -302,7 +320,9 @@ func (s *BackendState) CreateMeetingState(
 
 // DecMeetingsCountForBackendID decrement meeting account for backend
 func DecMeetingsCountForBackendID(pool *pgxpool.Pool, id string) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
 	qry := `
 		UPDATE backends
 		   SET meetings_count = MAX(meetings_count - 1, 0)
@@ -314,7 +334,9 @@ func DecMeetingsCountForBackendID(pool *pgxpool.Pool, id string) error {
 
 // DecAttendeesCountForBackendID decrement meeting account for backend
 func DecAttendeesCountForBackendID(pool *pgxpool.Pool, id string) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
 	qry := `
 		UPDATE backends
 		   SET attendees_count = MAX(attendees_count - 1, 0)

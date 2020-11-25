@@ -48,7 +48,10 @@ type Command struct {
 
 // FetchParams loads the parameters and decodes them
 func (cmd *Command) FetchParams(req interface{}) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
 	qry := `
 		SELECT params
 		  FROM commands WHERE id = $1
@@ -77,7 +80,10 @@ func (q *CommandQueue) subscribe() error {
 		q.subscription.Release()
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), time.Second)
+	defer cancel()
+
 	conn, err := q.pool.Acquire(ctx)
 	if err != nil {
 		return err
@@ -94,7 +100,9 @@ func (q *CommandQueue) subscribe() error {
 
 // Queue adds a new command to the queue
 func (q *CommandQueue) Queue(cmd *Command) error {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
 
 	// Our command will always expire. For now 2 minutes.
 	deadline := time.Now().UTC().Add(120 * time.Second)
@@ -140,8 +148,7 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 		// We periodically check our queue. We only check instantly
 		// if we got informed that there is a job waiting.
 		ctx, cancel := context.WithTimeout(
-			context.Background(),
-			time.Second)
+			context.Background(), time.Second)
 		defer cancel()
 		// Await command, after a timeout just try to dequeue
 		_, err := q.subscription.Conn().WaitForNotification(ctx)
@@ -209,9 +216,13 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		 LIMIT 1
 		   FOR UPDATE SKIP LOCKED`
 
-	// Begin transaction
+	// Begin transaction with a total timelimit
+	// of 60 seconds for the entire command
 	startedAt := time.Now()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 60*time.Second)
+	defer cancel()
+
 	tx, err := q.pool.Begin(ctx)
 	if err != nil {
 		return err
