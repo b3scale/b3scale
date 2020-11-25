@@ -7,6 +7,8 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
+var version = "HEAD"
+
 func getopt(key, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
@@ -19,8 +21,6 @@ func main() {
 	dbConnStr := getopt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
-	log.Println("using database:", dbConnStr)
-
 	dbPool, err := store.Connect(dbConnStr)
 	if err != nil {
 		log.Fatal(err)

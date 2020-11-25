@@ -11,6 +11,8 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
+var version string = "HEAD"
+
 // Get configuration from environment with
 // a default fallback.
 func getopt(key, fallback string) string {
@@ -22,7 +24,7 @@ func getopt(key, fallback string) string {
 }
 
 func main() {
-	fmt.Println("b3scale node agent		v.0.1.0")
+	fmt.Printf("b3scale node agent		v.%s\n", version)
 	redisURL := getopt(
 		"BBB_REDIS_URL", "redis://localhost:6379/1")
 	dbConnStr := getopt(

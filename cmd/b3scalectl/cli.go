@@ -56,7 +56,7 @@ func NewCli(
 			},
 			{
 				Name:    "set",
-				Aliases: []string{"a"},
+				Aliases: []string{"update", "u"},
 				Usage:   "sets a backend or frontend config in the cluster",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
@@ -117,6 +117,10 @@ func NewCli(
 						Action: c.deleteFrontend,
 					},
 				},
+			},
+			{
+				Name:   "version",
+				Action: c.showVersion,
 			},
 		},
 	}
@@ -378,6 +382,12 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 
 	fmt.Println("deleting backend")
 	return state.Delete()
+}
+
+// show the current version
+func (c *Cli) showVersion(ctx *cli.Context) error {
+	fmt.Printf("b3scalectl v.%s\n", version)
+	return nil
 }
 
 // Run starts the CLI

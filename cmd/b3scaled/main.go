@@ -10,6 +10,8 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
+var version = "HEAD"
+
 // Get configuration from environment with
 // a default fallback.
 func getopt(key, fallback string) string {
