@@ -50,7 +50,7 @@ func (b *Backend) Stress() uint {
 // Backend State Sync: loadNodeState will make
 // a small request to get a meeting that does not
 // exist to check if the credentials are valid.
-func (b *Backend) loadNodeState() error {
+func (b *Backend) loadNOOOONodeState() error {
 	log.Println(b.state.ID, "SYNC: node state")
 	defer b.state.Save()
 
@@ -62,7 +62,6 @@ func (b *Backend) loadNodeState() error {
 		}))
 	t1 := time.Now()
 	latency := t1.Sub(t0)
-
 	if err != nil {
 		errMsg := fmt.Sprintf("%s", err)
 		b.state.NodeState = "error"
@@ -88,8 +87,110 @@ func (b *Backend) loadNodeState() error {
 	return b.state.Save()
 }
 
+// loadNodeState will fetch all meetings from the backend.
+// The meetings are then processed in two passes:
+// 1st pass: for each meeting from backend
+// If the meeting is in our store there are two cases:
+//   - It is assigned to this backend, everything is well.
+//     Update meeting stats with info retrieved from the backend.
+//   - Otherwise: reassign this meeting to this backend.
+// If the meeting is not in our state:
+//   - Ignore.
+// 2nd pass: for each meeting assigned to backend in store:
+// If the meeting is not present in the backend, remove meeting,
+// from store
+func (b *Backend) loadNodeState() error {
+	log.Println(b.state.ID, "SYNC: processing backend meetings")
+	defer b.state.Save()
+
+	// Measure latency
+	t0 := time.Now()
+	req := bbb.GetMeetingsRequest(bbb.Params{}).WithBackend(b.state.Backend)
+	rep, err := b.client.Do(req)
+	if err != nil {
+		return err
+	}
+	t1 := time.Now()
+	latency := t1.Sub(t0)
+
+	res := rep.(*bbb.GetMeetingsResponse)
+
+	if err != nil {
+		errMsg := fmt.Sprintf("%s", err)
+		b.state.NodeState = "error"
+		b.state.LastError = &errMsg
+		return errors.New(errMsg)
+	}
+
+	if res.Returncode != "SUCCESS" {
+		// Update backend state
+		errMsg := fmt.Sprintf("%s: %s", res.MessageKey, res.Message)
+		b.state.LastError = &errMsg
+		b.state.NodeState = "error"
+		return errors.New(errMsg)
+	}
+
+	// Update state
+	b.state.SyncedAt = time.Now().UTC()
+	b.state.LastError = nil
+	b.state.Latency = latency
+	if b.state.AdminState == "ready" {
+		b.state.NodeState = "ready"
+	}
+
+	// Update meetings: 1st pass
+	backendMeetings := make([]string, 0, len(res.Meetings))
+	for _, meeting := range res.Meetings {
+		backendMeetings = append(backendMeetings, meeting.InternalMeetingID)
+		mstate, err := store.GetMeetingState(b.pool, store.Q().
+			Where("meetings.internal_id = ?", meeting.InternalMeetingID))
+		if err != nil {
+			// This will happen if something goes wrong with the
+			// database, so we can break here.
+			return err
+		}
+
+		if mstate == nil {
+			log.Println(
+				"WARNING: backend has unknown meeting:",
+				meeting.MeetingID, "internal id:", meeting.InternalMeetingID)
+			// Create meeting state, associate with frontend later
+			mstate = store.InitMeetingState(b.pool, &store.MeetingState{
+				ID:         meeting.MeetingID,
+				InternalID: meeting.InternalMeetingID,
+				BackendID:  &b.state.ID,
+			})
+		}
+
+		// Update meeting info and save state
+		if err := mstate.Meeting.Update(meeting); err != nil {
+			return err
+		}
+		if err := mstate.Save(); err != nil {
+			return err
+		}
+	}
+
+	// Cleanup meetings: 2nd pass
+	count, err := store.DeleteOrphanMeetings(
+		b.pool, b.state.ID, backendMeetings)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		log.Println(
+			"WARNING: removed", count, "orphan meetings from backend:",
+			b.state.Backend.Host)
+	}
+	return nil
+}
+
 // Meeting State Sync: loadMeetingState will make
-// a request to the backend with a get meeting info request
+// a request to the backend with a get meeting info request.
+// This is done for a specific meeting e.g. to sync the
+// attendees list - however - most of these things should
+// already be handled throught the b3scalenoded on the
+// backend instance.
 func (b *Backend) refreshMeetingState(
 	state *store.MeetingState,
 ) error {

@@ -178,7 +178,6 @@ func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 	if err := tx.QueryRow(ctx, qry, id).Scan(&backendID); err != nil {
 		return err
 	}
-	ctx = context.Background()
 	qry = `
 		DELETE FROM meetings WHERE id = $1
 	`
@@ -244,6 +243,29 @@ func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+// DeleteOrphanMeetings will remove all meetings not
+// in a list of (internal) meeting IDs, but associated
+// with a backend
+func DeleteOrphanMeetings(
+	pool *pgxpool.Pool,
+	backendID string,
+	backendMeetings []string,
+) (int64, error) {
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 10*time.Second)
+	defer cancel()
+	qry := `
+		DELETE FROM meetings
+		 WHERE backend_id = $1
+		   AND internal_id NOT IN $2
+	`
+	cmd, err := pool.Exec(ctx, qry, backendID, backendMeetings)
+	if err != nil {
+		return 0, err
+	}
+	return cmd.RowsAffected(), nil
 }
 
 // Refresh the backend state from the database
