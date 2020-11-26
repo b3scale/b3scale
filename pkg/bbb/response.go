@@ -891,8 +891,8 @@ type Meeting struct {
 	ModeratorPW           string    `xml:"moderatorPW"`
 	Running               bool      `xml:"running"`
 	Duration              int       `xml:"duration"`
-	Recording             string    `xml:"recording"`
-	HasBeenForciblyEnded  string    `xml:"hasBeenForciblyEnded"`
+	Recording             bool      `xml:"recording"`
+	HasBeenForciblyEnded  bool      `xml:"hasBeenForciblyEnded"`
 	StartTime             Timestamp `xml:"startTime"`
 	EndTime               Timestamp `xml:"endTime"`
 	ParticipantCount      int       `xml:"participantCount"`
@@ -915,6 +915,49 @@ func (m *Meeting) String() string {
 		"[Meeting id: %v, pc: %v, mc: %v, running: %v]",
 		m.MeetingID, m.ParticipantCount, m.ModeratorCount, m.Running,
 	)
+}
+
+// Update the meeting info with new data
+func (m *Meeting) Update(update *Meeting) error {
+	if m.MeetingID != update.MeetingID {
+		return fmt.Errorf("meeting ids do not match for update")
+	}
+	if m.InternalMeetingID != update.InternalMeetingID {
+		return fmt.Errorf("internal ids do not match for update")
+	}
+
+	if len(update.MeetingName) > 0 {
+		m.MeetingName = update.MeetingName
+	}
+	if len(update.CreateDate) > 0 {
+		m.CreateDate = update.CreateDate
+	}
+	if len(update.VoiceBridge) > 0 {
+		m.VoiceBridge = update.VoiceBridge
+	}
+	if len(update.DialNumber) > 0 {
+		m.DialNumber = update.DialNumber
+	}
+	if len(update.AttendeePW) > 0 {
+		m.AttendeePW = update.AttendeePW
+	}
+	if len(update.ModeratorPW) > 0 {
+		m.ModeratorPW = update.ModeratorPW
+	}
+	m.Running = update.Running
+	m.Duration = update.Duration
+	m.Recording = update.Recording
+	m.HasBeenForciblyEnded = update.HasBeenForciblyEnded
+	m.StartTime = update.StartTime
+	m.EndTime = update.EndTime
+	m.ParticipantCount = update.ParticipantCount
+	m.ListenerCount = update.ListenerCount
+	m.VoiceParticipantCount = update.VoiceParticipantCount
+	m.VideoCount = update.VideoCount
+	m.MaxUsers = update.MaxUsers
+	m.ModeratorCount = update.ModeratorCount
+	m.IsBreakout = update.IsBreakout
+	return nil
 }
 
 // Recording is a recorded bbb session
