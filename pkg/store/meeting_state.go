@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -369,6 +370,30 @@ func (s *MeetingState) SetBackendID(id string) error {
 	defer cancel()
 
 	qry := `UPDATE meetings SET backend_id = $2
+			WHERE id = $1`
+	_, err := s.pool.Exec(ctx, qry, s.ID, id)
+	return err
+}
+
+// BindFrontendID associates an unclaimed meeting with a frontend
+func (s *MeetingState) BindFrontendID(id string) error {
+	if s.FrontendID != nil {
+		if *s.FrontendID == id {
+			// Nothing to do here
+			return nil
+		}
+		// We do not support rebinding right now...
+		return fmt.Errorf(
+			"meeting is already associated with different frontend")
+	}
+
+	// Bind frontend
+	s.FrontendID = &id
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
+	qry := `UPDATE meetings SET frontend_id = $2
 			WHERE id = $1`
 	_, err := s.pool.Exec(ctx, qry, s.ID, id)
 	return err
