@@ -2,10 +2,12 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	netHTTP "net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -66,8 +68,15 @@ func BBBRequestMiddleware(
 				return handleAPIError(c, err)
 			}
 
-			// Let the gateway handle the request
-			res := gateway.Dispatch(bbbReq)
+			// Let the gateway handle the request and
+			// make the request context
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				60*time.Second)
+			defer cancel()
+			ctx = cluster.ContextWithFrontend(ctx, frontend)
+
+			res := gateway.Dispatch(ctx, bbbReq)
 			return writeBBBResponse(c, res)
 		}
 	}

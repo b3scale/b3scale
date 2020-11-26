@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -40,13 +39,17 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 	return func(
 		ctx context.Context, req *bbb.Request,
 	) (bbb.Response, error) {
-		// Get backend by id
+		// Get backend and frontend
 		backends := BackendsFromContext(ctx)
-		// backend := BackendFromContext(ctx)
 		if len(backends) == 0 {
 			return nil, fmt.Errorf("no backend in context")
 		}
 		backend := backends[0]
+
+		frontend := FrontendFromContext(ctx)
+		if frontend == nil {
+			return nil, fmt.Errorf("no frontend in context")
+		}
 
 		// Check if the backend is ready to accept requests:
 		if backend.state.NodeState != BackendStateReady {
@@ -61,8 +64,13 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 				log.Println(err)
 			} else {
 				if meeting != nil {
+					// Assign to backend
 					if err := meeting.SetBackendID(backend.ID()); err != nil {
-						log.Println(err)
+						return nil, err
+					}
+					// Assign frontend if not present
+					if err := meeting.BindFrontendID(frontend.state.ID); err != nil {
+						return nil, err
 					}
 				}
 			}
@@ -114,13 +122,7 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 // chain. We will always return a bbb response.
 // Any error occoring during routing or dispatching will be
 // encoded as an BBB XML Response.
-func (gw *Gateway) Dispatch(req *bbb.Request) bbb.Response {
-	// Make initial context
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		60*time.Second)
-	defer cancel()
-
+func (gw *Gateway) Dispatch(ctx context.Context, req *bbb.Request) bbb.Response {
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()
 
