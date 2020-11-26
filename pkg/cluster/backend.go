@@ -47,46 +47,6 @@ func (b *Backend) Stress() uint {
 	return b.state.MeetingsCount + b.state.AttendeesCount
 }
 
-// Backend State Sync: loadNodeState will make
-// a small request to get a meeting that does not
-// exist to check if the credentials are valid.
-func (b *Backend) loadNOOOONodeState() error {
-	log.Println(b.state.ID, "SYNC: node state")
-	defer b.state.Save()
-
-	// Measure latency
-	t0 := time.Now()
-	res, err := b.IsMeetingRunning(bbb.IsMeetingRunningRequest(
-		bbb.Params{
-			"meetingID": "00000000-0000-0000-0000-000000000001",
-		}))
-	t1 := time.Now()
-	latency := t1.Sub(t0)
-	if err != nil {
-		errMsg := fmt.Sprintf("%s", err)
-		b.state.NodeState = "error"
-		b.state.LastError = &errMsg
-		return errors.New(errMsg)
-	}
-
-	if res.Returncode != "SUCCESS" {
-		// Update backend state
-		errMsg := fmt.Sprintf("%s: %s", res.MessageKey, res.Message)
-		b.state.LastError = &errMsg
-		b.state.NodeState = "error"
-		return errors.New(errMsg)
-	}
-
-	// Update state
-	b.state.LastError = nil
-	b.state.Latency = latency
-	if b.state.AdminState == "ready" {
-		b.state.NodeState = "ready"
-	}
-
-	return b.state.Save()
-}
-
 // loadNodeState will fetch all meetings from the backend.
 // The meetings are then processed in two passes:
 // 1st pass: for each meeting from backend
@@ -101,7 +61,6 @@ func (b *Backend) loadNOOOONodeState() error {
 // from store
 func (b *Backend) loadNodeState() error {
 	log.Println(b.state.ID, "SYNC: processing backend meetings")
-	defer b.state.Save()
 
 	// Measure latency
 	t0 := time.Now()
@@ -119,6 +78,9 @@ func (b *Backend) loadNodeState() error {
 		errMsg := fmt.Sprintf("%s", err)
 		b.state.NodeState = "error"
 		b.state.LastError = &errMsg
+		if err := b.state.Save(); err != nil {
+			log.Println("save error:", err)
+		}
 		return errors.New(errMsg)
 	}
 
@@ -127,6 +89,9 @@ func (b *Backend) loadNodeState() error {
 		errMsg := fmt.Sprintf("%s: %s", res.MessageKey, res.Message)
 		b.state.LastError = &errMsg
 		b.state.NodeState = "error"
+		if err := b.state.Save(); err != nil {
+			log.Println("save error:", err)
+		}
 		return errors.New(errMsg)
 	}
 
@@ -136,6 +101,9 @@ func (b *Backend) loadNodeState() error {
 	b.state.Latency = latency
 	if b.state.AdminState == "ready" {
 		b.state.NodeState = "ready"
+	}
+	if err := b.state.Save(); err != nil {
+		return err
 	}
 
 	// Update meetings: 1st pass
