@@ -1,13 +1,15 @@
 package http
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog/log"
+	"github.com/ziflex/lecho/v2"
+
 	"golang.org/x/net/http2"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -33,9 +35,11 @@ func NewInterface(
 	e := echo.New()
 	e.HideBanner = true
 
+	logger := lecho.From(log.Logger)
+
 	// Middlewares
-	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: "${time_rfc3339} ${method} ${uri} ${status}, ${remote_ip}, ${latency_human}\n",
+	e.Use(lecho.Middleware(lecho.Config{
+		Logger: logger,
 	}))
 	e.Use(middleware.Recover())
 
@@ -61,20 +65,25 @@ func NewInterface(
 
 // Start the HTTP interface
 func (iface *Interface) Start(listen string) {
-	log.Println("Starting interface: HTTP")
-	log.Fatal(iface.echo.Start(listen))
+	log.Info().Msg("starting interface: HTTP")
+	log.Fatal().
+		Err(iface.echo.Start(listen)).
+		Msg("starting http server")
 }
 
 // StartCleartextHTTP2 starts a HTTP2 interface without
 // any TLS encryption.
 func (iface *Interface) StartCleartextHTTP2(listen string) {
-	log.Println("Starting interface: HTTP2")
+	log.Info().Msg("starting interface: PlaintextHTTP2")
 	s := &http2.Server{
 		MaxConcurrentStreams: 200,
 		MaxReadFrameSize:     1048576,
 		IdleTimeout:          10 * time.Second,
 	}
-	log.Fatal(iface.echo.StartH2CServer(listen, s))
+	log.Fatal().
+		Err(iface.echo.StartH2CServer(listen, s)).
+		Msg("starting plaintext http2 server")
+
 }
 
 // Index / Root Handler

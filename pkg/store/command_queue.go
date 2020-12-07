@@ -12,9 +12,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -173,7 +174,9 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 		go func(q *CommandQueue) {
 			err := q.process(handler)
 			if err != nil {
-				log.Println("error while processing job:", err)
+				log.Error().
+					Err(err).
+					Msg("processing job failed")
 			}
 		}(q)
 	}
@@ -256,7 +259,12 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		result = safeExecHandler(cmd, handler, errc)
 		err = <-errc
 		if err != nil {
-			log.Printf("[CMD:%d:%s]: %s", cmd.Seq, cmd.Action, err)
+			log.Error().
+				Err(err).
+				Int("seq", cmd.Seq).
+				Str("action", cmd.Action).
+				Msg("exec command handler error")
+
 			state = "error"
 			result = fmt.Sprintf("%s", err)
 		}

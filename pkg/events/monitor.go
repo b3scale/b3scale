@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -41,7 +41,9 @@ func (m *Monitor) Subscribe() chan bbb.Event {
 		pubsub := m.rdb.PSubscribe(ctx, "*akka-apps-redis-channel")
 		for {
 			err := receiveMessages(events, pubsub)
-			log.Println("redis error:", err)
+			log.Error().
+				Err(err).
+				Msg("redis error on receiveMessages")
 			time.Sleep(1 * time.Second)
 		}
 	}(events)
@@ -70,7 +72,10 @@ func receiveMessages(events chan bbb.Event, sub *redis.PubSub) error {
 func decodeEvent(msg *redis.Message) bbb.Event {
 	m := &Message{}
 	if err := json.Unmarshal([]byte(msg.Payload), m); err != nil {
-		log.Println(err)
+		log.Error().
+			Err(err).
+			Str("data", msg.Payload).
+			Msg("decoding eveng")
 		return nil
 	}
 

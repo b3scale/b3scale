@@ -1,7 +1,7 @@
 package routing
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -47,11 +47,13 @@ func Lookup(ctrl *cluster.Controller) cluster.RouterMiddleware {
 			}
 			if !found {
 				// Emit a warning
-				log.Println(
-					"WARNING: Requested backend", backend,
-					"is no longer available",
-					"as selectable routing target.",
-					"Reassigning meeting:", meetingID)
+				log.Warn().
+					Str("backend", backend.Host()).
+					Str("backendID", backend.ID()).
+					Str("meetingID", meetingID).
+					Msg("requested backend is no longer available " +
+						"as selectable routing target. " +
+						"Reassigning meetig.")
 				return backends, nil
 			}
 

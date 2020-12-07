@@ -3,7 +3,8 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"log"
+
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -61,7 +62,10 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 		if meetingID, ok := req.Params.MeetingID(); ok {
 			meeting, err := ctrl.GetMeetingStateByID(meetingID)
 			if err != nil {
-				log.Println(err)
+				log.Error().
+					Err(err).
+					Str("meetingID", meetingID).
+					Msg("GetMeetingStateByID")
 			} else {
 				if meeting != nil {
 					// Assign to backend
@@ -130,7 +134,9 @@ func (gw *Gateway) Dispatch(ctx context.Context, req *bbb.Request) bbb.Response 
 	res, err := gw.middleware(ctx, req)
 	if err != nil {
 		// Log the error
-		log.Println("gateway error:", err)
+		log.Error().
+			Err(err).
+			Msg("gateway error")
 		// We encode our error as a BBB error response
 		return &bbb.XMLResponse{
 			Returncode: "FAILED",

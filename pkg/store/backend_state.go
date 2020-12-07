@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	// "log"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"

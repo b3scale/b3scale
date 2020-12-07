@@ -23,6 +23,7 @@ The following environment variables can be configured:
     `postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca`
 
  * `B3SCALE_LOG_LEVEL` set the log level. Possible values are:
+
         panic  5
         fatal  4
         error  3

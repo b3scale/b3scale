@@ -3,11 +3,11 @@ package cluster
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
@@ -42,6 +42,14 @@ func (b *Backend) ID() string {
 	return b.state.ID
 }
 
+// Host retrievs the backend host
+func (b *Backend) Host() string {
+	if b.state.Backend == nil {
+		return ""
+	}
+	return b.state.Backend.Host
+}
+
 // Stress calculates the current node load
 func (b *Backend) Stress() uint {
 	return b.state.MeetingsCount + b.state.AttendeesCount
@@ -60,7 +68,9 @@ func (b *Backend) Stress() uint {
 // If the meeting is not present in the backend, remove meeting,
 // from store
 func (b *Backend) loadNodeState() error {
-	log.Println(b.state.ID, "SYNC: processing backend meetings")
+	log.Info().
+		Str("backend", b.state.Backend.Host).
+		Msg("processing backend meetings")
 
 	// Measure latency
 	t0 := time.Now()
@@ -79,7 +89,7 @@ func (b *Backend) loadNodeState() error {
 		b.state.NodeState = "error"
 		b.state.LastError = &errMsg
 		if err := b.state.Save(); err != nil {
-			log.Println("save error:", err)
+			log.Error().Err(err).Msg("save backend state")
 		}
 		return errors.New(errMsg)
 	}
@@ -90,7 +100,7 @@ func (b *Backend) loadNodeState() error {
 		b.state.LastError = &errMsg
 		b.state.NodeState = "error"
 		if err := b.state.Save(); err != nil {
-			log.Println("save error:", err)
+			log.Error().Err(err).Msg("save backend state")
 		}
 		return errors.New(errMsg)
 	}
@@ -119,9 +129,12 @@ func (b *Backend) loadNodeState() error {
 		}
 
 		if mstate == nil {
-			log.Println(
-				"WARNING: backend has unknown meeting:",
-				meeting.MeetingID, "internal id:", meeting.InternalMeetingID)
+			log.Warn().
+				Str("meetingID", meeting.MeetingID).
+				Str("internalMeetingID", meeting.InternalMeetingID).
+				Str("backend", b.state.Backend.Host).
+				Msg("unknown meeting received from backend")
+
 			// Create meeting state, associate with frontend later
 			mstate = store.InitMeetingState(b.pool, &store.MeetingState{
 				ID:         meeting.MeetingID,
@@ -146,9 +159,10 @@ func (b *Backend) loadNodeState() error {
 		return err
 	}
 	if count > 0 {
-		log.Println(
-			"WARNING: removed", count, "orphan meetings from backend:",
-			b.state.Backend.Host)
+		log.Warn().
+			Int("orphans", int(count)).
+			Str("backend", b.state.Backend.Host).
+			Msg("removed orphan meetings associated with backend")
 	}
 	return nil
 }
@@ -337,13 +351,19 @@ func (b *Backend) GetMeetingInfo(
 		if err != nil {
 			// We only log the error, as this might fail
 			// without impacting the service
-			log.Println(err)
+			log.Error().
+				Err(err).
+				Str("backend", b.state.Backend.Host).
+				Msg("GetMeetingState")
 		} else {
 			// Update meeting state
 			mstate.Meeting = res.Meeting
 			mstate.SyncedAt = time.Now().UTC()
 			if err := mstate.Save(); err != nil {
-				log.Println(err)
+				log.Error().
+					Err(err).
+					Str("backend", b.state.Backend.Host).
+					Msg("Save")
 			}
 		}
 	}
