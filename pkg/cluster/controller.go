@@ -2,12 +2,12 @@ package cluster
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -37,7 +37,7 @@ func NewController(pool *pgxpool.Pool) *Controller {
 
 // Start the controller
 func (c *Controller) Start() {
-	log.Println("Starting cluster controller")
+	log.Info().Msg("starting cluster controller")
 
 	// Create background tasks
 	c.StartBackground()
@@ -49,7 +49,7 @@ func (c *Controller) Start() {
 			// We will only reach this code when waiting for
 			// commands fails. This can happen when the database
 			// is down. So, we log the error and wait a bit.
-			log.Println(err)
+			log.Error().Err(err).Msg("receive next command")
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -69,7 +69,7 @@ func (c *Controller) StartBackground() {
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
 	if err := c.requestSyncStale(); err != nil {
-		log.Println(err)
+		log.Err(err).Msg("requestSyncStale")
 	}
 }
 
@@ -81,13 +81,13 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
 	case CmdRemoveBackend:
-		log.Println("EXEC CMD: RemoveBackend")
+		log.Debug().Str("cmd", "RemoveBackend").Msg("EXEC")
 		return c.handleRemoveBackend(cmd)
 	case CmdUpdateNodeState:
-		log.Println("EXEC CMD: UpdateNodeState")
+		log.Debug().Str("cmd", "UpdateNodeState").Msg("EXEC")
 		return c.handleUpdateNodeState(cmd)
 	case CmdUpdateMeetingState:
-		log.Println("EXEC CMD: UpdateMeetingState")
+		log.Debug().Str("cmd", "UpdateMeetingState").Msg("EXEC")
 		return c.handleUpdateMeetingState(cmd)
 	}
 
@@ -122,7 +122,10 @@ func (c *Controller) handleUpdateNodeState(
 	}
 	err = backend.loadNodeState()
 	if err != nil {
-		log.Println(backend.state.Backend.Host, err)
+		log.Error().
+			Str("host", backend.state.Backend.Host).
+			Err(err).
+			Msg("loadNodeState")
 		return false, err
 	}
 	return true, nil
@@ -145,7 +148,7 @@ func (c *Controller) handleUpdateMeetingState(
 	backend, err := c.GetBackend(
 		store.Q().Where("id = ?", mstate.BackendID))
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Msg("GetBackend")
 		return nil, err
 	}
 	if err := backend.refreshMeetingState(mstate); err != nil {
@@ -158,7 +161,7 @@ func (c *Controller) handleUpdateMeetingState(
 // requestSyncStale triggers a background sync of the
 // entire node state
 func (c *Controller) requestSyncStale() error {
-	log.Println("refreshing stale nodes")
+	log.Info().Msg("starting stale node refresh")
 	stale, err := c.GetBackends(store.Q().
 		Where(`now() - COALESCE(
 				synced_at,
@@ -171,7 +174,10 @@ func (c *Controller) requestSyncStale() error {
 	// For each stale backend create a new update state
 	// request, which will try to reach the backend.
 	for _, b := range stale {
-		log.Println("DISPATCH CMD: UpdateNodeState", b.state.ID)
+		log.Debug().
+			Str("cmd", "UpdateNodeState").
+			Str("id", b.state.ID).
+			Msg("DISPATCH")
 		if err := c.cmds.Queue(
 			UpdateNodeState(&UpdateNodeStateRequest{
 				ID: b.state.ID,
