@@ -14,6 +14,7 @@ require (
 	github.com/prometheus/common v0.15.0 // indirect
 	github.com/rs/zerolog v1.20.0
 	github.com/urfave/cli/v2 v2.3.0
+	github.com/ziflex/lecho/v2 v2.1.0
 	golang.org/x/crypto v0.0.0-20201203163018-be400aefbc4c // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	golang.org/x/sys v0.0.0-20201204225414-ed752295db88 // indirect
