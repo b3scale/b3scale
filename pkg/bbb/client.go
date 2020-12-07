@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 // A Client for communicating with a big blue button
@@ -86,10 +87,10 @@ func unmarshalRequestResponse(req *Request, data []byte) (Response, error) {
 // The request is signed.
 // The response is decoded into a BBB response.
 func (c *Client) Do(req *Request) (Response, error) {
-	// DEBUG LOG:
-	// TODO: Use some advanced logger or remove in production
-	// because this might expose sensitive data in logfiles
-	log.Println("[HTTP]", req.Method, req.URL())
+	log.Debug().
+		Str("method", req.Method).
+		Str("url", req.URL()).
+		Msg("client request")
 
 	var bodyReader io.Reader
 	if req.Body != nil {
