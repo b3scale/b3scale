@@ -22,6 +22,17 @@ The following environment variables can be configured:
     ### Example URL
     `postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca`
 
+ * `B3SCALE_LOG_LEVEL` set the log level. Possible values are:
+        panic  5
+        fatal  4
+        error  3
+        warn   2
+        info   1
+        debug  0
+        trace -1
+    
+    You can use either the numeric or integer value
+
 
 Same applies for the b3scalenoded, however only `B3SCALE_DB_URL`
 and a `BBB_REDIS_URL` is required.

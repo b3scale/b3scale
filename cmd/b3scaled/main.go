@@ -1,11 +1,13 @@
 package main
 
 import (
-	"log"
 	"os"
+
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
+	"gitlab.com/infra.run/public/b3scale/pkg/logging"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -25,7 +27,6 @@ func getopt(key, fallback string) string {
 func main() {
 	quit := make(chan bool)
 	banner() // Most important.
-	log.Println("Booting b3scaled...")
 
 	// Config
 	listenHTTP := getopt(
@@ -35,13 +36,24 @@ func main() {
 	dbConnStr := getopt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
+	loglevel := getopt(
+		"B3SCALE_LOG_LEVEL",
+		"info")
 
-	log.Println("using database:", dbConnStr)
+	// Configure logging
+	if err := logging.Setup(&logging.Options{
+		Level: loglevel,
+	}); err != nil {
+		panic(err)
+	}
+
+	log.Info().Msg("booting b3scale")
+	log.Info().Msg("using database").Str("url", dbConnStr)
 
 	// Initialize postgres connection
 	dbConn, err := store.Connect(dbConnStr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
 	// Initialize cluster
