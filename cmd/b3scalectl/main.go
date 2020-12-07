@@ -1,9 +1,12 @@
 package main
 
 import (
-	"log"
 	"os"
 
+	"github.com/rs/zerolog/log"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/logging"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -18,19 +21,29 @@ func getopt(key, fallback string) string {
 }
 
 func main() {
-	dbConnStr := getopt(
+	dbConnStr := config.EnvOpt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
+	loglevel := config.EnvOpt(
+		"B3SCALE_LOG_LEVEL",
+		"info")
+
+	if err := logging.Setup(&logging.Options{
+		Level: loglevel,
+	}); err != nil {
+		panic(err)
+	}
+
 	dbPool, err := store.Connect(dbConnStr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("database connection")
 	}
 	queue := store.NewCommandQueue(dbPool)
 
 	// Start the CLI
 	cli := NewCli(queue, dbPool)
 	if err := cli.Run(os.Args); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("this is fatal")
 	}
 
 	// A note about the return code:

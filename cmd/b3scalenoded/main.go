@@ -2,46 +2,48 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/rs/zerolog/log"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/events"
+	"gitlab.com/infra.run/public/b3scale/pkg/logging"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 var version string = "HEAD"
 
-// Get configuration from environment with
-// a default fallback.
-func getopt(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-	return value
-}
-
 func main() {
 	fmt.Printf("b3scale node agent		v.%s\n", version)
-	redisURL := getopt(
+	redisURL := config.EnvOpt(
 		"BBB_REDIS_URL", "redis://localhost:6379/1")
-	dbConnStr := getopt(
+	dbConnStr := config.EnvOpt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
-	log.Println("using database:", dbConnStr)
+	loglevel := config.EnvOpt(
+		"B3SCALE_LOG_LEVEL",
+		"info")
 
+	// Configure logging
+	if err := logging.Setup(&logging.Options{
+		Level: loglevel,
+	}); err != nil {
+		panic(err)
+	}
+
+	log.Info().Msg("booting b3scale")
+	log.Info().Str("url", dbConnStr).Msg("using database")
 	// Initialize postgres connection
 	dbConn, err := store.Connect(dbConnStr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("database connection")
 	}
 
 	// Make redis client
 	redisOpts, err := redis.ParseURL(redisURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("redis connection")
 	}
 
 	rdb := redis.NewClient(redisOpts)
@@ -51,7 +53,9 @@ func main() {
 	for ev := range channel {
 		err := handler.Dispatch(ev)
 		if err != nil {
-			log.Println("event handler error:", err)
+			log.Error().
+				Err(err).
+				Msg("event handler")
 		}
 	}
 }
