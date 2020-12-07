@@ -90,5 +90,5 @@ func (iface *Interface) StartCleartextHTTP2(listen string) {
 func (iface *Interface) httpIndex(c echo.Context) error {
 	return c.HTML(
 		http.StatusOK,
-		"<h1>B3Scale! v0.1.0</h1>")
+		"<h1>B3Scale!</h1>")
 }
