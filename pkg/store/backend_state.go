@@ -247,11 +247,30 @@ func (s *BackendState) Delete() error {
 		context.Background(), 5*time.Second)
 	defer cancel()
 
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// For now we take all the meetings with us.
 	qry := `
+		DELETE FROM meetings WHERE backend_id = $1
+	`
+	_, err = tx.Exec(ctx, qry, s.ID)
+	if err != nil {
+		return err
+	}
+
+	qry = `
 		DELETE FROM backends WHERE id = $1
 	`
-	_, err := s.pool.Exec(ctx, qry, s.ID)
-	return err
+	_, err = tx.Exec(ctx, qry, s.ID)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // ClearMeetings will remove all meetings in the current state

@@ -19,10 +19,13 @@ CREATE TYPE instance_state AS ENUM (
     -- Ready for accepting requests.
     'error', 
     -- An error occured and we should not longer
-    -- accept new requests.
-    'stopped'
+    -- accept any requests.
+    'stopped',
     -- The backend is disabled and should not accept
     -- any requests.
+    'decommissioned'
+    -- The backend is marked for removal and should
+    -- not accept new requests.
 );
 
 

@@ -98,11 +98,16 @@ func NewCli(
 			},
 			{
 				Name:    "delete",
-				Aliases: []string{"d", "del"},
+				Aliases: []string{"d", "del", "rm"},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:  "dry",
 						Usage: "perform a dry run",
+					},
+					&cli.BoolFlag{
+						Name:    "force",
+						Aliases: []string{"f"},
+						Usage:   "force delete",
 					},
 				},
 				Subcommands: []*cli.Command{
@@ -357,6 +362,7 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 // delete backend removes a backend from the store
 func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	dry := ctx.Bool("dry")
+	force := ctx.Bool("force")
 	// Args should be host
 	if ctx.NArg() < 1 {
 		return fmt.Errorf("require: <host>")
@@ -368,20 +374,39 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 		return err
 	}
 	if state == nil {
-		return fmt.Errorf("no such frontend")
+		return fmt.Errorf("no such backend")
 	}
 
-	if state.NodeState == "ready" {
-		return fmt.Errorf("can not remove active backend")
+	// Check if we should hard delete. This can be either
+	// the case when the deletion is forced, or when
+	// the backend is in a non ready state
+	hardDelete := force ||
+		(state.NodeState != "ready" && state.NodeState != "init")
+
+	if hardDelete {
+		// The node is down anyhow we can issue a direct delete
+		if dry {
+			fmt.Println("skipping delete backend (dry run)")
+			return nil
+		}
+
+		fmt.Println("deleting backend")
+		return state.Delete()
 	}
 
+	// Otherwise, we mark the node for decommissioning
+	state.AdminState = "decommissioned"
 	if dry {
-		fmt.Println("skipping delete backend (dry run)")
+		fmt.Println("skipping decommissioning backend (dry run)")
 		return nil
 	}
 
-	fmt.Println("deleting backend")
-	return state.Delete()
+	if err := state.Save(); err != nil {
+		return err
+	}
+
+	fmt.Println("backend marked for decommissioning")
+	return nil
 }
 
 // show the current version
