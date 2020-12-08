@@ -46,6 +46,38 @@ func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState,
 	return InitMeetingState(pool, init), nil
 }
 
+func TestGetMeetingStates(t *testing.T) {
+	pool := connectTest(t)
+
+	m1, err := meetingStateFactory(pool, &MeetingState{
+		ID:         uuid.New().String(),
+		InternalID: uuid.New().String(),
+		Meeting: &bbb.Meeting{
+			Running: true,
+		}})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	err = m1.Save()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	// Get running meetings
+	states, err := GetMeetingStates(pool, Q().
+		Where("id = ?", m1.ID).
+		Where("state->'Running' = ?", true))
+	if err != nil {
+		t.Error(err)
+	}
+	if len(states) != 1 {
+		t.Error("expected meeting to be in result set")
+	}
+
+}
+
 func TestMeetingStateSave(t *testing.T) {
 	pool := connectTest(t)
 
