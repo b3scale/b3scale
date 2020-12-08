@@ -9,14 +9,6 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
-// BackendStates: The state of the cluster backend.
-const (
-	BackendStateInit    = "init"
-	BackendStateReady   = "ready"
-	BackendStateError   = "error"
-	BackendStateStopped = "stopped"
-)
-
 // The Gateway accepts bbb cluster requests and dispatches
 // it to the cluster nodes.
 type Gateway struct {

@@ -13,6 +13,15 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
+// BackendStates: The state of the cluster backend node.
+const (
+	BackendStateInit           = "init"
+	BackendStateReady          = "ready"
+	BackendStateError          = "error"
+	BackendStateStopped        = "stopped"
+	BackendStateDecommissioned = "decommissioned"
+)
+
 // A Backend is a BigBlueButton instance in the cluster.
 //
 // It has a bbb.backend secret for request authentication,

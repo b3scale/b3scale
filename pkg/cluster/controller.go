@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -42,6 +43,9 @@ func (c *Controller) Start() {
 	// Create background tasks
 	c.StartBackground()
 
+	// Jitter startup in case multiple instances are spawned at the same time
+	time.Sleep(time.Duration(rand.Float64()) * time.Second) // 0 <= jitter < 1.0
+
 	// Controller Main Loop
 	for {
 		// Process commands from queue
@@ -60,16 +64,24 @@ func (c *Controller) Start() {
 func (c *Controller) StartBackground() {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+
 	// Debounce calls to this function
 	if time.Now().Sub(c.lastStartBackground) < 1*time.Second {
 		return
 	}
+
+	// Add some jitter
 	c.lastStartBackground = time.Now()
 
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
 	if err := c.requestSyncStale(); err != nil {
 		log.Err(err).Msg("requestSyncStale")
+	}
+
+	// Dispatch decommissioning of marked backends
+	if err := c.requestBackendDecommissions(); err != nil {
+		log.Err(err).Msg("requestBackendDecommissions")
 	}
 }
 
@@ -80,9 +92,9 @@ func (c *Controller) StartBackground() {
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
-	case CmdRemoveBackend:
-		log.Debug().Str("cmd", "RemoveBackend").Msg("EXEC")
-		return c.handleRemoveBackend(cmd)
+	case CmdDecommissionBackend:
+		log.Debug().Str("cmd", "DecommissionBackend").Msg("EXEC")
+		return c.handleDecommissionBackend(cmd)
 	case CmdUpdateNodeState:
 		log.Debug().Str("cmd", "UpdateNodeState").Msg("EXEC")
 		return c.handleUpdateNodeState(cmd)
@@ -94,13 +106,53 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	return nil, ErrUnknownCommand
 }
 
-// Command: RemoveBackend
+// Command: DecommissionBackend
 // Removes a backend state identified by id from the state
-func (c *Controller) handleRemoveBackend(
+func (c *Controller) handleDecommissionBackend(
 	cmd *store.Command,
 ) (interface{}, error) {
-	backendID := cmd.Params.(string)
-	return backendID, fmt.Errorf("implement me")
+	req := &DecommissionBackendRequest{}
+	if err := cmd.FetchParams(req); err != nil {
+		return nil, err
+	}
+
+	// Get backend for decommissioning
+	bstate, err := store.GetBackendState(c.pool, store.Q().
+		Where("id = ?", req.ID))
+	if err != nil {
+		return nil, err
+	}
+	if bstate == nil {
+		return false, fmt.Errorf("no such backend: %s", req.ID)
+	}
+
+	// So. This is how this goes: We check if the backend
+	// has active meetings. If this is the case we abort.
+	// However, as the admin state indicates a non ready state
+	// the router will not longer select this backend
+	// for new meetings - so we are good to go here.
+	mstates, err := store.GetMeetingStates(c.pool, store.Q().
+		Where("meetings.backend_id = ?", req.ID).
+		Where("meetings.state->'Running' = ?", true))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(mstates) > 0 {
+		// We have running meetings, so we defer this
+		log.Warn().
+			Int("meetings_running", len(mstates)).
+			Msg("decommission backend deferred, backend has meetings running")
+		return false, nil
+	}
+
+	// Decommission backend by deleting the state
+	// and related meetings
+	if err := bstate.Delete(); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // Command: UpdateNodeState
@@ -185,6 +237,40 @@ func (c *Controller) requestSyncStale() error {
 			return err
 		}
 	}
+	return nil
+}
+
+// requestBackendDecommissions will request a decommissioning
+// of a backend for all backends, which admin state is marked
+// as decommissioned.
+func (c *Controller) requestBackendDecommissions() error {
+	// Get backend states to decommission
+	states, err := store.GetBackendStates(c.pool, store.Q().
+		Where("admin_state = ?", "decommissioned"))
+	if err != nil {
+		log.Error().Err(err).Msg("decommissioning GetBackendStates")
+	}
+
+	if len(states) == 0 {
+		return nil // nothing to do here.
+	}
+
+	// Decommission backends
+	for _, s := range states {
+		log.Info().
+			Int("count", len(states)).
+			Str("host", s.Backend.Host).
+			Str("backendID", s.ID).
+			Msg("requesting backend decommissioning")
+
+		if err := c.cmds.Queue(
+			DecommissionBackend(&DecommissionBackendRequest{
+				ID: s.ID,
+			})); err != nil {
+
+		}
+	}
+
 	return nil
 }
 

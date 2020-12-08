@@ -12,8 +12,8 @@ import (
 // Commands that can be handled by the controller
 const (
 	// Backend
-	CmdRemoveBackend   = "remove_backend"
-	CmdUpdateNodeState = "update_node_state"
+	CmdUpdateNodeState     = "update_node_state"
+	CmdDecommissionBackend = "decommission_backend"
 
 	// Meetings
 	CmdUpdateMeetingState = "update_meeting_state"
@@ -25,17 +25,17 @@ var (
 	ErrUnknownCommand = errors.New("command unknown")
 )
 
-// RemoveBackendRequest declares the removal
+// DecommissionBackendRequest declares the removal
 // of a backend node from the cluster state.
-type RemoveBackendRequest struct {
+type DecommissionBackendRequest struct {
 	ID string `json:"id"`
 }
 
-// RemoveBackend will remove a given cluster
+// DecommissionBackend will remove a given cluster
 // backend from the state.
-func RemoveBackend(req *RemoveBackendRequest) *store.Command {
+func DecommissionBackend(req *DecommissionBackendRequest) *store.Command {
 	return &store.Command{
-		Action:   CmdRemoveBackend,
+		Action:   CmdDecommissionBackend,
 		Params:   req,
 		Deadline: store.NextDeadline(10 * time.Minute),
 	}
