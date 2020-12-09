@@ -404,3 +404,8 @@ func (s *MeetingState) BindFrontendID(id string) error {
 func (s *MeetingState) IsStale() bool {
 	return time.Now().UTC().Sub(s.SyncedAt) > 1*time.Minute
 }
+
+// MarkSynced sets the synced at timestamp
+func (s *MeetingState) MarkSynced() {
+	s.SyncedAt = time.Now().UTC()
+}
