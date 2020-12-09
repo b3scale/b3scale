@@ -35,13 +35,14 @@ func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState,
 		init.BackendID = &init.backend.ID
 	}
 
+	// Prepare meeting state
 	if init.Meeting == nil {
 		init.Meeting = &bbb.Meeting{
-			MeetingID:         init.ID,
-			InternalMeetingID: init.InternalID,
-			MeetingName:       "MyMeetingName-" + uuid.New().String(),
+			MeetingName: "MyMeetingName-" + uuid.New().String(),
 		}
 	}
+	init.Meeting.MeetingID = init.ID
+	init.Meeting.InternalMeetingID = init.InternalID
 
 	return InitMeetingState(pool, init), nil
 }
@@ -55,6 +56,7 @@ func TestGetMeetingStates(t *testing.T) {
 		Meeting: &bbb.Meeting{
 			Running: true,
 		}})
+	t.Log(m1)
 	if err != nil {
 		t.Error(err)
 		return
