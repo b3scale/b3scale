@@ -10,6 +10,12 @@ func NewQuery() sq.SelectBuilder {
 	return sq.SelectBuilder(psql)
 }
 
+// NewDelete creates a new deletion query
+func NewDelete() sq.DeleteBuilder {
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	return sq.DeleteBuilder(psql)
+}
+
 // Q is an alias for NewQuery
 func Q() sq.SelectBuilder {
 	return NewQuery()
