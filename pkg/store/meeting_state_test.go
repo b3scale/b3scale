@@ -90,6 +90,7 @@ func TestMeetingStateSave(t *testing.T) {
 	}
 	t.Log("meeting state after factory:", state)
 	t.Log(
+		"backend:", state.backend,
 		"backendID:", state.BackendID,
 		"frontendID:", state.FrontendID)
 
@@ -188,5 +189,47 @@ func TestDeleteMeetingStateByID(t *testing.T) {
 	// Now delete the meeting state
 	if err := DeleteMeetingStateByID(pool, state.ID); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestDeleteOrphanMeetings(t *testing.T) {
+	pool := connectTest(t)
+	m1, err := meetingStateFactory(pool, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	backend := m1.backend // this is lost because of the refresh at save...
+	t.Log(backend.ID)
+
+	if err := m1.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+	m2, err := meetingStateFactory(pool, &MeetingState{
+		ID:         uuid.New().String(),
+		InternalID: uuid.New().String(),
+		backend:    backend,
+		BackendID:  &backend.ID,
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := m2.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	// Delete meeting
+	keep := []string{m1.InternalID}
+	count, err := DeleteOrphanMeetings(pool, *m1.BackendID, keep)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Log("deleted", count, "orphans")
+	if count != 1 {
+		t.Error("expected 1 orphan")
 	}
 }

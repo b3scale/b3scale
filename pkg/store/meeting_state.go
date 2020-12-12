@@ -257,12 +257,26 @@ func DeleteOrphanMeetings(
 	ctx, cancel := context.WithTimeout(
 		context.Background(), 10*time.Second)
 	defer cancel()
-	qry := `
-		DELETE FROM meetings
-		 WHERE backend_id = $1
-		   AND internal_id NOT IN $2
-	`
-	cmd, err := pool.Exec(ctx, qry, backendID, backendMeetings)
+
+	// Okay. I tried to do this the nice way... however
+	// trying to construct something with 'NOT IN' failed,
+	// and the only workaround I found was constructing
+	// programmatically a long list of 'AND NOT internal_id = ...'
+	//
+	// I guess this can be optimized.
+	q := NewDelete().
+		From("meetings").
+		Where("backend_id = ?", backendID)
+
+	for _, id := range backendMeetings {
+		q = q.Where("internal_id <> ?", id)
+	}
+	qry, params, err := q.ToSql()
+	if err != nil {
+		return 0, err
+	}
+
+	cmd, err := pool.Exec(ctx, qry, params...)
 	if err != nil {
 		return 0, err
 	}
