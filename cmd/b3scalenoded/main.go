@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
@@ -14,10 +15,14 @@ import (
 
 var version string = "HEAD"
 
+// Flags and parameters
+
 func main() {
 	fmt.Printf("b3scale node agent		v.%s\n", version)
-	redisURL := config.EnvOpt(
-		"BBB_REDIS_URL", "redis://localhost:6379/1")
+
+	bbbPropFile := config.EnvOpt(
+		"BBB_CONFIG",
+		"/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties")
 	dbConnStr := config.EnvOpt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
@@ -32,8 +37,17 @@ func main() {
 		panic(err)
 	}
 
-	log.Info().Msg("booting b3scale")
-	log.Info().Str("url", dbConnStr).Msg("using database")
+	// Parse flags
+	flag.Parse()
+
+	// Parse BBB config
+	bbbConf, err := config.ReadPropertiesFile(bbbPropFile)
+	if err != nil {
+		log.Fatal().
+			Err(err).Msg("could not read bbb config")
+	}
+
+	log.Info().Msg("booting b3scalenoded")
 	// Initialize postgres connection
 	dbConn, err := store.Connect(dbConnStr)
 	if err != nil {
@@ -41,7 +55,7 @@ func main() {
 	}
 
 	// Make redis client
-	redisOpts, err := redis.ParseURL(redisURL)
+	redisOpts, err := redis.ParseURL(redisURL(bbbConf))
 	if err != nil {
 		log.Fatal().Err(err).Msg("redis connection")
 	}

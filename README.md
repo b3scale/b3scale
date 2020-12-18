@@ -35,18 +35,14 @@ The following environment variables can be configured:
     You can use either the numeric or integer value
 
 
-Same applies for the b3scalenoded, however only `B3SCALE_DB_URL`
-and a `BBB_REDIS_URL` is required.
+Same applies for the `b3scalenoded`, however only `B3SCALE_DB_URL`
+is required.
 
-  * `BBB_REDIS_URL` accepts an URL to the BBB redis server.
-    Default: `redis://localhost:6379/1`
+The `b3scalenoded` uses the same configuration as BigBlueButton,
+the environment variable for the file is:
 
-    ### URL schema
-    `redis://<user>:<password>@<host>:<port>/<db_number>`
+ * `BBB_CONFIG`, which defaults to:
+    `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`
 
-    `unix://<user>:<password>@</path/to/redis.sock>?db=<db_number>`
-
-
-
-
+This file must be readable for the b3scalenoded.
 
