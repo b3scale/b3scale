@@ -76,12 +76,18 @@ func (c *Controller) StartBackground() {
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
 	if err := c.requestSyncStale(); err != nil {
-		log.Err(err).Msg("requestSyncStale")
+		log.Error().Err(err).Msg("requestSyncStale")
 	}
 
 	// Dispatch decommissioning of marked backends
 	if err := c.requestBackendDecommissions(); err != nil {
-		log.Err(err).Msg("requestBackendDecommissions")
+		log.Error().Err(err).Msg("requestBackendDecommissions")
+	}
+
+	// Check if there are backends where the noded is
+	// not present.
+	if err := c.warnOfflineBackends(); err != nil {
+		log.Error().Err(err).Msg("warnOfflineBackends")
 	}
 }
 
@@ -269,6 +275,30 @@ func (c *Controller) requestBackendDecommissions() error {
 			})); err != nil {
 
 		}
+	}
+
+	return nil
+}
+
+// warnOfflineBackends iterates through all unlocked
+// backends and warns the user that there are backends offline
+func (c *Controller) warnOfflineBackends() error {
+	// Get offline backends
+	states, err := store.GetBackendStates(c.pool, store.Q().
+		Where(`
+			backends.id IN (
+				 SELECT id
+				   FROM backends_node_offline
+				    FOR UPDATE SKIP LOCKED)`))
+	if err != nil {
+		return err
+	}
+
+	for _, s := range states {
+		log.Warn().
+			Str("backendID", s.ID).
+			Str("host", s.Backend.Host).
+			Msg("noded is not available on the backend host")
 	}
 
 	return nil
