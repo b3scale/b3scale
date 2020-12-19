@@ -287,7 +287,7 @@ func (c *Controller) warnOfflineBackends() error {
 	states, err := store.GetBackendStates(c.pool, store.Q().
 		Where(`
 			backends.id IN (
-				 SELECT id
+				 SELECT backend_id
 				   FROM backends_node_offline
 				    FOR UPDATE SKIP LOCKED)`))
 	if err != nil {

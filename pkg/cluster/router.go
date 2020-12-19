@@ -120,7 +120,7 @@ func (r *Router) Middleware() RequestMiddleware {
 			backends, err := r.ctrl.GetBackends(store.Q().
 				Where(`
 					backends.id NOT IN (
-						 SELECT id
+						 SELECT backend_id
 						   FROM backends_node_offline
 							FOR UPDATE SKIP LOCKED)`).
 				Where("node_state = ?", "ready"))
