@@ -37,7 +37,7 @@ CREATE TABLE backends (
     -- of the bbb node, the admin state declares the
     -- desired state of the instance.
     node_state  instance_state NOT NULL DEFAULT 'init',
-    admin_state instance_state NOT NULL DEFAULT 'ready',
+    admin_state instance_state NOT NULL DEFAULT 'stopped',
 
     -- Statistics: We make routing decision based on
     -- these numbers
