@@ -16,6 +16,17 @@ import (
 var version string = "HEAD"
 
 // Flags and parameters
+var (
+	autoregister bool
+)
+
+func init() {
+	usage := "automatically register backend node in cluster"
+	flag.BoolVar(
+		&autoregister, "register", false, usage)
+	flag.BoolVar(
+		&autoregister, "a", false, usage+" (shorthand)")
+}
 
 func main() {
 	fmt.Printf("b3scale node agent		v.%s\n", version)
@@ -49,20 +60,40 @@ func main() {
 
 	log.Info().Msg("booting b3scalenoded")
 	// Initialize postgres connection
-	dbConn, err := store.Connect(dbConnStr)
+	pool, err := store.Connect(dbConnStr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}
 
+	// Get backend state, register backend if missing
+	backend, err := configToBackendState(pool, bbbConf)
+	if err != nil {
+		log.Fatal().Err(err).Msg("load backend state")
+	}
+	if backend == nil {
+		if !autoregister {
+			log.Fatal().
+				Msg("the backend was not found, " +
+					"consider using the autoregister option " +
+					" -register (or -a)")
+		}
+		backend, err = configRegisterBackendState(pool, bbbConf)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Msg("registering the backend failed")
+		}
+	}
+
 	// Make redis client
-	redisOpts, err := redis.ParseURL(redisURL(bbbConf))
+	redisOpts, err := redis.ParseURL(configRedisURL(bbbConf))
 	if err != nil {
 		log.Fatal().Err(err).Msg("redis connection")
 	}
 
 	rdb := redis.NewClient(redisOpts)
 	monitor := events.NewMonitor(rdb)
-	handler := NewEventHandler(dbConn)
+	handler := NewEventHandler(pool)
 	channel := monitor.Subscribe()
 	for ev := range channel {
 		err := handler.Dispatch(ev)
