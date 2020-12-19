@@ -244,5 +244,5 @@ CREATE TABLE __meta__ (
 );
 
 INSERT INTO __meta__ (version, description)
-     VALUES (1, 'initial tables');
+     VALUES (1, 'initial schema');
 
