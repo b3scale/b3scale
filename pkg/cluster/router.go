@@ -115,8 +115,14 @@ func (r *Router) Middleware() RequestMiddleware {
 		return func(
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
-			// Filter backends and only accept state active
+			// Filter backends and only accept state active,
+			// and where the noded is active on the host.
 			backends, err := r.ctrl.GetBackends(store.Q().
+				Where(`
+					backends.id NOT IN (
+						 SELECT id
+						   FROM backends_node_offline
+							FOR UPDATE SKIP LOCKED)`).
 				Where("node_state = ?", "ready"))
 			if err != nil {
 				return nil, err
