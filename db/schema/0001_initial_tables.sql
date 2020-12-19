@@ -58,6 +58,16 @@ CREATE TABLE backends (
     synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
+
+-- We check if the noded of a backend is online by testing
+-- if it has acquired a lock on the id of the backend
+-- of this table.
+CREATE TABLE backend_node_offline (
+    backend_id  uuid NOT NULL
+                     REFERENCES backends(id)
+                     ON DELETE  CASCADE
+);
+
 -- Frontends
 CREATE TABLE frontends (
     id      uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
