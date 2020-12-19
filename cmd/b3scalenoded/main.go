@@ -91,6 +91,9 @@ func main() {
 		log.Fatal().Err(err).Msg("redis connection")
 	}
 
+	// Mark the presence of the noded
+	go acquireBackendNodeLock(pool, backend)
+
 	rdb := redis.NewClient(redisOpts)
 	monitor := events.NewMonitor(rdb)
 	handler := NewEventHandler(pool)
