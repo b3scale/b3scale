@@ -62,11 +62,28 @@ CREATE TABLE backends (
 -- We check if the noded of a backend is online by testing
 -- if it has acquired a lock on the id of the backend
 -- of this table.
-CREATE TABLE backend_node_offline (
+CREATE TABLE backends_node_offline (
     backend_id  uuid NOT NULL
                      REFERENCES backends(id)
                      ON DELETE  CASCADE
 );
+
+
+-- AfterBackendsInsert
+-- Procedure to be called for every new backend.
+CREATE FUNCTION after_backends_insert() RETURNS TRIGGER AS $$
+BEGIN
+  -- Create backend offline lock
+  INSERT INTO backends_node_offline (backend_id)
+       VALUES (NEW.id);
+
+  RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER  backends_insert   AFTER INSERT ON backends
+  FOR EACH ROW  EXECUTE PROCEDURE after_backends_insert();
+
 
 -- Frontends
 CREATE TABLE frontends (
