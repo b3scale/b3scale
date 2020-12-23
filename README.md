@@ -44,3 +44,41 @@ the environment variable for the file is:
 
 This file must be readable for the b3scalenoded.
 
+
+## Adding Backends
+
+### Using the node agent
+
+Adding a backend using the node agent `b3scalenoded` can be as simple
+as starting it with the `-register` option for autoregistering the
+new node.
+
+The node is identified through the `BBB_CONFIG` file from bbb-web.
+
+Autoregistering is turned off by default.
+
+After registering the node, you have to enable it.
+
+The default `admin_state` of the node is init. To enable the
+node, set the admin state to `ready`.
+
+    $ b3scalectl set backend --state ready https://bbbb01.example.net/bigbluebutton/api/
+
+The host should match the one you see with
+
+    $ b3scalectl show backends
+
+
+## Deleting Backends
+
+Backends can be removed through
+
+    $ b3scalectl rm backend https://bbbb01.example.net/bigbluebutton/api/
+    
+This will initiate a decomissioning process, where the backend will not longer
+be used for creating new sessions.
+
+It will be permanently deleted after the last session was closed.
+
+
+
