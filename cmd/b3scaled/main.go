@@ -35,7 +35,7 @@ func main() {
 	}
 
 	log.Info().Msg("booting b3scale")
-	log.Info().Str("url", dbConnStr).Msg("using database")
+	log.Debug().Str("url", dbConnStr).Msg("using database")
 
 	// Initialize postgres connection
 	dbConn, err := store.Connect(dbConnStr)
