@@ -245,6 +245,7 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 
 // setBackend manages the backends in the cluster
 func (c *Cli) setBackend(ctx *cli.Context) error {
+	adminState := ctx.String("state")
 	dry := ctx.Bool("dry")
 
 	// Args should be host
@@ -259,8 +260,6 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	if !strings.HasSuffix(host, "/") {
 		host += "/"
 	}
-
-	adminState := ctx.String("state")
 
 	// Check if backend exists
 	state, err := store.GetBackendState(c.pool, store.Q().
