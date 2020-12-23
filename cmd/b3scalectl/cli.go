@@ -79,6 +79,11 @@ func NewCli(
 								Aliases: []string{"s"},
 								Usage:   "the bbb secret",
 							},
+							&cli.StringFlag{
+								Name:  "state",
+								Usage: "set the admin_state of the backend node",
+								Value: "init",
+							},
 						},
 						Action: c.setBackend,
 					},
@@ -254,6 +259,9 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	if !strings.HasSuffix(host, "/") {
 		host += "/"
 	}
+
+	adminState := ctx.String("state")
+
 	// Check if backend exists
 	state, err := store.GetBackendState(c.pool, store.Q().
 		Where("host = ?", host))
@@ -271,7 +279,8 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 				Host:   host,
 				Secret: ctx.String("secret"),
 			},
-			Tags: tags,
+			AdminState: adminState,
+			Tags:       tags,
 		})
 		if !dry {
 			if err := state.Save(); err != nil {
@@ -289,11 +298,21 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			if secret == "" {
 				return fmt.Errorf("secret may not be empty")
 			}
-			state.Backend.Secret = secret
-			changes = true
+			if state.Backend.Secret != secret {
+				state.Backend.Secret = secret
+				changes = true
+			}
 		}
 		if ctx.IsSet("tags") {
-			state.Tags = tags
+			if !tagsEq(state.Tags, tags) {
+				state.Tags = tags
+				changes = true
+			}
+		}
+		if ctx.IsSet("state") {
+			if state.AdminState != adminState {
+				state.AdminState = adminState
+			}
 			changes = true
 		}
 		if changes {
