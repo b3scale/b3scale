@@ -49,8 +49,8 @@ func (c *Controller) Start() {
 		for {
 			log.Debug().Msg("running background task periodic trigger")
 			c.StartBackground()
-			wait := 10.0 + 2.0*rand.Float64()
-			time.Sleep(wait * time.Second())
+			wait := time.Duration(10.0 + 2.0*rand.Float64())
+			time.Sleep(wait * time.Second)
 		}
 	}()
 
@@ -62,7 +62,7 @@ func (c *Controller) Start() {
 			// commands fails. This can happen when the database
 			// is down. So, we log the error and wait a bit.
 			log.Error().Err(err).Msg("receive next command")
-			time.Sleep(1 * time.Second)
+			time.Sleep(1.0 * time.Second)
 		}
 	}
 }
