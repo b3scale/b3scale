@@ -115,6 +115,7 @@ func configRegisterBackendState(
 			Host:   apiURL,
 			Secret: secret,
 		},
+		AdminState: "init",
 	})
 	if err := state.Save(); err != nil {
 		return nil, err
