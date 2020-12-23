@@ -20,8 +20,6 @@ func main() {
 	// Config
 	listenHTTP := config.EnvOpt(
 		"B3SCALE_LISTEN_HTTP", "127.0.0.1:42353") // B3S
-	listenHTTP2 := config.EnvOpt(
-		"B3SCALE_LISTEN_HTTP2", "127.0.0.1:42352") // B3S @ http2
 	dbConnStr := config.EnvOpt(
 		"B3SCALE_DB_URL",
 		"postgres://postgres:postgres@localhost:5432/b3scale")
@@ -64,10 +62,8 @@ func main() {
 
 	// Start HTTP interface
 	ifaceHTTP := http.NewInterface("http", ctrl, gateway)
-	ifaceHTTP2 := http.NewInterface("http2", ctrl, gateway)
 
 	go ifaceHTTP.Start(listenHTTP)
-	go ifaceHTTP2.StartCleartextHTTP2(listenHTTP2)
 
 	<-quit
 }
