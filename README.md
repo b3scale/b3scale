@@ -81,4 +81,8 @@ be used for creating new sessions.
 It will be permanently deleted after the last session was closed.
 
 
+### Issues
+
+At the moment a running node agent might prevent the backend from being deleted.
+
 
