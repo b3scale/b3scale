@@ -12,6 +12,8 @@ import (
 // Connect establishes a database connection and
 // checks the schema version of the database.
 func Connect(url string) (*pgxpool.Pool, error) {
+	log.Debug().Str("url", url).Msg("using database")
+
 	// Initialize postgres connection
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
