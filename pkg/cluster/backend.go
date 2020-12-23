@@ -76,6 +76,10 @@ func (b *Backend) Stress() uint {
 // 2nd pass: for each meeting assigned to backend in store:
 // If the meeting is not present in the backend, remove meeting,
 // from store
+//
+// TODO: This function has become way too long.
+//       You need to refactor this. Please.
+//
 func (b *Backend) loadNodeState() error {
 	log.Info().
 		Str("backend", b.state.Backend.Host).
@@ -86,6 +90,15 @@ func (b *Backend) loadNodeState() error {
 	req := bbb.GetMeetingsRequest(bbb.Params{}).WithBackend(b.state.Backend)
 	rep, err := b.client.Do(req)
 	if err != nil {
+		// The backend does not even respond, we mark this
+		// as an error
+		errMsg := fmt.Sprintf("%s", err)
+		b.state.NodeState = "error"
+		b.state.LastError = &errMsg
+		if err := b.state.Save(); err != nil {
+			log.Error().Err(err).Msg("save backend state")
+		}
+
 		return err
 	}
 	t1 := time.Now()
@@ -100,7 +113,7 @@ func (b *Backend) loadNodeState() error {
 		if err := b.state.Save(); err != nil {
 			log.Error().Err(err).Msg("save backend state")
 		}
-		return errors.New(errMsg)
+		return err
 	}
 
 	if res.Returncode != "SUCCESS" {
@@ -111,7 +124,7 @@ func (b *Backend) loadNodeState() error {
 		if err := b.state.Save(); err != nil {
 			log.Error().Err(err).Msg("save backend state")
 		}
-		return errors.New(errMsg)
+		return err
 	}
 
 	// Update state
