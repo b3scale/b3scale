@@ -188,10 +188,6 @@ func (c *Controller) handleUpdateNodeState(
 	}
 	err = backend.loadNodeState()
 	if err != nil {
-		log.Error().
-			Str("host", backend.state.Backend.Host).
-			Err(err).
-			Msg("loadNodeState")
 		return false, err
 	}
 	return true, nil
