@@ -14,6 +14,7 @@ import (
 // Errors
 var (
 	ErrBackendNotFound = errors.New("backend not found in cluster")
+	ErrBackendState    = errors.New("backend is not ready")
 )
 
 // Acquire a lock on the backend to mark the presence
@@ -48,6 +49,7 @@ func _acquireBackendNodeLock(pool *pgxpool.Pool, backend *store.BackendState) er
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback(ctx)
 
 	// Acquire lock
 	res, err := tx.Exec(ctx, qry, backend.ID)
@@ -64,9 +66,33 @@ func _acquireBackendNodeLock(pool *pgxpool.Pool, backend *store.BackendState) er
 		return ErrBackendNotFound
 	}
 
-	// Keep alive
 	for {
-		_, err := tx.Exec(ctx, "SELECT 1")
+		// Check if we should loose the lock
+		var (
+			nodeState  string
+			adminState string
+		)
+
+		// We are using the pool here to prevent some form
+		// of transaction isolation - but maybe I'm too paranoid here.
+		err := pool.QueryRow(ctx, `
+			SELECT node_state, admin_state
+			  FROM backends
+			 WHERE id = $1`, backend.ID).Scan(&nodeState, &adminState)
+		if err != nil {
+			return err
+		}
+
+		if nodeState != "ready" && nodeState != "init" {
+			log.Warn().
+				Str("nodeState", nodeState).
+				Str("expected", "init|ready").
+				Msg("unexpected node state - releasing lock")
+			return ErrBackendState
+		}
+
+		// Keep alive
+		_, err = tx.Exec(ctx, "SELECT 1")
 		if err != nil {
 			return err
 		}
