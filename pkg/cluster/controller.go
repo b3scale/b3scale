@@ -40,11 +40,19 @@ func NewController(pool *pgxpool.Pool) *Controller {
 func (c *Controller) Start() {
 	log.Info().Msg("starting cluster controller")
 
-	// Create background tasks
-	c.StartBackground()
-
 	// Jitter startup in case multiple instances are spawned at the same time
 	time.Sleep(time.Duration(rand.Float64()) * time.Second) // 0 <= jitter < 1.0
+
+	// Periodically start background tasks, even if they
+	// are not triggered through requests
+	go func() {
+		for {
+			log.Debug().Msg("running background task periodic trigger")
+			c.StartBackground()
+			wait := 10.0 + 2.0*rand.Float64()
+			time.Sleep(wait * time.Second())
+		}
+	}()
 
 	// Controller Main Loop
 	for {
