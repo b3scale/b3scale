@@ -7,6 +7,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/events"
 	"gitlab.com/infra.run/public/b3scale/pkg/logging"
@@ -96,14 +97,17 @@ func main() {
 
 	rdb := redis.NewClient(redisOpts)
 	monitor := events.NewMonitor(rdb)
-	handler := NewEventHandler(pool)
 	channel := monitor.Subscribe()
 	for ev := range channel {
-		err := handler.Dispatch(ev)
-		if err != nil {
-			log.Error().
-				Err(err).
-				Msg("event handler")
-		}
+		// We are handling an event in it's own goroutine
+		go func(ev bbb.Event) {
+			handler := NewEventHandler(pool, backend)
+			err := handler.Dispatch(ev)
+			if err != nil {
+				log.Error().
+					Err(err).
+					Msg("event handler")
+			}
+		}(ev)
 	}
 }

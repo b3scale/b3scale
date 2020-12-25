@@ -15,13 +15,17 @@ import (
 // The EventHandler processes BBB Events and updates
 // the cluster state
 type EventHandler struct {
-	pool *pgxpool.Pool
+	backend *store.BackendState
+	pool    *pgxpool.Pool
 }
 
 // NewEventHandler creates a new handler instance
 // with a database pool
-func NewEventHandler(pool *pgxpool.Pool) *EventHandler {
-	return &EventHandler{pool: pool}
+func NewEventHandler(pool *pgxpool.Pool, backend *store.BackendState) *EventHandler {
+	return &EventHandler{
+		backend: backend,
+		pool:    pool,
+	}
 }
 
 // Dispatch invokes the handler functions on the BBB event
@@ -57,11 +61,8 @@ func (h *EventHandler) onMeetingCreated(
 		Str("meetingID", e.MeetingID).
 		Msg("meeting created")
 
-	// The meeting should be already known, becuase it was created
-	// through the scaled. So we try to get the meeting and update
-	// it.
-	mstate, err := store.GetMeetingState(h.pool, store.Q().
-		Where("internal_id = ?", e.InternalMeetingID))
+	deadline := 5 * time.Second
+	mstate, err := awaitInternalMeeting(h.pool, e.InternalMeetingID, deadline)
 	if err != nil {
 		return err
 	}
@@ -70,25 +71,24 @@ func (h *EventHandler) onMeetingCreated(
 			Str("internalMeetingID", e.InternalMeetingID).
 			Str("meetingID", e.MeetingID).
 			Msg("meeting identified by internalMeetingID " +
-				"is unknown to the cluster")
+				"is unknown  to the cluster")
+		return nil
 	}
 	mstate.Meeting.Running = true
 	if err := mstate.Save(); err != nil {
 		return err
 	}
 
-	// Do a meeting recount
+	// Do a meetings count for this backend
 	ctx := context.Background()
 	qry := `
 		UPDATE backends
 		   SET meetings_count = (
 		   	     SELECT COUNT(1) FROM meetings
 			      WHERE meetings.backend_id = backends.id)
-		  JOIN meetings
-		    ON meetings.backend_id = backends.id
-		 WHERE meetings.internal_id = $1
+		 WHERE backends.id = $1
 	`
-	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
+	if _, err := h.pool.Exec(ctx, qry, h.backend.ID); err != nil {
 		return err
 	}
 
@@ -102,8 +102,8 @@ func (h *EventHandler) onMeetingEnded(
 	log.Info().
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("meeting ended")
-	mstate, err := store.GetMeetingState(h.pool, store.Q().
-		Where("internal_id = ?", e.InternalMeetingID))
+	deadline := 5 * time.Second
+	mstate, err := awaitInternalMeeting(h.pool, e.InternalMeetingID, deadline)
 	if err != nil {
 		return err
 	}
@@ -135,21 +135,16 @@ func (h *EventHandler) onMeetingDestroyed(
 		return nil
 	}
 
-	// Do a meeting recount
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		15*time.Second)
-	defer cancel()
+	// Do a meetings count for this backend
+	ctx := context.Background()
 	qry := `
 		UPDATE backends
 		   SET meetings_count = (
 		   	     SELECT COUNT(1) FROM meetings
 			      WHERE meetings.backend_id = backends.id)
-		  JOIN meetings
-		    ON meetings.backend_id = backends.id
-		 WHERE meetings.internal_id = $1
+		 WHERE backends.id = $1
 	`
-	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
+	if _, err := h.pool.Exec(ctx, qry, h.backend.ID); err != nil {
 		return err
 	}
 	return nil
@@ -173,9 +168,9 @@ func (h *EventHandler) onUserJoinedMeeting(
 	qry := `
 		UPDATE backends
 		   SET attendees_count = attendees_count + 1
-		  JOIN meetings
-		    ON meetings.backend_id = backends.id
+		  FROM meetings
 		 WHERE meetings.internal_id = $1
+		   AND meetings.backend_id = backends.id
 	`
 	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
 		return err
@@ -225,10 +220,10 @@ func (h *EventHandler) onUserLeftMeeting(
 	qry := `
 		UPDATE backends
 		   SET attendees_count = attendees_count - 1
-		  JOIN meetings
-		    ON meetings.backend_id = backends.id
+		  FROM meetings
 		 WHERE meetings.internal_id = $1
 		   AND attendees_count >= 1
+		   AND meetings.backend_id = backends.id
 	`
 	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
 		return err
