@@ -356,14 +356,16 @@ func (s *MeetingState) update() error {
 	qry := `
 		UPDATE meetings
 		   SET state		= $2,
-		       frontend_id  = $3,
-			   backend_id   = $4,
-		  	   synced_at    = $5,
-			   updated_at   = $6 
+		       internal_id  = $3,
+		       frontend_id  = $4,
+			   backend_id   = $5,
+		  	   synced_at    = $6,
+			   updated_at   = $7 
 	 	 WHERE id = $1`
 	_, err := s.pool.Exec(ctx, qry,
 		s.ID,
 		s.Meeting,
+		s.Meeting.InternalMeetingID,
 		s.FrontendID,
 		s.BackendID,
 		s.SyncedAt,
