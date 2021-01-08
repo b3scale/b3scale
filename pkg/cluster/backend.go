@@ -104,6 +104,8 @@ func (b *Backend) loadNodeState() error {
 	latency := t1.Sub(t0)
 
 	res := rep.(*bbb.GetMeetingsResponse)
+	fmt.Println("Get meetings response")
+	fmt.Println(res)
 
 	if err != nil {
 		errMsg := fmt.Sprintf("%s", err)
@@ -140,6 +142,9 @@ func (b *Backend) loadNodeState() error {
 	// Update meetings: 1st pass
 	backendMeetings := make([]string, 0, len(res.Meetings))
 	for _, meeting := range res.Meetings {
+		log.Info().
+			Stringer("meeting", meeting).
+			Msg("refreshing meeting...")
 		backendMeetings = append(backendMeetings, meeting.InternalMeetingID)
 		mstate, err := store.GetMeetingState(b.pool, store.Q().
 			Where("meetings.internal_id = ?", meeting.InternalMeetingID))
@@ -185,6 +190,12 @@ func (b *Backend) loadNodeState() error {
 			Str("backend", b.state.Backend.Host).
 			Msg("removed orphan meetings associated with backend")
 	}
+
+	// Update meetings and attendees counter
+	if err := b.state.UpdateStatCounters(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

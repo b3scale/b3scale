@@ -309,6 +309,36 @@ func (s *BackendState) IncAttendeesCount() error {
 	return err
 }
 
+// UpdateStatCounters counts meetings and attendees and updates the properties
+func (s *BackendState) UpdateStatCounters() error {
+	// Get meeting states and refresh counters
+	mstates, err := GetMeetingStates(s.pool, Q().
+		Where("meetings.backend_id = ?", s.ID))
+	if err != nil {
+		return err
+	}
+
+	// Meeting and attendees counter
+	mcount := len(mstates)
+	acount := 0
+	for _, m := range mstates {
+		acount += len(m.Meeting.Attendees)
+	}
+
+	ctx := context.Background()
+	qry := `
+		UPDATE backends
+		   SET meetings_count = $2,
+		       attendees_count = $3
+		 WHERE backends.id = $1
+	`
+	if _, err := s.pool.Exec(ctx, qry, s.ID, mcount, acount); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // CreateMeetingState will create a new state for the
 // current backend state. A frontend is attached.
 func (s *BackendState) CreateMeetingState(
