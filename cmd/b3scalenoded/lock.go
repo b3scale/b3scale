@@ -13,8 +13,9 @@ import (
 
 // Errors
 var (
-	ErrBackendNotFound = errors.New("backend not found in cluster")
-	ErrBackendState    = errors.New("backend is not ready")
+	ErrBackendNotFound       = errors.New("backend not found in cluster")
+	ErrBackendState          = errors.New("backend is not ready")
+	ErrBackendDecommissioned = errors.New("backend is decommissioned")
 )
 
 // Acquire a lock on the backend to mark the presence
@@ -25,6 +26,13 @@ func acquireBackendNodeLock(pool *pgxpool.Pool, backend *store.BackendState) {
 	// We shall never return
 	for {
 		err := _acquireBackendNodeLock(pool, backend)
+		if errors.Is(err, ErrBackendDecommissioned) {
+			log.Info().
+				Str("backendID", backend.ID).
+				Str("host", backend.Backend.Host).
+				Msg("backend decommissioned; not longer trying to get a lock")
+			return
+		}
 		log.Error().
 			Str("backendID", backend.ID).
 			Str("host", backend.Backend.Host).
@@ -89,6 +97,20 @@ func _acquireBackendNodeLock(pool *pgxpool.Pool, backend *store.BackendState) er
 				Str("expected", "init|ready").
 				Msg("unexpected node state - releasing lock")
 			return ErrBackendState
+		}
+
+		// Check if there are meetings alive if not and the
+		// desired next state is decommissioned, we can drop the lock
+		if adminState == "decommissioned" {
+			mstates, err := store.GetMeetingStates(pool, store.Q().
+				Where("meetings.backend_id = ?", backend.ID).
+				Where("meetings.state->'Running' = ?", true))
+			if err != nil {
+				return err
+			}
+			if len(mstates) == 0 {
+				return ErrBackendDecommissioned
+			}
 		}
 
 		// Keep alive
