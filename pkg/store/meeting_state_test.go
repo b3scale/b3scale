@@ -115,7 +115,8 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 	}
 
 	state.Meeting = &bbb.Meeting{
-		MeetingName: "bar",
+		MeetingName:       "bar",
+		InternalMeetingID: uuid.New().String(),
 	}
 	if err := state.Save(); err != nil {
 		t.Error(err)
