@@ -221,6 +221,20 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	m3, err := meetingStateFactory(pool, &MeetingState{
+		ID:         uuid.New().String(),
+		InternalID: uuid.New().String(),
+		backend:    backend,
+		BackendID:  &backend.ID,
+	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := m2.Save(); err != nil {
+		t.Error(err)
+		return
+	}
 
 	// Create an unrelated meeting at a different backend
 	mUnrel, err := meetingStateFactory(pool, nil)
@@ -234,7 +248,7 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 	}
 
 	// Delete meeting
-	keep := []string{m1.InternalID}
+	keep := []string{m1.InternalID, m3.InternalID}
 	count, err := DeleteOrphanMeetings(pool, *m1.BackendID, keep)
 	if err != nil {
 		t.Error(err)

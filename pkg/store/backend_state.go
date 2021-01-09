@@ -309,11 +309,15 @@ func (s *BackendState) IncAttendeesCount() error {
 	return err
 }
 
-// UpdateStatCounters counts meetings and attendees and updates the properties
-func (s *BackendState) UpdateStatCounters() error {
+// Internal: updateBackendStatCounters counts meetings
+// and attendees for a given backendID
+func updateBackendStatCounters(
+	pool *pgxpool.Pool,
+	backendID string,
+) error {
 	// Get meeting states and refresh counters
-	mstates, err := GetMeetingStates(s.pool, Q().
-		Where("meetings.backend_id = ?", s.ID))
+	mstates, err := GetMeetingStates(pool, Q().
+		Where("meetings.backend_id = ?", backendID))
 	if err != nil {
 		return err
 	}
@@ -332,11 +336,16 @@ func (s *BackendState) UpdateStatCounters() error {
 		       attendees_count = $3
 		 WHERE backends.id = $1
 	`
-	if _, err := s.pool.Exec(ctx, qry, s.ID, mcount, acount); err != nil {
+	if _, err := pool.Exec(ctx, qry, backendID, mcount, acount); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// UpdateStatCounters counts meetings and attendees and updates the properties
+func (s *BackendState) UpdateStatCounters() error {
+	return updateBackendStatCounters(s.pool, s.ID)
 }
 
 // CreateMeetingState will create a new state for the

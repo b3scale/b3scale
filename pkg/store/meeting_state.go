@@ -231,19 +231,12 @@ func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
 	if _, err := tx.Exec(ctx, qry, id); err != nil {
 		return err
 	}
-	// Update meeting counter
-	qry = `
-		UPDATE backends
-		   SET meetings_count = (
-		   	   SELECT COUNT(1) FROM meetings
-			    WHERE meetings.backend_id = backends.id)
-		 WHERE backends.id = $1
-	`
-	if _, err := tx.Exec(ctx, qry, id); err != nil {
+
+	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
-	return tx.Commit(ctx)
+	return updateBackendStatCounters(pool, backendID)
 }
 
 // DeleteOrphanMeetings will remove all meetings not
