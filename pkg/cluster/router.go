@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/rs/zerolog/log"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -109,9 +111,59 @@ func (r *Router) Use(middleware RouterMiddleware) {
 	r.middleware = middleware(r.middleware)
 }
 
+// Lookup middleware for retriving an already associated
+// backend for a given meeting.
+func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
+	// Get meeting id from params. If none is present,
+	// there is nothing to do for us here.
+	meetingID, ok := req.Params.MeetingID()
+	if !ok {
+		return nil, nil
+	}
+
+	// Lookup backend for meeting in cluster, use backend
+	// if there is one associated - otherwise return
+	// all possible backends.
+	backend, err := r.ctrl.GetBackend(store.Q().
+		Join("meetings ON meetings.backend_id = backends.id").
+		Where("meetings.id = ?", meetingID))
+	if err != nil {
+		return nil, err
+	}
+	if backend == nil {
+		// No specific backend was associated with the ID
+		return nil, nil
+	}
+
+	return backend, nil
+
+}
+
+func (r *Router) isBackendAvailable(
+	backend *Backend,
+	backends []*Backend,
+) bool {
+	for _, b := range backends {
+		if b.ID() == backend.ID() {
+			return true
+		}
+	}
+
+	// Emit a warning
+	log.Warn().
+		Str("backend", backend.Host()).
+		Str("backendID", backend.ID()).
+		Msg("requested backend is no longer available " +
+			"as selectable routing target. " +
+			"Reassigning meetig.")
+
+	return false
+}
+
 // Middleware builds a request middleware
 func (r *Router) Middleware() RequestMiddleware {
 	return func(next RequestHandler) RequestHandler {
+		// Do routing
 		return func(
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
@@ -129,6 +181,25 @@ func (r *Router) Middleware() RequestMiddleware {
 			}
 			if len(backends) == 0 {
 				return nil, fmt.Errorf("no backends available")
+			}
+
+			// Try to lookup meeting for the incoming request
+			backend, err := r.lookupBackendForRequest(req)
+			if backend != nil {
+				log.Info().
+					Str("backendID", backend.ID()).
+					Msg("found backend for meeting id")
+
+				// We found a backend! If it is still available, we skip
+				// the router middleware chain and invoke the next request
+				// middleware with this backend.
+				if r.isBackendAvailable(backend, backends) {
+					ctx = ContextWithBackends(ctx, []*Backend{backend})
+					return next(ctx, req)
+				}
+			} else {
+				log.Info().
+					Msg("no backend found for meeting... applying routing middlewares")
 			}
 
 			// Apply routing middleware to backends for a BBB request
