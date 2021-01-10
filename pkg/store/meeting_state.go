@@ -336,6 +336,13 @@ func (s *MeetingState) insert() (string, error) {
 		return "", err
 	}
 
+	// Refresh stats if backend is present
+	if s.BackendID != nil {
+		if err := updateBackendStatCounters(s.pool, *s.BackendID); err != nil {
+			return "", err
+		}
+	}
+
 	return s.ID, nil
 }
 

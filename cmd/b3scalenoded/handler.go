@@ -79,19 +79,6 @@ func (h *EventHandler) onMeetingCreated(
 		return err
 	}
 
-	// Do a meetings count for this backend
-	ctx := context.Background()
-	qry := `
-		UPDATE backends
-		   SET meetings_count = (
-		   	     SELECT COUNT(1) FROM meetings
-			      WHERE meetings.backend_id = backends.id)
-		 WHERE backends.id = $1
-	`
-	if _, err := h.pool.Exec(ctx, qry, h.backend.ID); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -129,23 +116,11 @@ func (h *EventHandler) onMeetingDestroyed(
 	log.Info().
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("meeting destroyed")
+
 	// Delete meeting state
 	err := store.DeleteMeetingStateByInternalID(h.pool, e.InternalMeetingID)
 	if err != nil {
 		return nil
-	}
-
-	// Do a meetings count for this backend
-	ctx := context.Background()
-	qry := `
-		UPDATE backends
-		   SET meetings_count = (
-		   	     SELECT COUNT(1) FROM meetings
-			      WHERE meetings.backend_id = backends.id)
-		 WHERE backends.id = $1
-	`
-	if _, err := h.pool.Exec(ctx, qry, h.backend.ID); err != nil {
-		return err
 	}
 	return nil
 }
