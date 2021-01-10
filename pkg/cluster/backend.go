@@ -166,6 +166,7 @@ func (b *Backend) loadNodeState() error {
 				ID:         meeting.MeetingID,
 				InternalID: meeting.InternalMeetingID,
 				BackendID:  &b.state.ID,
+				Meeting:    meeting,
 			})
 		}
 
