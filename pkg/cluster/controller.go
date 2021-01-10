@@ -223,7 +223,7 @@ func (c *Controller) handleUpdateMeetingState(
 // requestSyncStale triggers a background sync of the
 // entire node state
 func (c *Controller) requestSyncStale() error {
-	log.Info().Msg("starting stale node refresh")
+	log.Debug().Msg("starting stale node refresh")
 	stale, err := c.GetBackends(store.Q().
 		Where(`now() - COALESCE(
 				synced_at,

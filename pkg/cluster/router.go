@@ -186,7 +186,7 @@ func (r *Router) Middleware() RequestMiddleware {
 			// Try to lookup meeting for the incoming request
 			backend, err := r.lookupBackendForRequest(req)
 			if backend != nil {
-				log.Info().
+				log.Debug().
 					Str("backendID", backend.ID()).
 					Msg("found backend for meeting id")
 
@@ -198,7 +198,7 @@ func (r *Router) Middleware() RequestMiddleware {
 					return next(ctx, req)
 				}
 			} else {
-				log.Info().
+				log.Debug().
 					Msg("no backend found for meeting... applying routing middlewares")
 			}
 

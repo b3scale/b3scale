@@ -80,7 +80,7 @@ func (b *Backend) Stress() uint {
 //       You need to refactor this. Please.
 //
 func (b *Backend) loadNodeState() error {
-	log.Info().
+	log.Debug().
 		Str("backend", b.state.Backend.Host).
 		Msg("processing backend meetings")
 
@@ -104,19 +104,6 @@ func (b *Backend) loadNodeState() error {
 	latency := t1.Sub(t0)
 
 	res := rep.(*bbb.GetMeetingsResponse)
-	fmt.Println("Get meetings response")
-	fmt.Println(res)
-
-	if err != nil {
-		errMsg := fmt.Sprintf("%s", err)
-		b.state.NodeState = "error"
-		b.state.LastError = &errMsg
-		if err := b.state.Save(); err != nil {
-			log.Error().Err(err).Msg("save backend state")
-		}
-		return err
-	}
-
 	if res.Returncode != "SUCCESS" {
 		// Update backend state
 		errMsg := fmt.Sprintf("%s: %s", res.MessageKey, res.Message)
@@ -142,9 +129,7 @@ func (b *Backend) loadNodeState() error {
 	// Update meetings: 1st pass
 	backendMeetings := make([]string, 0, len(res.Meetings))
 	for _, meeting := range res.Meetings {
-		log.Info().
-			Stringer("meeting", meeting).
-			Msg("refreshing meeting...")
+		log.Debug().Stringer("meeting", meeting).Msg("refreshing meeting")
 		backendMeetings = append(backendMeetings, meeting.InternalMeetingID)
 		mstate, err := store.GetMeetingState(b.pool, store.Q().
 			Where("meetings.internal_id = ?", meeting.InternalMeetingID))
