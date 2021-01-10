@@ -48,7 +48,6 @@ func main() {
 
 	// Start router
 	router := cluster.NewRouter(ctrl)
-	router.Use(routing.Lookup(ctrl))
 	router.Use(routing.SortLoad)
 
 	// Start cluster request handler, and apply middlewares.
