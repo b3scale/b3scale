@@ -233,7 +233,8 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 
 // show a list of all frontends
 func (c *Cli) showFrontends(ctx *cli.Context) error {
-	states, err := store.GetFrontendStates(c.pool, store.Q())
+	states, err := store.GetFrontendStates(c.pool, store.Q().
+		OrderBy("frontends.key ASC"))
 	if err != nil {
 		return err
 	}
@@ -344,7 +345,8 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 
 // showBackends displays a list of our backends
 func (c *Cli) showBackends(ctx *cli.Context) error {
-	backends, err := store.GetBackendStates(c.pool, store.Q())
+	backends, err := store.GetBackendStates(c.pool, store.Q().
+		OrderBy("backends.host ASC"))
 	if err != nil {
 		return err
 	}
