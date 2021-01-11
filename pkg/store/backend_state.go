@@ -72,6 +72,13 @@ func GetBackendStates(
 		context.Background(), 5*time.Second)
 	defer cancel()
 
+	// To utilize the locking of the we wrap this in a transaction
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	qry, params, _ := q.From("backends").Columns(
 		"backends.id",
 		"backends.node_state",
@@ -88,7 +95,7 @@ func GetBackendStates(
 		"backends.synced_at").
 		ToSql()
 	// log.Println("SQL:", qry, params)
-	rows, err := pool.Query(ctx, qry, params...)
+	rows, err := tx.Query(ctx, qry, params...)
 	if err != nil {
 		return nil, err
 	}

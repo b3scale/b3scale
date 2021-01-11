@@ -75,7 +75,7 @@ func _acquireBackendNodeLock(pool *pgxpool.Pool, backend *store.BackendState) er
 	}
 
 	for {
-		// Check if we should loose the lock
+		// Check if we should lose the lock
 		var (
 			nodeState  string
 			adminState string
