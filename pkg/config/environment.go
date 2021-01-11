@@ -53,9 +53,9 @@ func loadEnvFile(filename string) {
 		if len(tokens) != 2 {
 			continue // invalid
 		}
-		os.Setenv(
-			strings.TrimSpace(tokens[0]),
-			strings.TrimSpace(tokens[1]))
+		k := strings.Trim(strings.TrimSpace(tokens[0]), "\"'")
+		v := strings.Trim(strings.TrimSpace(tokens[1]), "\"'")
+		os.Setenv(k, v)
 	}
 }
 
