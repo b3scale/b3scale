@@ -363,9 +363,9 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 		fmt.Printf("  Tags:\t %v\n", b.Tags)
 		fmt.Printf("  NodeState:\t %s\t", b.NodeState)
 		fmt.Printf("  AdminState:\t %s\n", b.AdminState)
-		fmt.Printf("  AC/MC/R:\t %d/%d/%.02f\n",
-			b.AttendeesCount,
+		fmt.Printf("  MC/AC/R:\t %d/%d/%.02f\n",
 			b.MeetingsCount,
+			b.AttendeesCount,
 			ratio)
 		fmt.Printf("  Latency:\t%v\n", b.Latency)
 		if b.NodeState == "error" && b.LastError != nil {

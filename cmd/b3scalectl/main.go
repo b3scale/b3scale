@@ -12,21 +12,21 @@ import (
 
 var version = "HEAD"
 
-func getopt(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-	return value
-}
-
 func main() {
-	dbConnStr := config.EnvOpt(
-		"B3SCALE_DB_URL",
-		"postgres://postgres:postgres@localhost:5432/b3scale")
-	loglevel := config.EnvOpt(
-		"B3SCALE_LOG_LEVEL",
-		"info")
+	// Check if the enviroment was configured, when not try to
+	// load the environment from .env or from a sysconfig env file
+	chkEnv := config.EnvOpt(config.EnvDbURL, "unconfigured")
+	if chkEnv == "unconfigured" {
+		// Try to load the environment from files
+		config.LoadEnv([]string{
+			".env",
+			"/etc/sysconfig/b3scale",
+		})
+	}
+
+	// Get configuration from environment
+	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
+	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
 
 	if err := logging.Setup(&logging.Options{
 		Level: loglevel,
