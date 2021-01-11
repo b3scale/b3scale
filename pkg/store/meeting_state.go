@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,11 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+)
+
+// MeetingStateErrors
+var (
+	ErrNoBackend = errors.New("no backend associated with meeting")
 )
 
 // The MeetingState holds a meeting and it's relations
@@ -169,14 +175,13 @@ func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 	defer tx.Rollback(ctx)
 
 	// Get affected backend
-	var backendID string
+	var backendID *string
 	qry := `
-		SELECT backends.id 
-		  FROM backends 
-		  JOIN meetings ON backends.id = meetings.backend_id
-		 WHERE meetings.id = $1
+		SELECT backend_id FROM meetings WHERE id = $1
 	`
-	if err := tx.QueryRow(ctx, qry, id).Scan(&backendID); err != nil {
+	if err := tx.
+		QueryRow(ctx, qry, id).
+		Scan(&backendID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
 	qry = `
@@ -185,19 +190,20 @@ func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 	if _, err := tx.Exec(ctx, qry, id); err != nil {
 		return err
 	}
-	// Update meeting counter
-	qry = `
-		UPDATE backends
-		   SET meetings_count = (
-		   	   SELECT COUNT(1) FROM meetings
-			    WHERE meetings.backend_id = backends.id)
-		 WHERE backends.id = $1
-	`
-	if _, err := tx.Exec(ctx, qry, id); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if backendID == nil {
+		return nil // Meeting is not associated with a backend
+	}
+
+	// Update stat counters
+	if err := updateBackendStatCounters(pool, *backendID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DeleteMeetingStateByInternalID will remove a meeting state.
@@ -214,17 +220,16 @@ func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
 	defer tx.Rollback(ctx)
 
 	// Get affected backend
-	var backendID string
+	var backendID *string
 	qry := `
-		SELECT backends.id 
-		  FROM backends 
-		  JOIN meetings ON backends.id = meetings.backend_id
-		 WHERE meetings.internal_id = $1
+		SELECT backend_id FROM meetings WHERE id = $1
 	`
-	if err := tx.QueryRow(ctx, qry, id).Scan(&backendID); err != nil {
+	if err := tx.
+		QueryRow(ctx, qry, id).
+		Scan(&backendID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return err
 	}
-	ctx = context.Background()
+
 	qry = `
 		DELETE FROM meetings WHERE internal_id = $1
 	`
@@ -236,7 +241,16 @@ func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
 		return err
 	}
 
-	return updateBackendStatCounters(pool, backendID)
+	if backendID == nil {
+		return nil // Meeting is not associated with a backend
+	}
+
+	// Update stat counters
+	if err := updateBackendStatCounters(pool, *backendID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DeleteOrphanMeetings will remove all meetings not
@@ -305,6 +319,13 @@ func (s *MeetingState) Save() error {
 		return err
 	}
 
+	// Refresh stats if backend is present
+	if s.BackendID != nil {
+		if err := updateBackendStatCounters(s.pool, *s.BackendID); err != nil {
+			return err
+		}
+	}
+
 	return s.Refresh()
 }
 
@@ -334,13 +355,6 @@ func (s *MeetingState) insert() (string, error) {
 		s.BackendID).Scan(&s.ID)
 	if err != nil {
 		return "", err
-	}
-
-	// Refresh stats if backend is present
-	if s.BackendID != nil {
-		if err := updateBackendStatCounters(s.pool, *s.BackendID); err != nil {
-			return "", err
-		}
 	}
 
 	return s.ID, nil

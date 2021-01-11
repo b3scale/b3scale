@@ -270,6 +270,10 @@ func (s *BackendState) Delete() error {
 		return err
 	}
 
+	if err := s.UpdateStatCounters(); err != nil {
+		return err
+	}
+
 	return tx.Commit(ctx)
 }
 
@@ -282,30 +286,14 @@ func (s *BackendState) ClearMeetings() error {
 		DELETE FROM meetings WHERE backend_id = $1
 	`
 	_, err := s.pool.Exec(ctx, qry, s.ID)
-	return err
-}
+	if err != nil {
+		return err
+	}
 
-// IncMeetingsCount increments the meetings counter
-func (s *BackendState) IncMeetingsCount() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-	s.MeetingsCount++
-	qry := `UPDATE backends SET meetings_count = meetings_count + 1
-  			 WHERE id = $1`
-	_, err := s.pool.Exec(ctx, qry, s.ID)
-	return err
-}
+	if err := s.UpdateStatCounters(); err != nil {
+		return err
+	}
 
-// IncAttendeesCount increments the attendees counter
-func (s *BackendState) IncAttendeesCount() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-	s.MeetingsCount++
-	qry := `UPDATE backends SET attendees_count = attendees_count + 1
-  			 WHERE id = $1`
-	_, err := s.pool.Exec(ctx, qry, s.ID)
 	return err
 }
 
@@ -373,32 +361,4 @@ func (s *BackendState) CreateMeetingState(
 		return nil, err
 	}
 	return mstate, nil
-}
-
-// DecMeetingsCountForBackendID decrement meeting account for backend
-func DecMeetingsCountForBackendID(pool *pgxpool.Pool, id string) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-	qry := `
-		UPDATE backends
-		   SET meetings_count = MAX(meetings_count - 1, 0)
-		 WHERE id = $1
-	`
-	_, err := pool.Exec(ctx, qry, id)
-	return err
-}
-
-// DecAttendeesCountForBackendID decrement meeting account for backend
-func DecAttendeesCountForBackendID(pool *pgxpool.Pool, id string) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-	qry := `
-		UPDATE backends
-		   SET attendees_count = MAX(attendees_count - 1, 0)
-		 WHERE id = $1
-	`
-	_, err := pool.Exec(ctx, qry, id)
-	return err
 }

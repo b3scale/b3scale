@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -135,22 +134,6 @@ func (h *EventHandler) onUserJoinedMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user joined meeting")
 
-	// Increment attendees
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		15*time.Second)
-	defer cancel()
-	qry := `
-		UPDATE backends
-		   SET attendees_count = attendees_count + 1
-		  FROM meetings
-		 WHERE meetings.internal_id = $1
-		   AND meetings.backend_id = backends.id
-	`
-	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
-		return err
-	}
-
 	// Insert (preliminar) attendee into the meeting state
 	mstate, err := store.GetMeetingState(h.pool, store.Q().
 		Where("meetings.internal_id = ?", e.InternalMeetingID))
@@ -190,20 +173,6 @@ func (h *EventHandler) onUserLeftMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user left meeting")
 
-	// Decrement attendees
-	ctx := context.Background()
-	qry := `
-		UPDATE backends
-		   SET attendees_count = attendees_count - 1
-		  FROM meetings
-		 WHERE meetings.internal_id = $1
-		   AND attendees_count >= 1
-		   AND meetings.backend_id = backends.id
-	`
-	if _, err := h.pool.Exec(ctx, qry, e.InternalMeetingID); err != nil {
-		return err
-	}
-
 	// Remove user from attendees list
 	mstate, err := store.GetMeetingState(h.pool, store.Q().
 		Where("meetings.internal_id = ?", e.InternalMeetingID))
@@ -233,9 +202,9 @@ func (h *EventHandler) onUserLeftMeeting(
 		filtered = append(filtered, a)
 	}
 	mstate.Meeting.Attendees = filtered
-
 	if err := mstate.Save(); err != nil {
 		return err
 	}
+
 	return nil
 }
