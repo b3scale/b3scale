@@ -32,15 +32,19 @@ func init() {
 func main() {
 	fmt.Printf("b3scale node agent		v.%s\n", version)
 
-	bbbPropFile := config.EnvOpt(
-		"BBB_CONFIG",
-		"/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties")
-	dbConnStr := config.EnvOpt(
-		"B3SCALE_DB_URL",
-		"postgres://postgres:postgres@localhost:5432/b3scale")
-	loglevel := config.EnvOpt(
-		"B3SCALE_LOG_LEVEL",
-		"info")
+	// Check if the enviroment was configured, when not try to
+	// load the environment from .env or from a sysconfig env file
+	if chk := config.EnvOpt(config.EnvDbURL, "unconfigured"); chk == "unconfigured" {
+		config.LoadEnv([]string{
+			".env",
+			"/etc/sysconfig/b3scale",
+		})
+	}
+
+	// Get config from env
+	bbbPropFile := config.EnvOpt(config.EnvBBBConfig, config.EnvBBBConfigDefault)
+	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
+	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{

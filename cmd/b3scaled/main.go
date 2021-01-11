@@ -14,18 +14,22 @@ import (
 var version = "HEAD"
 
 func main() {
+	// Check if the enviroment was configured, when not try to
+	// load the environment from .env or from a sysconfig env file
+	if chk := config.EnvOpt(config.EnvDbURL, "unconfigured"); chk == "unconfigured" {
+		config.LoadEnv([]string{
+			".env",
+			"/etc/sysconfig/b3scale",
+		})
+	}
+
 	quit := make(chan bool)
 	banner() // Most important.
 
 	// Config
-	listenHTTP := config.EnvOpt(
-		"B3SCALE_LISTEN_HTTP", "127.0.0.1:42353") // B3S
-	dbConnStr := config.EnvOpt(
-		"B3SCALE_DB_URL",
-		"postgres://postgres:postgres@localhost:5432/b3scale")
-	loglevel := config.EnvOpt(
-		"B3SCALE_LOG_LEVEL",
-		"info")
+	listenHTTP := config.EnvOpt(config.EnvListenHTTP, config.EnvListenHTTPDefault)
+	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
+	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{
