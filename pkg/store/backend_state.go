@@ -297,10 +297,6 @@ func (s *BackendState) ClearMeetings() error {
 		return err
 	}
 
-	if err := s.UpdateStatCounters(); err != nil {
-		return err
-	}
-
 	return err
 }
 
