@@ -105,3 +105,26 @@ func TestCreateMeeting(t *testing.T) {
 	}
 	t.Log(mstate.ID)
 }
+
+func TestBackendStateAgentHeartbeat(t *testing.T) {
+	pool := connectTest(t)
+	state := backendStateFactory(pool)
+	err := state.Save()
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Fresh backen, agent should not be alive
+	if state.IsAgentAlive() {
+		t.Error("there should never have been a heartbeat")
+	}
+
+	// Make heartbeat
+	if err := state.UpdateAgentHeartbeat(); err != nil {
+		t.Error(err)
+	}
+
+	if !state.IsAgentAlive() {
+		t.Error("agent should be alive")
+	}
+}
