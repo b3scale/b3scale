@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -19,6 +20,8 @@ func Connect(url string) (*pgxpool.Pool, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	cfg.ConnConfig.RuntimeParams["application_name"] = os.Args[0]
 
 	// We need some more connections
 	cfg.MaxConns = 256
