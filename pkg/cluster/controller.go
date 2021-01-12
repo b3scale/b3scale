@@ -293,7 +293,7 @@ func (c *Controller) warnOfflineBackends() error {
 			backends.id IN (
 				 SELECT backend_id
 				   FROM backends_node_offline
-				    FOR UPDATE SKIP LOCKED)`))
+				    FOR SHARE SKIP LOCKED)`))
 	if err != nil {
 		return err
 	}

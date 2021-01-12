@@ -174,7 +174,7 @@ func (r *Router) Middleware() RequestMiddleware {
 					backends.id NOT IN (
 						 SELECT backend_id
 						   FROM backends_node_offline
-							FOR UPDATE SKIP LOCKED)`).
+							FOR SHARE SKIP LOCKED)`).
 				Where("node_state = ?", "ready"))
 			if err != nil {
 				return nil, err
