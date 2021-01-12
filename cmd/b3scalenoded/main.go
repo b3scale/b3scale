@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
@@ -27,6 +28,18 @@ func init() {
 		&autoregister, "register", false, usage)
 	flag.BoolVar(
 		&autoregister, "a", false, usage+" (shorthand)")
+}
+
+func heartbeat(backend *store.BackendState) {
+	for {
+		if err := backend.UpdateAgentHeartbeat(); err != nil {
+			log.Error().
+				Err(err).
+				Msg("agentHeartbeat")
+		}
+
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func main() {
@@ -97,7 +110,7 @@ func main() {
 	}
 
 	// Mark the presence of the noded
-	go acquireBackendNodeLock(pool, backend)
+	go heartbeat(backend)
 
 	rdb := redis.NewClient(redisOpts)
 	monitor := events.NewMonitor(rdb)

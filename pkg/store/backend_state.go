@@ -25,6 +25,8 @@ type BackendState struct {
 	NodeState  string
 	AdminState string
 
+	AgentHeartbeat time.Time
+
 	LastError *string
 
 	Latency        time.Duration
@@ -83,6 +85,7 @@ func GetBackendStates(
 		"backends.id",
 		"backends.node_state",
 		"backends.admin_state",
+		"backends.agent_heartbeat",
 		"backends.last_error",
 		"backends.latency",
 		"backends.meetings_count",
@@ -108,6 +111,7 @@ func GetBackendStates(
 			&state.ID,
 			&state.NodeState,
 			&state.AdminState,
+			&state.AgentHeartbeat,
 			&state.LastError,
 			&state.Latency,
 			&state.MeetingsCount,
@@ -282,6 +286,37 @@ func (s *BackendState) Delete() error {
 	}
 
 	return tx.Commit(ctx)
+}
+
+// UpdateAgentHeartbeat will set the attribute to the
+// current timestamp
+func (s *BackendState) UpdateAgentHeartbeat() error {
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+	qry := `
+		UPDATE backends
+		   SET agent_heartbeat = $2
+		 WHERE id = $1
+	`
+
+	now := time.Now().UTC()
+	_, err := s.pool.Exec(ctx, qry, s.ID, now)
+	if err != nil {
+		return err
+	}
+
+	s.AgentHeartbeat = now
+
+	return nil
+}
+
+// IsAgentAlive checks if the heartbeat is older
+// than the threshold
+func (s *BackendState) IsAgentAlive() bool {
+	threshold := 1 * time.Second
+	now := time.Now().UTC()
+	return now.Sub(s.AgentHeartbeat) > threshold
 }
 
 // ClearMeetings will remove all meetings in the current state
