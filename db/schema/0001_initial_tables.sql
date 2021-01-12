@@ -39,6 +39,10 @@ CREATE TABLE backends (
     node_state  instance_state NOT NULL DEFAULT 'init',
     admin_state instance_state NOT NULL DEFAULT 'stopped',
 
+    -- Heartbeat of the node agent: consider the node dead
+    -- if this is older than a given threashold.
+    agent_heartbeat TIMESTAMP NOT NULL DEFAULT '2000-01-01 00:00:00',
+
     -- Statistics: We make routing decision based on
     -- these numbers
     latency         INTEGER  NOT NULL DEFAULT 0.0,
@@ -57,32 +61,6 @@ CREATE TABLE backends (
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
-
-
--- We check if the noded of a backend is online by testing
--- if it has acquired a lock on the id of the backend
--- of this table.
-CREATE TABLE backends_node_offline (
-    backend_id  uuid NOT NULL
-                     REFERENCES backends(id)
-                     ON DELETE  CASCADE
-);
-
-
--- AfterBackendsInsert
--- Procedure to be called for every new backend.
-CREATE FUNCTION after_backends_insert() RETURNS TRIGGER AS $$
-BEGIN
-  -- Create backend offline lock
-  INSERT INTO backends_node_offline (backend_id)
-       VALUES (NEW.id);
-
-  RETURN NEW;
-END
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER  backends_insert   AFTER INSERT ON backends
-  FOR EACH ROW  EXECUTE PROCEDURE after_backends_insert();
 
 
 -- Frontends
