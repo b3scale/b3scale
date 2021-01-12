@@ -316,7 +316,7 @@ func (s *BackendState) UpdateAgentHeartbeat() error {
 func (s *BackendState) IsAgentAlive() bool {
 	threshold := 1 * time.Second
 	now := time.Now().UTC()
-	return now.Sub(s.AgentHeartbeat) > threshold
+	return now.Sub(s.AgentHeartbeat) <= threshold
 }
 
 // ClearMeetings will remove all meetings in the current state
