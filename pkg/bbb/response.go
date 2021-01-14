@@ -8,17 +8,28 @@ import (
 	"net/http"
 )
 
-// ErrCantBeMerged is the error when two responses
-// of the same type can not be merged, e.g. when
-// the data is not a collection.
-var ErrCantBeMerged = errors.New(
-	"responses of this type can not be merged")
+var (
+	// ErrCantBeMerged is the error when two responses
+	// of the same type can not be merged, e.g. when
+	// the data is not a collection.
+	ErrCantBeMerged = errors.New(
+		"responses of this type can not be merged")
 
-// ErrMergeConflict will be returned when two
-// responses differ in fields, where they should not.
-// Eg. a successful and a failed return code
-var ErrMergeConflict = errors.New(
-	"responses have conflicting values")
+	// ErrMergeConflict will be returned when two
+	// responses differ in fields, where they should not.
+	// Eg. a successful and a failed return code
+	ErrMergeConflict = errors.New(
+		"responses have conflicting values")
+)
+
+const (
+
+	// RetSuccess is the success return code
+	RetSuccess = "SUCCESS"
+
+	// RetFailed is the failure return code
+	RetFailed = "FAILED"
+)
 
 // Response interface
 type Response interface {

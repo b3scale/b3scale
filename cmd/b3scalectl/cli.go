@@ -129,6 +129,17 @@ func NewCli(
 				},
 			},
 			{
+				Name:  "end",
+				Usage: "force ending things on a backend",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "meetings",
+						Usage:  "end all meetings on a given <host>",
+						Action: c.endAllMeetings,
+					},
+				},
+			},
+			{
 				Name:   "version",
 				Action: c.showVersion,
 			},
@@ -426,6 +437,32 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("backend marked for decommissioning")
+	return nil
+}
+
+// end all meetings on a backend
+func (c *Cli) endAllMeetings(ctx *cli.Context) error {
+	// Args should be host
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("require: <host>")
+	}
+	host := ctx.Args().Get(0)
+	state, err := store.GetBackendState(c.pool, store.Q().
+		Where("host = ?", host))
+	if err != nil {
+		return err
+	}
+	if state == nil {
+		return fmt.Errorf("no such backend")
+	}
+
+	cmd := cluster.EndAllMeetings(&cluster.EndAllMeetingsRequest{
+		BackendID: state.ID,
+	})
+	if err := c.queue.Queue(cmd); err != nil {
+		return err
+	}
+
 	return nil
 }
 
