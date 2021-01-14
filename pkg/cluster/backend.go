@@ -408,7 +408,7 @@ func (b *Backend) GetMeetings(
 	mstates, err := store.GetMeetingStates(b.pool, store.Q().
 		Join("frontends ON frontends.id = meetings.frontend_id").
 		Where("meetings.backend_id IS NOT NULL").
-		Where("frontends.key = ?", req.Frontend))
+		Where("frontends.key = ?", req.Frontend.Key))
 	if err != nil {
 		return nil, err
 	}
