@@ -76,8 +76,18 @@ func (res *XMLResponse) Marshal() ([]byte, error) {
 	return data, err
 }
 
+// Make a new default header for XML responses
+func (res *XMLResponse) makeDefaultHeader() http.Header {
+	header := make(http.Header)
+	header.Add("Content-Type", "application/xml")
+	return header
+}
+
 // Header returns the HTTP response headers
 func (res *XMLResponse) Header() http.Header {
+	if res.header == nil {
+		res.header = res.makeDefaultHeader()
+	}
 	return res.header
 }
 
@@ -122,22 +132,22 @@ func (res *CreateResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *CreateResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *CreateResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *CreateResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *CreateResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // JoinResponse of the join resource.
@@ -192,22 +202,22 @@ func (res *JoinResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *JoinResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *JoinResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *JoinResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *JoinResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // IsMeetingRunningResponse is a meeting status resonse
@@ -237,22 +247,22 @@ func (res *IsMeetingRunningResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *IsMeetingRunningResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *IsMeetingRunningResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *IsMeetingRunningResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *IsMeetingRunningResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // EndResponse is the resonse of the end resource
@@ -279,17 +289,22 @@ func (res *EndResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *EndResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
+}
+
+// SetHeader sets the HTTP response headers
+func (res *EndResponse) SetHeader(h http.Header) {
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *EndResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *EndResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // GetMeetingInfoResponse contains detailed meeting information
@@ -319,22 +334,22 @@ func (res *GetMeetingInfoResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *GetMeetingInfoResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *GetMeetingInfoResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *GetMeetingInfoResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *GetMeetingInfoResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // GetMeetingsResponse contains a list of meetings.
@@ -376,22 +391,22 @@ func (res *GetMeetingsResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *GetMeetingsResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *GetMeetingsResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *GetMeetingsResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *GetMeetingsResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // GetRecordingsResponse is the response of the getRecordings resource
@@ -430,22 +445,22 @@ func (res *GetRecordingsResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *GetRecordingsResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *GetRecordingsResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *GetRecordingsResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *GetRecordingsResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // PublishRecordingsResponse indicates if the recordings
@@ -496,22 +511,22 @@ func (res *PublishRecordingsResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *PublishRecordingsResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *PublishRecordingsResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *PublishRecordingsResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *PublishRecordingsResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // DeleteRecordingsResponse indicates if the recording
@@ -556,22 +571,22 @@ func (res *DeleteRecordingsResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *DeleteRecordingsResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *DeleteRecordingsResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *DeleteRecordingsResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *DeleteRecordingsResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // UpdateRecordingsResponse indicates if the update was successful
@@ -616,22 +631,22 @@ func (res *UpdateRecordingsResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *UpdateRecordingsResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *UpdateRecordingsResponse) SetHeader(h http.Header) {
-	res.XMLResponse.header = h
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *UpdateRecordingsResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *UpdateRecordingsResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // GetDefaultConfigXMLResponse has the raw config xml data
@@ -668,22 +683,22 @@ func (res *GetDefaultConfigXMLResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *GetDefaultConfigXMLResponse) Header() http.Header {
-	return res.header
+	return res.Header()
 }
 
 // SetHeader sets the HTTP response headers
 func (res *GetDefaultConfigXMLResponse) SetHeader(h http.Header) {
-	res.header = h
+	res.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *GetDefaultConfigXMLResponse) Status() int {
-	return res.status
+	return res.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *GetDefaultConfigXMLResponse) SetStatus(s int) {
-	res.status = s
+	res.SetStatus(s)
 }
 
 // SetConfigXMLResponse encodes the result of setting the config
@@ -713,17 +728,22 @@ func (res *SetConfigXMLResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *SetConfigXMLResponse) Header() http.Header {
-	return res.XMLResponse.header
+	return res.XMLResponse.Header()
+}
+
+// SetHeader sets the HTTP response headers
+func (res *SetConfigXMLResponse) SetHeader(h http.Header) {
+	res.XMLResponse.SetHeader(h)
 }
 
 // Status returns the HTTP response status code
 func (res *SetConfigXMLResponse) Status() int {
-	return res.XMLResponse.status
+	return res.XMLResponse.Status()
 }
 
 // SetStatus sets the HTTP response status code
 func (res *SetConfigXMLResponse) SetStatus(s int) {
-	res.XMLResponse.status = s
+	res.XMLResponse.SetStatus(s)
 }
 
 // JSONResponse encapsulates a json reponse
