@@ -4,6 +4,7 @@ package bbb
 
 // ApiResources
 const (
+	ResourceIndex                  = ""
 	ResourceJoin                   = "join"
 	ResourceCreate                 = "create"
 	ResourceIsMeetingRunning       = "isMeetingRunning"
