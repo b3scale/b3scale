@@ -243,42 +243,18 @@ func (b *Backend) Version(req *bbb.Request) (*bbb.XMLResponse, error) {
 func (b *Backend) Create(req *bbb.Request) (
 	*bbb.CreateResponse, error,
 ) {
-	meetingState, err := meetingStateFromRequest(b.pool, req)
-	if err != nil {
-		return nil, err
-	}
-	if meetingState != nil {
-		// Check if meeting is runnnig
-		res, err := b.IsMeetingRunning(bbb.IsMeetingRunningRequest(
-			bbb.Params{
-				"meetingID": meetingState.ID,
-			}))
-		if err != nil {
-			return nil, err
-		}
-		if res.XMLResponse.Returncode == "SUCCESS" {
-			// We are good here, just return the current meeting
-			// state in a synthetic response.
-			res := &bbb.CreateResponse{
-				XMLResponse: &bbb.XMLResponse{
-					Returncode: "SUCCESS",
-				},
-				Meeting: meetingState.Meeting,
-			}
-			res.SetStatus(200)
-			return res, nil
-		}
-	}
-
-	// We don't know about the meeting, or is meeting
-	// running did not know about the meeting - anyhow
-	// we need to create it.
+	// Pass the request to the BBB server
 	res, err := b.client.Do(req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
 	createRes := res.(*bbb.CreateResponse)
+
 	// Update or save meeeting state
+	meetingState, err := meetingStateFromRequest(b.pool, req)
+	if err != nil {
+		return nil, err
+	}
 	if meetingState == nil {
 		_, err = b.state.CreateMeetingState(req.Frontend, createRes.Meeting)
 		if err != nil {
