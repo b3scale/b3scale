@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -107,14 +108,17 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
 	case CmdDecommissionBackend:
-		log.Debug().Str("cmd", "DecommissionBackend").Msg("EXEC")
+		log.Debug().Str("cmd", CmdDecommissionBackend).Msg("EXEC")
 		return c.handleDecommissionBackend(cmd)
 	case CmdUpdateNodeState:
-		log.Debug().Str("cmd", "UpdateNodeState").Msg("EXEC")
+		log.Debug().Str("cmd", CmdUpdateNodeState).Msg("EXEC")
 		return c.handleUpdateNodeState(cmd)
 	case CmdUpdateMeetingState:
-		log.Debug().Str("cmd", "UpdateMeetingState").Msg("EXEC")
+		log.Debug().Str("cmd", CmdUpdateMeetingState).Msg("EXEC")
 		return c.handleUpdateMeetingState(cmd)
+	case CmdEndAllMeetings:
+		log.Debug().Str("cmd", CmdEndAllMeetings).Msg("EXEC")
+		return c.handleEndAllMeetings(cmd)
 	}
 
 	return nil, ErrUnknownCommand
@@ -219,6 +223,57 @@ func (c *Controller) handleUpdateMeetingState(
 
 	return true, nil
 }
+
+// handleEndAllMeetings will send an end request
+// for all meetings on a backend
+func (c *Controller) handleEndAllMeetings(cmd *store.Command) (interface{}, error) {
+	req := &EndAllMeetingsRequest{}
+	if err := cmd.FetchParams(req); err != nil {
+		return nil, err
+	}
+
+	backend, err := c.GetBackend(store.Q().Where("id = ?", req.BackendID))
+	if err != nil {
+		return nil, err
+	}
+
+	// Send end for all *known* meetings. (We however, should *know*
+	// all meetings on the backend after a while.)
+	mstates, err := store.GetMeetingStates(c.pool, store.Q().
+		Where("backend_id = ?", req.BackendID))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, m := range mstates {
+		log.Info().
+			Str("backendID", req.BackendID).
+			Str("meetingID", m.Meeting.MeetingID).
+			Msg("force end meeting")
+
+		req := bbb.EndRequest(bbb.Params{
+			"meetingID": m.Meeting.MeetingID,
+			"password":  m.Meeting.ModeratorPW,
+		})
+		res, err := backend.End(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if res.Returncode != bbb.RetSuccess {
+			log.Error().
+				Str("meetingID", m.Meeting.MeetingID).
+				Str("msg", res.Message).
+				Str("msgKey", res.MessageKey).
+				Msg("end meeting failed")
+			return nil, fmt.Errorf("end meeting failed: %s", res.MessageKey)
+		}
+	}
+
+	return true, nil
+}
+
+// Internal command generators
 
 // requestSyncStale triggers a background sync of the
 // entire node state

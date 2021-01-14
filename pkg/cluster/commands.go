@@ -17,6 +17,7 @@ const (
 
 	// Meetings
 	CmdUpdateMeetingState = "update_meeting_state"
+	CmdEndAllMeetings     = "end_all_meetings"
 )
 
 var (
@@ -69,5 +70,21 @@ func UpdateMeetingState(
 		Action:   CmdUpdateMeetingState,
 		Params:   req,
 		Deadline: store.NextDeadline(10 * time.Minute),
+	}
+}
+
+// EndAllMeetingsRequest contains parameters for the end
+// all meetings command.
+type EndAllMeetingsRequest struct {
+	BackendID string
+}
+
+// EndAllMeetings will send end meeting api requests to all running meetings
+// on a backend. This can be usefull to force decommissioning.
+func EndAllMeetings(req *EndAllMeetingsRequest) *store.Command {
+	return &store.Command{
+		Action:   CmdEndAllMeetings,
+		Params:   req,
+		Deadline: store.NextDeadline(5 * time.Minute),
 	}
 }
