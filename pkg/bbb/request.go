@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -16,6 +17,12 @@ import (
 const (
 	ParamMeetingID = "meetingID"
 	ParamChecksum  = "checksum"
+)
+
+var (
+	// ReQueryChecksum is used for removing the checksum
+	// from a querystring in the incoming HTTP request
+	ReQueryChecksum = regexp.MustCompile("&checksum(=[^&]*)?|^checksum(=[^&]*)?&?")
 )
 
 // Params for the BBB API (we opt for stringly typed.)
@@ -69,12 +76,12 @@ func (p Params) Checksum() (string, bool) {
 //
 // It is associated with a backend and a frontend.
 type Request struct {
-	Resource    string
-	Method      string
-	ContentType string
-	Params      Params
-	Body        []byte
-	Checksum    string
+	*http.Request
+
+	Resource string
+	Params   Params
+	Body     []byte
+	Checksum string
 
 	Backend  *Backend
 	Frontend *Frontend
@@ -97,7 +104,9 @@ func (req *Request) WithFrontend(f *Frontend) *Request {
 // JoinRequest creates a new join request
 func JoinRequest(params Params) *Request {
 	return &Request{
-		Method:   http.MethodGet,
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
 		Resource: ResourceJoin,
 		Params:   params,
 	}
@@ -106,7 +115,9 @@ func JoinRequest(params Params) *Request {
 // EndRequest creates a meeting end request
 func EndRequest(params Params) *Request {
 	return &Request{
-		Method:   http.MethodGet,
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
 		Resource: ResourceEnd,
 		Params:   params,
 	}
@@ -115,18 +126,24 @@ func EndRequest(params Params) *Request {
 // CreateRequest creates a new create request
 func CreateRequest(params Params, body []byte) *Request {
 	return &Request{
-		Method:      http.MethodPost,
-		Resource:    ResourceCreate,
-		ContentType: "application/xml",
-		Params:      params,
-		Body:        body,
+		Request: &http.Request{
+			Method: http.MethodGet,
+			Header: http.Header{
+				"Content-Type": []string{"application/xml"},
+			},
+		},
+		Resource: ResourceCreate,
+		Params:   params,
+		Body:     body,
 	}
 }
 
 // GetMeetingsRequest builds a new getMeetings request
 func GetMeetingsRequest(params Params) *Request {
 	return &Request{
-		Method:   http.MethodGet,
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
 		Resource: ResourceGetMeetings,
 		Params:   params,
 	}
@@ -135,7 +152,9 @@ func GetMeetingsRequest(params Params) *Request {
 // GetMeetingInfoRequest creates a new getMeetingInfo request
 func GetMeetingInfoRequest(params Params) *Request {
 	return &Request{
-		Method:   http.MethodGet,
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
 		Resource: ResourceGetMeetingInfo,
 		Params:   params,
 	}
@@ -144,44 +163,47 @@ func GetMeetingInfoRequest(params Params) *Request {
 // IsMeetingRunningRequest makes a new isMeetingRunning request
 func IsMeetingRunningRequest(params Params) *Request {
 	return &Request{
-		Method:   http.MethodGet,
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
 		Resource: ResourceIsMeetingRunning,
 		Params:   params,
 	}
 }
 
 // Internal calculate checksum with a given secret.
-func (req *Request) calculateChecksumSHA1(secret string) []byte {
-	qry := req.Params.String()
+func (req *Request) calculateChecksumSHA1(query, secret string) []byte {
 	// Calculate checksum with server secret
 	// Basically sign the endpoint + params
-	mac := []byte(req.Resource + qry + secret)
+	mac := []byte(req.Resource + query + secret)
 	shasum := sha1.New()
 	shasum.Write(mac)
 	return []byte(hex.EncodeToString(shasum.Sum(nil)))
 }
 
 // Internal calculate checksum with a given secret.
-func (req *Request) calculateChecksumSHA256(secret string) []byte {
-	qry := req.Params.String()
+func (req *Request) calculateChecksumSHA256(query, secret string) []byte {
 	// Calculate checksum with server secret
 	// Basically sign the endpoint + params
-	mac := []byte(req.Resource + qry + secret)
+	mac := []byte(req.Resource + query + secret)
 	shasum := sha256.New()
 	shasum.Write(mac)
 	return []byte(hex.EncodeToString(shasum.Sum(nil)))
 }
 
-// Verify request coming from a frontend.
-// Compare checksum with the checksum calculated from the params
-// and the frontend secret
+// Verify request coming from a frontend:
+// Compare checksum with the checksum calculated from the
+// incoming raw query string and the frontend secret
 func (req *Request) Verify() error {
+	// Use request querystring and remove checksum
+	query := ReQueryChecksum.ReplaceAllString(req.Request.URL.RawQuery, "")
 	secret := req.Frontend.Secret
+
 	var expected []byte
 	if len(req.Checksum) > 40 {
-		expected = req.calculateChecksumSHA256(secret)
+		expected = req.calculateChecksumSHA256(query, secret)
 	} else {
-		expected = req.calculateChecksumSHA1(secret)
+		expected = req.calculateChecksumSHA1(query, secret)
 	}
 	if subtle.ConstantTimeCompare(
 		expected,
@@ -194,7 +216,8 @@ func (req *Request) Verify() error {
 // Sign a request, with the backend secret.
 func (req *Request) Sign() string {
 	secret := req.Backend.Secret
-	return string(req.calculateChecksumSHA256(secret))
+	query := req.Params.String()
+	return string(req.calculateChecksumSHA256(query, secret))
 }
 
 // URL builds the URL representation of the

@@ -88,7 +88,7 @@ func unmarshalRequestResponse(req *Request, data []byte) (Response, error) {
 // The response is decoded into a BBB response.
 func (c *Client) Do(req *Request) (Response, error) {
 	log.Debug().
-		Str("method", req.Method).
+		Str("method", req.Request.Method).
 		Str("url", req.URL()).
 		Msg("client request")
 
@@ -97,7 +97,7 @@ func (c *Client) Do(req *Request) (Response, error) {
 		bodyReader = bytes.NewReader(req.Body)
 	}
 	httpReq, err := http.NewRequest(
-		req.Method,
+		req.Request.Method,
 		req.URL(),
 		bodyReader)
 	if err != nil {
@@ -105,9 +105,7 @@ func (c *Client) Do(req *Request) (Response, error) {
 	}
 
 	// Set content type and other request headers
-	if req.ContentType != "" {
-		httpReq.Header.Set("Content-Type", req.ContentType)
-	}
+	httpReq.Header = req.Request.Header.Clone()
 
 	// Perform request
 	httpRes, err := c.conn.Do(httpReq)

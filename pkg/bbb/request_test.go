@@ -1,6 +1,8 @@
 package bbb
 
 import (
+	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -86,15 +88,21 @@ func TestVerify(t *testing.T) {
 	frontend := &Frontend{
 		Secret: "639259d4-9dd8-4b25-bf01-95f9567eaf4b",
 	}
+	params := Params{
+		"name":        "Test Meeting",
+		"meetingID":   "abc123",
+		"attendeePW":  "111222",
+		"moderatorPW": "333444",
+	}
 	req := &Request{
 		Frontend: frontend,
 		Resource: "create",
-		Params: Params{
-			"name":        "Test Meeting",
-			"meetingID":   "abc123",
-			"attendeePW":  "111222",
-			"moderatorPW": "333444",
+		Request: &http.Request{
+			URL: &url.URL{
+				RawQuery: params.String() + "&checksum=r3m0v3M3",
+			},
 		},
+		Params:   params,
 		Checksum: "0b89c2ebcfefb76772cbcf19386c33561f66f6ae",
 	}
 
