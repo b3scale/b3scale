@@ -7,6 +7,11 @@ import (
 )
 
 func TestParamsString(t *testing.T) {
+	var p Params
+	if p.String() != "" {
+		t.Error("expected empty string")
+	}
+
 	tests := map[string]Params{
 		// Test parameter ordering
 		"a=23&b=true&c=foo": Params{
