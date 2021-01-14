@@ -55,8 +55,8 @@ func BBBRequestMiddleware(
 			body := readRequestBody(c)
 
 			bbbReq := &bbb.Request{
+				Request:  c.Request(),
 				Frontend: frontend.Frontend(),
-				Method:   c.Request().Method,
 				Resource: resource,
 				Params:   params,
 				Body:     body,
