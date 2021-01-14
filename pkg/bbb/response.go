@@ -38,6 +38,7 @@ type XMLResponse struct {
 	Returncode string   `xml:"returncode"`
 	Message    string   `xml:"message,omitempty"`
 	MessageKey string   `xml:"messageKey,omitempty"`
+	Version    string   `xml:"version,omitempty"`
 
 	header http.Header
 	status int
@@ -59,6 +60,7 @@ func (res *XMLResponse) MergeXMLResponse(other *XMLResponse) error {
 	res.header = other.header
 	res.Message = other.Message
 	res.MessageKey = other.MessageKey
+	res.Version = other.Version
 	return nil
 }
 
