@@ -229,6 +229,16 @@ func meetingStateFromRequest(
 	return meetingState, err
 }
 
+// Version responds with the current version. This request
+// will not hit a real backend and is not part of the
+// API interface.
+func (b *Backend) Version(req *bbb.Request) (*bbb.XMLResponse, error) {
+	return &bbb.XMLResponse{
+		Returncode: "SUCCESS",
+		Version:    "2.0",
+	}, nil
+}
+
 // Create a new Meeting
 func (b *Backend) Create(req *bbb.Request) (
 	*bbb.CreateResponse, error,

@@ -74,6 +74,8 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 
 		// Dispatch API resources
 		switch req.Resource {
+		case bbb.ResourceIndex:
+			return backend.Version(req)
 		case bbb.ResourceJoin:
 			return backend.Join(req)
 		case bbb.ResourceCreate:
@@ -103,6 +105,7 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 		case bbb.ResourcePutRecordingTextTrack:
 			return backend.PutRecordingTextTrack(req)
 		}
+
 		// We could not dispatch this
 		return nil, fmt.Errorf(
 			"unknown resource: %s", req.Resource)
