@@ -22,7 +22,7 @@ const (
 type Params map[string]string
 
 // String of the query parameters.
-// The order of the parameters is deterministic.
+// The order of the parameters is made deterministic.
 func (p Params) String() string {
 	keys := make([]string, 0, len(p))
 	for key := range p {
@@ -35,7 +35,7 @@ func (p Params) String() string {
 	sort.Strings(keys)
 
 	// Encode query string
-	var q []string
+	q := make([]string, 0, len(keys))
 	for _, k := range keys {
 		v := p[k]
 		vStr := url.QueryEscape(v)
