@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -273,9 +274,44 @@ func (b *Backend) Create(req *bbb.Request) (
 }
 
 // Join a meeting
-func (b *Backend) Join(
-	req *bbb.Request,
-) (*bbb.JoinResponse, error) {
+func (b *Backend) Join(req *bbb.Request) (*bbb.JoinResponse, error) {
+	return b.joinProxy(req)
+}
+
+// Join through the proxy: The scaler will act as
+// a reverse proxy to the BBB backend.
+func (b *Backend) joinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
+	// Pass the request to the BBB server - process response
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	joinRes := res.(*bbb.JoinResponse)
+	if joinRes.Status() != 302 {
+		return joinRes, nil // Not the expected redirect
+	}
+
+	// The client prefix is the endpoint for our
+	// proxy. We add the backend id to pin a connection there.
+	clientPrefix := fmt.Sprintf("/client/%s", b.state.ID)
+
+	// Rewrite redirect to us, also keep the cookie
+	joinURL, err := url.Parse(joinRes.Header().Get("Location"))
+	if err != nil {
+		return nil, err
+	}
+	joinURL.Scheme = ""
+	joinURL.Host = ""
+	joinURL.Path = clientPrefix + joinURL.Path
+
+	joinRes.Header().Set("Location", joinURL.String())
+
+	return joinRes, nil
+}
+
+// Join via redirect: The client will receive a
+// redirect to the BBB backend and will join there directly.
+func (b *Backend) joinRedirect(req *bbb.Request) (*bbb.JoinResponse, error) {
 	// Joining a meeting is a process entirely handled by the
 	// client. Because of a JSESSIONID which is used? I guess?
 	// Or maybe the referrer?
@@ -308,6 +344,7 @@ func (b *Backend) Join(
 	}))
 
 	return res, nil
+
 }
 
 // IsMeetingRunning returns the is meeting running state
