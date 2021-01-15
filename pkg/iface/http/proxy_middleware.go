@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,6 +15,12 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
+)
+
+var (
+	// ReMatchAbsoluteURL matches the pattern for an
+	// attribute assignment with an absolute URL: `="/'
+	ReMatchAbsoluteURL = regexp.MustCompile(`=.?"/`)
 )
 
 // BBBProxyMiddleware is a reverse proxy middleware
@@ -123,11 +130,24 @@ func (t *BBBProxyRewriteTransport) RoundTrip(
 	if err != nil {
 		return nil, err
 	}
+
+	body = rewriteBodyURLs(body, backendID)
+
 	res.Body = ioutil.NopCloser(bytes.NewReader(body))
 	res.ContentLength = int64(len(body))
 	res.Header.Set("Content-Length", strconv.Itoa(len(body)))
 
 	return res, err
+}
+
+// Replace absolute urls with the /client/backendID
+// prefix
+func rewriteBodyURLs(body []byte, backendID string) []byte {
+	if body == nil {
+		return nil
+	}
+	prefix := []byte("=\"/client/" + backendID + "/")
+	return ReMatchAbsoluteURL.ReplaceAll(body, prefix)
 }
 
 // BBBProxyBalancer will select the backend

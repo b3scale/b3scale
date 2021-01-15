@@ -32,3 +32,11 @@ func TestDecodeClientProxyPath(t *testing.T) {
 		t.Error("unexpected path", p)
 	}
 }
+
+func TestRewriteBodyURLs(t *testing.T) {
+	body := []byte(`<b><a href="/foo"></a></b>`)
+	rewrite := rewriteBodyURLs(body, "b4ck3nd1d")
+	if string(rewrite) != `<b><a href="/client/b4ck3nd1d/foo"></a></b>` {
+		t.Error("Unexpected body:", string(rewrite))
+	}
+}
