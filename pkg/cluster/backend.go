@@ -291,6 +291,8 @@ func (b *Backend) joinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
 		return joinRes, nil // Not the expected redirect
 	}
 
+	hostURL, _ := url.Parse(b.state.Backend.Host)
+
 	// Rewrite redirect to us, also keep the jsession cookie
 	// and add a cookie for backend pinning
 	joinURL, err := url.Parse(joinRes.Header().Get("Location"))
@@ -301,6 +303,8 @@ func (b *Backend) joinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
 	joinURL.Host = ""
 
 	joinRes.Header().Set("Location", joinURL.String())
+	joinRes.Header().Add("Set-Cookie",
+		fmt.Sprintf("B3SHOST=%s; Path=/", hostURL.Host))
 	joinRes.Header().Add("Set-Cookie",
 		fmt.Sprintf("B3SBID=%s; Path=/", b.state.ID))
 
