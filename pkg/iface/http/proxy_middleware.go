@@ -1,14 +1,14 @@
 package http
 
 import (
-	"bytes"
-	"compress/gzip"
-	"io"
-	"io/ioutil"
+	// "bytes"
+	// "compress/gzip"
+	// "io"
+	// "io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
-	"strconv"
+	// "regexp"
+	// "strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -19,17 +19,9 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-var (
-	// ReMatchAbsoluteURL matches the pattern for an
-	// attribute assignment with an absolute URL: `="/'
-	ReMatchAbsoluteURL = regexp.MustCompile(`=.?"/`)
-	ReMatchHTML5Client = regexp.MustCompile(`/html5client/`)
-)
-
 // BBBProxyMiddleware is a reverse proxy middleware
 // which will forward requests to a bbb backend
 func BBBProxyMiddleware(
-	mountPoint string,
 	ctrl *cluster.Controller,
 ) echo.MiddlewareFunc {
 
@@ -40,12 +32,24 @@ func BBBProxyMiddleware(
 		ContextKey: "target",
 		Skipper: func(c echo.Context) bool {
 			path := c.Path()
-			if !strings.HasPrefix(path, mountPoint) {
+
+			if !strings.HasPrefix(path, "/html5client") &&
+				!strings.HasPrefix(path, "/bigbluebutton") &&
+				!strings.HasPrefix(path, "/ws") {
 				return true // Nothing to do here
 			}
 
-			// Remove mountpoint and extract backendID
-			backendID, path := decodeClientProxyPath(mountPoint, path)
+			if c.IsWebSocket() {
+				log.Info().Msg("!!!WEBSOCKET DETECTED!!!")
+			}
+
+			bidcookie, err := c.Cookie("B3SBID")
+			if err != nil {
+				log.Error().Err(err).Msg("backend identification cookie error")
+				return true
+			}
+
+			backendID := bidcookie.Value
 			backend, err := ctrl.GetBackend(store.Q().
 				Where("id = ?", backendID))
 			if err != nil {
@@ -63,20 +67,10 @@ func BBBProxyMiddleware(
 
 			// Set backend for balancer
 			c.Set("backend", backend)
-
-			// Update path without mountpoint and backendID
-			c.SetPath(path)
-			c.Request().URL.Path = path
-
-			// Oh and we do something hacky here and put
-			// the backend id into the header and abuse this
-			// for inbandsignaling the backendID to the rewriter
-			c.Request().Header.Set("X-B3Scale-BackendID", backend.ID())
-
 			return false
 		},
-		Transport: NewBBBProxyRewriteTransport(),
-		Balancer:  NewBBBProxyBalancer(ctrl),
+		// Transport: NewBBBProxyRewriteTransport(),
+		Balancer: NewBBBProxyBalancer(ctrl),
 	}
 
 	return middleware.ProxyWithConfig(proxyConfig)
@@ -108,55 +102,57 @@ func (t *BBBProxyRewriteTransport) RoundTrip(
 		Msg("PROXY REQUEST")
 
 	res, err := t.RoundTripper.RoundTrip(req)
+	/*
 
-	// Rewrite redirects
-	location := res.Header.Get("Location")
-	if location != "" {
-		locURL, _ := url.Parse(location)
-		locURL.Scheme = ""
-		locURL.Host = ""
+		// Rewrite redirects
+		location := res.Header.Get("Location")
+		if location != "" {
+			locURL, _ := url.Parse(location)
+			locURL.Scheme = ""
+			locURL.Host = ""
 
-		if locURL.Path == "" {
-			locURL.Path = "/"
+			if locURL.Path == "" {
+				locURL.Path = "/"
+			}
+			locURL.Path = "/client/" + backendID + locURL.Path
+
+			res.Header.Set("Location", locURL.String())
 		}
-		locURL.Path = "/client/" + backendID + locURL.Path
 
-		res.Header.Set("Location", locURL.String())
-	}
+		// Wrap body reader
+		contentEncoding := res.Header.Get("Content-Encoding")
+		var reader io.ReadCloser
+		switch contentEncoding {
+		case "gzip":
+			reader, _ = gzip.NewReader(res.Body)
+			defer reader.Close()
+		default:
+			reader = res.Body
+		}
 
-	// Wrap body reader
-	contentEncoding := res.Header.Get("Content-Encoding")
-	var reader io.ReadCloser
-	switch contentEncoding {
-	case "gzip":
-		reader, _ = gzip.NewReader(res.Body)
-		defer reader.Close()
-	default:
-		reader = res.Body
-	}
+		// Receive body data and rewrite urls if required
+		body, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		err = res.Body.Close()
+		if err != nil {
+			return nil, err
+		}
 
-	// Receive body data and rewrite urls if required
-	body, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	err = res.Body.Close()
-	if err != nil {
-		return nil, err
-	}
+		contentType := res.Header.Get("Content-Type")
+		if strings.HasPrefix(contentType, "text") ||
+			strings.HasPrefix(contentType, "application") {
+			body = rewriteBodyURLs(body, backendID)
+		}
 
-	contentType := res.Header.Get("Content-Type")
-	if strings.HasPrefix(contentType, "text") ||
-		strings.HasPrefix(contentType, "application") {
-		body = rewriteBodyURLs(body, backendID)
-	}
+		// Todo: Encode gziped
+		res.Header.Del("Content-Encoding")
+		res.Body = ioutil.NopCloser(bytes.NewReader(body))
 
-	// Todo: Encode gziped
-	res.Header.Del("Content-Encoding")
-	res.Body = ioutil.NopCloser(bytes.NewReader(body))
-
-	res.ContentLength = int64(len(body))
-	res.Header.Set("Content-Length", strconv.Itoa(len(body)))
+		res.ContentLength = int64(len(body))
+		res.Header.Set("Content-Length", strconv.Itoa(len(body)))
+	*/
 
 	return res, err
 }
@@ -169,11 +165,11 @@ func rewriteBodyURLs(body []byte, backendID string) []byte {
 		return nil
 	}
 	/*
-		prefix := []byte("=\"/client/" + backendID + "/")
-		return ReMatchAbsoluteURL.ReplaceAll(body, prefix)
+			prefix := []byte("=\"/client/" + backendID + "/")
+			return ReMatchAbsoluteURL.ReplaceAll(body, prefix)
+		prefix := []byte("/client/" + backendID + "/html5client/")
+		body = ReMatchHTML5Client.ReplaceAll(body, prefix)
 	*/
-	prefix := []byte("/client/" + backendID + "/html5client/")
-	body = ReMatchHTML5Client.ReplaceAll(body, prefix)
 	return body
 }
 

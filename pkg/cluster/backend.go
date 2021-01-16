@@ -291,21 +291,18 @@ func (b *Backend) joinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
 		return joinRes, nil // Not the expected redirect
 	}
 
-	// The client prefix is the endpoint for our
-	// proxy. We add the backend id to pin a connection there.
-	clientPrefix := fmt.Sprintf("/client/%s", b.state.ID)
-
-	// Rewrite redirect to us, also keep the cookie
+	// Rewrite redirect to us, also keep the jsession cookie
+	// and add a cookie for backend pinning
 	joinURL, err := url.Parse(joinRes.Header().Get("Location"))
 	if err != nil {
 		return nil, err
 	}
 	joinURL.Scheme = ""
 	joinURL.Host = ""
-	joinURL.Path = clientPrefix + joinURL.Path
 
 	joinRes.Header().Set("Location", joinURL.String())
-	joinRes.Header().Add("Set-Cookie", fmt.Sprintf("B3SBID=%s", b.state.ID))
+	joinRes.Header().Add("Set-Cookie",
+		fmt.Sprintf("B3SBID=%s; Path=/", b.state.ID))
 
 	return joinRes, nil
 }
