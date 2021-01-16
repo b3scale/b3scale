@@ -45,7 +45,6 @@ func NewInterface(
 
 	// We handle BBB requests in a custom middleware
 	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
-	e.Use(BBBProxyMiddleware(ctrl))
 
 	// Prometheus Middleware
 	// Find it under /metrics
