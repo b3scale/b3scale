@@ -2,6 +2,8 @@ package http
 
 import (
 	"bytes"
+	"compress/gzip"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -21,6 +23,7 @@ var (
 	// ReMatchAbsoluteURL matches the pattern for an
 	// attribute assignment with an absolute URL: `="/'
 	ReMatchAbsoluteURL = regexp.MustCompile(`=.?"/`)
+	ReMatchHTML5Client = regexp.MustCompile(`/html5client/`)
 )
 
 // BBBProxyMiddleware is a reverse proxy middleware
@@ -121,8 +124,19 @@ func (t *BBBProxyRewriteTransport) RoundTrip(
 		res.Header.Set("Location", locURL.String())
 	}
 
+	// Wrap body reader
+	contentEncoding := res.Header.Get("Content-Encoding")
+	var reader io.ReadCloser
+	switch contentEncoding {
+	case "gzip":
+		reader, _ = gzip.NewReader(res.Body)
+		defer reader.Close()
+	default:
+		reader = res.Body
+	}
+
 	// Receive body data and rewrite urls if required
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -131,9 +145,16 @@ func (t *BBBProxyRewriteTransport) RoundTrip(
 		return nil, err
 	}
 
-	body = rewriteBodyURLs(body, backendID)
+	contentType := res.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "text") ||
+		strings.HasPrefix(contentType, "application") {
+		body = rewriteBodyURLs(body, backendID)
+	}
 
+	// Todo: Encode gziped
+	res.Header.Del("Content-Encoding")
 	res.Body = ioutil.NopCloser(bytes.NewReader(body))
+
 	res.ContentLength = int64(len(body))
 	res.Header.Set("Content-Length", strconv.Itoa(len(body)))
 
@@ -144,10 +165,16 @@ func (t *BBBProxyRewriteTransport) RoundTrip(
 // prefix
 func rewriteBodyURLs(body []byte, backendID string) []byte {
 	if body == nil {
+		log.Error().Msg("BODY WAS NIL")
 		return nil
 	}
-	prefix := []byte("=\"/client/" + backendID + "/")
-	return ReMatchAbsoluteURL.ReplaceAll(body, prefix)
+	/*
+		prefix := []byte("=\"/client/" + backendID + "/")
+		return ReMatchAbsoluteURL.ReplaceAll(body, prefix)
+	*/
+	prefix := []byte("/client/" + backendID + "/html5client/")
+	body = ReMatchHTML5Client.ReplaceAll(body, prefix)
+	return body
 }
 
 // BBBProxyBalancer will select the backend

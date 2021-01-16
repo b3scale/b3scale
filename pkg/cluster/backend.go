@@ -305,6 +305,7 @@ func (b *Backend) joinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
 	joinURL.Path = clientPrefix + joinURL.Path
 
 	joinRes.Header().Set("Location", joinURL.String())
+	joinRes.Header().Add("Set-Cookie", fmt.Sprintf("B3SBID=%s", b.state.ID))
 
 	return joinRes, nil
 }
