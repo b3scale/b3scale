@@ -302,11 +302,12 @@ func (b *Backend) joinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
 	joinURL.Scheme = ""
 	joinURL.Host = ""
 
+	// Inject host as query param
+	q := joinURL.Query()
+	q.Add("b3shost", hostURL.Host)
+	joinURL.RawQuery = q.Encode()
+
 	joinRes.Header().Set("Location", joinURL.String())
-	joinRes.Header().Add("Set-Cookie",
-		fmt.Sprintf("B3SHOST=%s; Path=/", hostURL.Host))
-	joinRes.Header().Add("Set-Cookie",
-		fmt.Sprintf("B3SBID=%s; Path=/", b.state.ID))
 
 	return joinRes, nil
 }
@@ -346,7 +347,6 @@ func (b *Backend) joinRedirect(req *bbb.Request) (*bbb.JoinResponse, error) {
 	}))
 
 	return res, nil
-
 }
 
 // IsMeetingRunning returns the is meeting running state
