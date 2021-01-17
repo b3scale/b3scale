@@ -11,8 +11,6 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-var version = "HEAD"
-
 func main() {
 	// Check if the enviroment was configured, when not try to
 	// load the environment from .env or from a sysconfig env file
