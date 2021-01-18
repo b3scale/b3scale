@@ -30,6 +30,8 @@ func main() {
 	listenHTTP := config.EnvOpt(config.EnvListenHTTP, config.EnvListenHTTPDefault)
 	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
 	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
+	revProxyEnabled := config.IsEnabled(config.EnvOpt(
+		config.EnvReverseProxy, config.EnvReverseProxyDefault))
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{
@@ -40,6 +42,10 @@ func main() {
 
 	log.Info().Msg("booting b3scale")
 	log.Debug().Str("url", dbConnStr).Msg("using database")
+
+	if revProxyEnabled {
+		log.Info().Msg("reverse proxy mode is enabled")
+	}
 
 	// Initialize postgres connection
 	dbConn, err := store.Connect(dbConnStr)
@@ -56,7 +62,10 @@ func main() {
 
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
-	gateway := cluster.NewGateway(ctrl)
+	gateway := cluster.NewGateway(ctrl, &cluster.GatewayOptions{
+		IsReverseProxyEnabled: revProxyEnabled,
+	})
+
 	// gateway.Use(requests.NewDispatchMerge()) // should not be required anymore
 	gateway.Use(router.Middleware())
 
