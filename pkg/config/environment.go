@@ -76,7 +76,9 @@ func IsEnabled(value string) bool {
 	value = strings.ToLower(value)
 	switch value {
 	case "yes":
+		return true
 	case "true":
+		return true
 	case "1":
 		return true
 	}
