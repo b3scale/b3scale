@@ -9,18 +9,20 @@ import (
 
 // Well Known Environment Keys
 const (
-	EnvDbURL      = "B3SCALE_DB_URL"
-	EnvLogLevel   = "B3SCALE_LOG_LEVEL"
-	EnvListenHTTP = "B3SCALE_LISTEN_HTTP"
-	EnvBBBConfig  = "BBB_CONFIG"
+	EnvDbURL        = "B3SCALE_DB_URL"
+	EnvLogLevel     = "B3SCALE_LOG_LEVEL"
+	EnvListenHTTP   = "B3SCALE_LISTEN_HTTP"
+	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
+	EnvBBBConfig    = "BBB_CONFIG"
 )
 
 // Defaults
 const (
-	EnvDbURLDefault      = "postgres://postgres:postgres@localhost:5432/b3scale"
-	EnvLogLevelDefault   = "info"
-	EnvListenHTTPDefault = "127.0.0.1:42353" // :B3S
-	EnvBBBConfigDefault  = "/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties"
+	EnvDbURLDefault        = "postgres://postgres:postgres@localhost:5432/b3scale"
+	EnvLogLevelDefault     = "info"
+	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
+	EnvReverseProxyDefault = "false"
+	EnvBBBConfigDefault    = "/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties"
 )
 
 // LoadEnv loads the environment from a file and
@@ -67,4 +69,18 @@ func EnvOpt(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+// IsEnabled returns true if the input is trueis
+func IsEnabled(value string) bool {
+	value = strings.ToLower(value)
+	switch value {
+	case "yes":
+		return true
+	case "true":
+		return true
+	case "1":
+		return true
+	}
+	return false
 }

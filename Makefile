@@ -5,32 +5,33 @@
 ######################################################################
 
 VERSION := $(shell cat ./VERSION)
+BUILD := $(shell git rev-parse --short HEAD)
 
-LDFLAGS := '-X main.version=$(VERSION)'
-LDFLAGS_STATIC := '-X main.version=$(VERSION) -extldflags "-static"'
-
+LDFLAGS := -X gitlab.com/infra.run/public/b3scale/pkg/config.Version=$(VERSION) \
+		   -X gitlab.com/infra.run/public/b3scale/pkg/config.Build=$(BUILD)
+LDFLAGS_STATIC := $(LDFLAGS) -extldflags "-static"
 
 all: b3scaled b3scalectl b3scalenoded
 
 static: b3scaled_static b3scalectl_static b3scalenoded_static
 
 b3scaled:
-	cd cmd/b3scaled && go build -ldflags $(LDFLAGS)
+	cd cmd/b3scaled && go build -ldflags '$(LDFLAGS)'
 
 b3scalectl:
-	cd cmd/b3scalectl && go build -ldflags $(LDFLAGS)
+	cd cmd/b3scalectl && go build -ldflags '$(LDFLAGS)'
 
 b3scalenoded:
-	cd cmd/b3scalenoded && go build -ldflags $(LDFLAGS)
+	cd cmd/b3scalenoded && go build -ldflags '$(LDFLAGS)'
 
 b3scaled_static:
-	cd cmd/b3scaled && CGO_ENABLED=0 GOOS=linux go build -a -ldflags $(LDFLAGS_STATIC)
+	cd cmd/b3scaled && CGO_ENABLED=0 GOOS=linux go build -a -ldflags '$(LDFLAGS_STATIC)'
 
 b3scalectl_static:
-	cd cmd/b3scalectl && CGO_ENABLED=0 GOOS=linux go build -a -ldflags $(LDFLAGS_STATIC)
+	cd cmd/b3scalectl && CGO_ENABLED=0 GOOS=linux go build -a -ldflags '$(LDFLAGS_STATIC)'
 
 b3scalenoded_static:
-	cd cmd/b3scalenoded && CGO_ENABLED=0 GOOS=linux go build -a -ldflags $(LDFLAGS_STATIC)
+	cd cmd/b3scalenoded && CGO_ENABLED=0 GOOS=linux go build -a -ldflags '$(LDFLAGS_STATIC)'
 
 
 .PHONY: clean test

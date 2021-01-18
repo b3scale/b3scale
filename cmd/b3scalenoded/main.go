@@ -15,8 +15,6 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-var version string = "HEAD"
-
 // Flags and parameters
 var (
 	autoregister bool
@@ -43,7 +41,7 @@ func heartbeat(backend *store.BackendState) {
 }
 
 func main() {
-	fmt.Printf("b3scale node agent		v.%s\n", version)
+	fmt.Printf("b3scale node agent		v.%s\n", config.Version)
 
 	// Check if the enviroment was configured, when not try to
 	// load the environment from .env or from a sysconfig env file

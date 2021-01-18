@@ -170,7 +170,7 @@ func (r *Router) Middleware() RequestMiddleware {
 		) (bbb.Response, error) {
 			// Filter backends and only accept state active,
 			// and where the noded is active on the host.
-			deadline := time.Now().UTC().Add(-1 * time.Second)
+			deadline := time.Now().UTC().Add(-5 * time.Second)
 			backends, err := r.ctrl.GetBackends(store.Q().
 				Where("agent_heartbeat >= ?", deadline).
 				Where("node_state = ?", "ready"))

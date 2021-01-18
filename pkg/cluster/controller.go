@@ -343,7 +343,7 @@ func (c *Controller) requestBackendDecommissions() error {
 // backends and warns the user that there are backends offline
 func (c *Controller) warnOfflineBackends() error {
 	// Get offline backends
-	deadline := time.Now().UTC().Add(-1 * time.Second)
+	deadline := time.Now().UTC().Add(-5 * time.Second)
 	states, err := store.GetBackendStates(c.pool, store.Q().
 		Where("backends.agent_heartbeat < ?", deadline))
 	if err != nil {
