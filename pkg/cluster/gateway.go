@@ -9,26 +9,38 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
+// GatewayOptions have flags for customizing the gateway behaviour.
+type GatewayOptions struct {
+
+	// IsReverseProxyEnabled affects how the client joins a meeting:
+	// When deployed in reverse proxy mode we will handle the
+	// join internally and the proxy needs to handle subsequent requests.
+	IsReverseProxyEnabled bool
+}
+
 // The Gateway accepts bbb cluster requests and dispatches
 // it to the cluster nodes.
 type Gateway struct {
+	opts       *GatewayOptions
 	middleware RequestHandler
 	ctrl       *Controller
 }
 
 // NewGateway sets up a new cluster router instance.
-func NewGateway(ctrl *Controller) *Gateway {
-	return &Gateway{
-		ctrl:       ctrl,
-		middleware: dispatchBackendHandler(ctrl),
+func NewGateway(ctrl *Controller, opts *GatewayOptions) *Gateway {
+	gw := &Gateway{
+		ctrl: ctrl,
+		opts: opts,
 	}
+	gw.middleware = gw.dispatchBackendHandler(ctrl)
+	return gw
 }
 
 // The dispatchBackendHandler marks the end of the
 // middleware chain and is the default handler for requests.
 // It expects the presence of a "backend" in the current
 // context. Otherwise it will fail.
-func dispatchBackendHandler(ctrl *Controller) RequestHandler {
+func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 	return func(
 		ctx context.Context, req *bbb.Request,
 	) (bbb.Response, error) {
@@ -77,6 +89,9 @@ func dispatchBackendHandler(ctrl *Controller) RequestHandler {
 		case bbb.ResourceIndex:
 			return backend.Version(req)
 		case bbb.ResourceJoin:
+			if gw.opts.IsReverseProxyEnabled {
+				return backend.JoinProxy(req)
+			}
 			return backend.Join(req)
 		case bbb.ResourceCreate:
 			return backend.Create(req)
