@@ -20,6 +20,11 @@ The following environment variables can be configured:
     ### Example URL
     `postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca`
 
+ * `B3SCALE_REVERSE_PROXY_MODE` if set to `yes` or `1` or `true` it will
+   enable the reverse proxy mode in the cluster gateway.
+   You have to configure a reverse proxy e.g. nginx to handle
+   subsequent client requests.
+
  * `B3SCALE_LOG_LEVEL` set the log level. Possible values are:
 
         panic  5
