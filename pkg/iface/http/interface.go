@@ -33,25 +33,25 @@ func NewInterface(
 	ctrl *cluster.Controller,
 	gateway *cluster.Gateway,
 ) *Interface {
+	logger := lecho.From(log.Logger)
+
 	// Setup and configure echo framework
 	e := echo.New()
 	e.HideBanner = true
 
-	logger := lecho.From(log.Logger)
-
-	// Middlewares
+	// Middleware order: The middlewares are executed
+	// in order of Use.
+	e.Use(middleware.Recover())
 	e.Use(lecho.Middleware(lecho.Config{
 		Logger: logger,
 	}))
-	e.Use(middleware.Recover())
+
+	// Prometheus Middleware - Find it under /metrics
+	p := prometheus.NewPrometheus(serviceID, nil)
+	p.Use(e)
 
 	// We handle BBB requests in a custom middleware
 	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
-
-	// Prometheus Middleware
-	// Find it under /metrics
-	p := prometheus.NewPrometheus(serviceID, nil)
-	p.Use(e)
 
 	iface := &Interface{
 		echo:       e,
