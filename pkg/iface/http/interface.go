@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
 // Interface provides the http server for the
@@ -90,5 +92,7 @@ func (iface *Interface) StartCleartextHTTP2(listen string) {
 func (iface *Interface) httpIndex(c echo.Context) error {
 	return c.HTML(
 		http.StatusOK,
-		"<h1>B3Scale!</h1>")
+		fmt.Sprintf(
+			"<h1>B3Scale! v.%s (%s)</h1>",
+			config.Version, config.Build))
 }
