@@ -10,22 +10,32 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// ConnectOpts database connection options
+type ConnectOpts struct {
+	URL      string
+	MaxConns int32
+	MinConns int32
+}
+
 // Connect establishes a database connection and
 // checks the schema version of the database.
-func Connect(url string) (*pgxpool.Pool, error) {
-	log.Debug().Str("url", url).Msg("using database")
+func Connect(opts *ConnectOpts) (*pgxpool.Pool, error) {
+	log.Debug().Str("url", opts.URL).Msg("using database")
 
 	// Initialize postgres connection
-	cfg, err := pgxpool.ParseConfig(url)
+	cfg, err := pgxpool.ParseConfig(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
 	cfg.ConnConfig.RuntimeParams["application_name"] = os.Args[0]
+	if opts.MaxConns == 0 {
+		return nil, fmt.Errorf("MaxConns not configured for connection")
+	}
 
 	// We need some more connections
-	cfg.MaxConns = 256
-	cfg.MinConns = 8
+	cfg.MaxConns = opts.MaxConns
+	cfg.MinConns = opts.MinConns
 
 	pool, err := pgxpool.ConnectConfig(context.Background(), cfg)
 	if err != nil {
