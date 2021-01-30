@@ -14,7 +14,10 @@ func connectTest(t *testing.T) *pgxpool.Pool {
 	if url == "" {
 		url = "postgres://postgres:postgres@localhost:5432/b3scale_test"
 	}
-	conn, err := Connect(url)
+	conn, err := Connect(&ConnectOpts{
+		URL:      url,
+		MinConns: 2,
+		MaxConns: 16})
 	if err != nil {
 		t.Error(err)
 	}
