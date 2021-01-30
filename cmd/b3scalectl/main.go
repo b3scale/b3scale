@@ -32,7 +32,11 @@ func main() {
 		panic(err)
 	}
 
-	dbPool, err := store.Connect(dbConnStr)
+	dbPool, err := store.Connect(&store.ConnectOpts{
+		URL:      dbConnStr,
+		MaxConns: 8,
+		MinConns: 1,
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}

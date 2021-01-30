@@ -76,7 +76,11 @@ func main() {
 
 	log.Info().Msg("booting b3scalenoded")
 	// Initialize postgres connection
-	pool, err := store.Connect(dbConnStr)
+	pool, err := store.Connect(&store.ConnectOpts{
+		URL:      dbConnStr,
+		MaxConns: 16,
+		MinConns: 1,
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}

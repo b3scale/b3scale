@@ -46,7 +46,11 @@ func main() {
 	}
 
 	// Initialize postgres connection
-	dbConn, err := store.Connect(dbConnStr)
+	dbConn, err := store.Connect(&store.ConnectOpts{
+		URL:      dbConnStr,
+		MaxConns: 256,
+		MinConns: 8,
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}
