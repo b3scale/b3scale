@@ -958,38 +958,45 @@ func (m *Meeting) Update(update *Meeting) error {
 	if m.InternalMeetingID != update.InternalMeetingID {
 		return fmt.Errorf("internal ids do not match for update")
 	}
+	/*
 
-	if len(update.MeetingName) > 0 {
-		m.MeetingName = update.MeetingName
-	}
-	if len(update.CreateDate) > 0 {
-		m.CreateDate = update.CreateDate
-	}
-	if len(update.VoiceBridge) > 0 {
-		m.VoiceBridge = update.VoiceBridge
-	}
-	if len(update.DialNumber) > 0 {
-		m.DialNumber = update.DialNumber
-	}
-	if len(update.AttendeePW) > 0 {
-		m.AttendeePW = update.AttendeePW
-	}
-	if len(update.ModeratorPW) > 0 {
-		m.ModeratorPW = update.ModeratorPW
-	}
-	m.Running = update.Running
-	m.Duration = update.Duration
-	m.Recording = update.Recording
-	m.HasBeenForciblyEnded = update.HasBeenForciblyEnded
-	m.StartTime = update.StartTime
-	m.EndTime = update.EndTime
-	m.ParticipantCount = update.ParticipantCount
-	m.ListenerCount = update.ListenerCount
-	m.VoiceParticipantCount = update.VoiceParticipantCount
-	m.VideoCount = update.VideoCount
-	m.MaxUsers = update.MaxUsers
-	m.ModeratorCount = update.ModeratorCount
-	m.IsBreakout = update.IsBreakout
+		if len(update.MeetingName) > 0 {
+			m.MeetingName = update.MeetingName
+		}
+		if len(update.CreateDate) > 0 {
+			m.CreateDate = update.CreateDate
+		}
+		if len(update.VoiceBridge) > 0 {
+			m.VoiceBridge = update.VoiceBridge
+		}
+		if len(update.DialNumber) > 0 {
+			m.DialNumber = update.DialNumber
+		}
+		if len(update.AttendeePW) > 0 {
+			m.AttendeePW = update.AttendeePW
+		}
+		if len(update.ModeratorPW) > 0 {
+			m.ModeratorPW = update.ModeratorPW
+		}
+		m.Running = update.Running
+		m.Duration = update.Duration
+		m.Recording = update.Recording
+		m.HasBeenForciblyEnded = update.HasBeenForciblyEnded
+		m.StartTime = update.StartTime
+		m.EndTime = update.EndTime
+		m.ParticipantCount = update.ParticipantCount
+		m.ListenerCount = update.ListenerCount
+		m.VoiceParticipantCount = update.VoiceParticipantCount
+		m.VideoCount = update.VideoCount
+		m.MaxUsers = update.MaxUsers
+		m.ModeratorCount = update.ModeratorCount
+		m.IsBreakout = update.IsBreakout
+		m.Attendees = update.Attendees
+		m.BreakoutRooms = update.BreakoutRooms
+	*/
+
+	*m = *update
+
 	return nil
 }
 
