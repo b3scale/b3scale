@@ -4,7 +4,7 @@
 # @created     : Sunday Aug 16, 2020 19:24:54 CEST
 ######################################################################
 
-VERSION := $(shell cat ./VERSION)
+VERSION := $(shell git tag --points-at HEAD)
 BUILD := $(shell git rev-parse --short HEAD)
 
 LDFLAGS := -X gitlab.com/infra.run/public/b3scale/pkg/config.Version=$(VERSION) \
