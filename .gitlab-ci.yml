@@ -3,7 +3,6 @@ image: golang:1.14
 stages:
   - check
   - build
-  - release
 
 default:
   before_script:
@@ -47,35 +46,24 @@ vet:
 
 
 package:
-  stage: release
+  stage: build
+  tags:
+    - docker
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
+      - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
+      - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
   only:
     - master
     - tags
   script:
+    - make static
     - mkdir -p _release/b3scale
     - cp $CI_PROJECT_DIR/README.md _release/b3scale/
-    - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
-    - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
-    - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
-    - cd _release && tar cvzf b3scale.tar.gz b3scale/
-    - cd _release && tar cvjf b3scale.tar.bz2 b3scale/
-    - >
-      curl 
-        --header "JOB-TOKEN: $CI_JOB_TOKEN"
-        --upload-file _release/b3scale.tar.gz
-        ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/b3scale/${CI_COMMIT_TAG}/b3scale-${CI_COMMIT_TAG}.tar.gz
-    
-    - >
-      curl
-        --header "JOB-TOKEN: $CI_JOB_TOKEN"
-        --upload-file _release/b3scale.tar.bz2
-        ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/b3scale/${CI_COMMIT_TAG}/b3scale-${CI_COMMIT_TAG}.tar.bz2
-
-#
-#test:
-#  stage: check
-#  tags:
-#    - docker
-#  script:
-#    - make test
-
+    - cp $CI_PROJECT_DIR/cmd/b3scaled/b3scaled _release/b3scale/
+    - cp $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl _release/b3scale/
+    - cp $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded _release/b3scale/
+    - cd _release/
+    - tar cvzf b3scale.tar.gz b3scale/
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file b3scale.tar.gz "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/linux/${CI_COMMIT_TAG}/b3scale-${CI_COMMIT_TAG}.tar.gz"' 
