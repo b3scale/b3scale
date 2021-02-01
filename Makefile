@@ -4,18 +4,28 @@
 # @created     : Sunday Aug 16, 2020 19:24:54 CEST
 ######################################################################
 
+# Force using the vendored dependencies
+VENDOR := false
+
+# Set the release version
 VERSION := $(shell git tag --points-at HEAD)
 ifeq ($(VERSION),)
   VERSION=HEAD
 endif
 
+# Set the release build
 BUILD := $(shell git rev-parse --short HEAD)
 
+
 CFLAGS := -buildmode=pie
+ifneq ($(VENDOR), false)
+  CFLAGS += -mod=vendor
+endif
 
 LDFLAGS := -X gitlab.com/infra.run/public/b3scale/pkg/config.Version=$(VERSION) \
 		   -X gitlab.com/infra.run/public/b3scale/pkg/config.Build=$(BUILD)
 LDFLAGS_STATIC := $(LDFLAGS) -extldflags "-static"
+
 
 all: b3scaled b3scalectl b3scalenoded
 
