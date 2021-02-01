@@ -392,14 +392,21 @@ func (b *Backend) GetMeetingInfo(
 				Str("backend", b.state.Backend.Host).
 				Msg("GetMeetingState")
 		} else {
-			// Update meeting state
-			mstate.Meeting = res.Meeting
-			mstate.SyncedAt = time.Now().UTC()
-			if err := mstate.Save(); err != nil {
-				log.Error().
-					Err(err).
+			if mstate == nil {
+				log.Warn().
 					Str("backend", b.state.Backend.Host).
-					Msg("Save")
+					Str("meetingID", meetingID).
+					Msg("GetMeetingInfo for unknown meeting")
+			} else {
+				// Update meeting state
+				mstate.Meeting = res.Meeting
+				mstate.SyncedAt = time.Now().UTC()
+				if err := mstate.Save(); err != nil {
+					log.Error().
+						Err(err).
+						Str("backend", b.state.Backend.Host).
+						Msg("Save")
+				}
 			}
 		}
 	}
