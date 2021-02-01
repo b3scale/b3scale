@@ -61,9 +61,9 @@ package:
     - make static
     - mkdir -p _release/b3scale
     - cp $CI_PROJECT_DIR/README.md _release/b3scale/
-    - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
-    - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
-    - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
+    - cp $CI_PROJECT_DIR/cmd/b3scaled/b3scaled _release/b3scale/
+    - cp $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl _release/b3scale/
+    - cp $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded _release/b3scale/
     - cd _release && tar cvzf b3scale.tar.gz b3scale/
     - cd _release && tar cvjf b3scale.tar.bz2 b3scale/
     - >
