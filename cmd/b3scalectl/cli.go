@@ -462,8 +462,8 @@ func (c *Cli) setBackendAdminState(host string, dry bool, adminState string) err
 
 	// The state is known to use. Just make updates
 	changes := false
-	if state.AdminState != "ready" {
-		state.AdminState = "ready"
+	if state.AdminState != adminState {
+		state.AdminState = adminState
 		changes = true
 	}
 	if changes {
