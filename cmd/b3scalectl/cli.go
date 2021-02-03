@@ -79,11 +79,6 @@ func NewCli(
 								Aliases: []string{"s"},
 								Usage:   "the bbb secret",
 							},
-							&cli.StringFlag{
-								Name:  "state",
-								Usage: "set the admin_state of the backend node",
-								Value: "init",
-							},
 						},
 						Action: c.setBackend,
 					},
@@ -125,6 +120,40 @@ func NewCli(
 						Name:   "frontend",
 						Usage:  "delete frontend",
 						Action: c.deleteFrontend,
+					},
+				},
+			},
+			{
+				Name:    "enable",
+				Aliases: []string{"en", "start"},
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "dry",
+						Usage: "perform a dry run",
+					},
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:   "backend",
+						Usage:  "enable backend",
+						Action: c.enableBackend,
+					},
+				},
+			},
+			{
+				Name:    "disable",
+				Aliases: []string{"dis", "stop"},
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "dry",
+						Usage: "perform a dry run",
+					},
+				},
+				Subcommands: []*cli.Command{
+					{
+						Name:   "backend",
+						Usage:  "disable backend",
+						Action: c.disableBackend,
 					},
 				},
 			},
@@ -387,6 +416,78 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 		fmt.Println("")
 	}
 
+	return nil
+}
+
+// enable a backend means setting the admin state
+// to ready
+func (c *Cli) enableBackend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+	// Args should be host
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("require: <host>")
+	}
+	host := ctx.Args().Get(0)
+	return c.setBackendAdminState(host, dry, "ready")
+}
+
+func (c *Cli) disableBackend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+	// Args should be host
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("require: <host>")
+	}
+	host := ctx.Args().Get(0)
+	return c.setBackendAdminState(host, dry, "stopped")
+}
+
+func (c *Cli) setBackendAdminState(host string, dry bool, adminState string) error {
+	if !strings.HasPrefix(host, "http") {
+		return fmt.Errorf("host should start with http(s)://")
+	}
+	if !strings.HasSuffix(host, "/") {
+		host += "/"
+	}
+
+	// Check if backend exists
+	state, err := store.GetBackendState(c.pool, store.Q().
+		Where("host = ?", host))
+	if err != nil {
+		return err
+	}
+	if state == nil {
+		return fmt.Errorf("backend not found")
+	}
+
+	// The state is known to use. Just make updates
+	changes := false
+	if state.AdminState != "ready" {
+		state.AdminState = "ready"
+		changes = true
+	}
+	if changes {
+		if !dry {
+			if err := state.Save(); err != nil {
+				return err
+			}
+			fmt.Println("updated backend admin state")
+		} else {
+			fmt.Println("skipping backend admin state update")
+		}
+	} else {
+		fmt.Println("no changes")
+		c.returnCode = RetNoChange
+	}
+
+	// Create command and enqueue
+	if !dry {
+		cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
+			ID: state.ID,
+		})
+		if err := c.queue.Queue(cmd); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
