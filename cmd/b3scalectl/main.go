@@ -10,8 +10,6 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-var version = "HEAD"
-
 func main() {
 	// Check if the enviroment was configured, when not try to
 	// load the environment from .env or from a sysconfig env file
@@ -34,7 +32,11 @@ func main() {
 		panic(err)
 	}
 
-	dbPool, err := store.Connect(dbConnStr)
+	dbPool, err := store.Connect(&store.ConnectOpts{
+		URL:      dbConnStr,
+		MaxConns: 8,
+		MinConns: 1,
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}

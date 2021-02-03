@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -154,6 +155,9 @@ func (s *BackendState) Refresh() error {
 	))
 	if err != nil {
 		return err
+	}
+	if next == nil {
+		return fmt.Errorf("backend %s is gone", s.ID)
 	}
 	*s = *next
 	return nil

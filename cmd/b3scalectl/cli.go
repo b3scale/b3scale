@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -569,7 +570,9 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 
 // show the current version
 func (c *Cli) showVersion(ctx *cli.Context) error {
-	fmt.Printf("b3scalectl v.%s\n", version)
+	fmt.Printf("b3scalectl v.%s\t%s\n",
+		config.Version,
+		config.Build)
 	return nil
 }
 

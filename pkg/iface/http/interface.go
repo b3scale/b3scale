@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/net/http2"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
 // Interface provides the http server for the
@@ -31,25 +33,25 @@ func NewInterface(
 	ctrl *cluster.Controller,
 	gateway *cluster.Gateway,
 ) *Interface {
+	logger := lecho.From(log.Logger)
+
 	// Setup and configure echo framework
 	e := echo.New()
 	e.HideBanner = true
 
-	logger := lecho.From(log.Logger)
-
-	// Middlewares
+	// Middleware order: The middlewares are executed
+	// in order of Use.
+	e.Use(middleware.Recover())
 	e.Use(lecho.Middleware(lecho.Config{
 		Logger: logger,
 	}))
-	e.Use(middleware.Recover())
+
+	// Prometheus Middleware - Find it under /metrics
+	p := prometheus.NewPrometheus(serviceID, nil)
+	p.Use(e)
 
 	// We handle BBB requests in a custom middleware
 	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
-
-	// Prometheus Middleware
-	// Find it under /metrics
-	p := prometheus.NewPrometheus(serviceID, nil)
-	p.Use(e)
 
 	iface := &Interface{
 		echo:       e,
@@ -90,5 +92,7 @@ func (iface *Interface) StartCleartextHTTP2(listen string) {
 func (iface *Interface) httpIndex(c echo.Context) error {
 	return c.HTML(
 		http.StatusOK,
-		"<h1>B3Scale!</h1>")
+		fmt.Sprintf(
+			"<h1>B3Scale! v.%s (%s)</h1>",
+			config.Version, config.Build))
 }

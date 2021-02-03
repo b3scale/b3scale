@@ -210,13 +210,32 @@ func (c *Controller) handleUpdateMeetingState(
 	// Get meeting from store
 	mstate, err := store.GetMeetingState(c.pool, store.Q().
 		Where("id = ?", req.ID))
+	if err != nil {
+		log.Error().Err(err).Msg("GetMeetingState for handleUpdateMeetingState")
+		return nil, err
+	}
+	if mstate == nil {
+		log.Info().
+			Str("meetingID", req.ID).
+			Msg("meeting is already gone; refesh canceled")
+		return false, fmt.Errorf("meeting not found: %s", req.ID)
+	}
 
+	// Get Backend
 	backend, err := c.GetBackend(
 		store.Q().Where("id = ?", mstate.BackendID))
 	if err != nil {
 		log.Error().Err(err).Msg("GetBackend")
 		return nil, err
 	}
+	if backend == nil {
+		log.Info().
+			Str("meetingID", req.ID).
+			Msg("backend is gone; refesh canceled")
+		return false, fmt.Errorf("backend not found")
+	}
+
+	// Refresh state
 	if err := backend.refreshMeetingState(mstate); err != nil {
 		return false, err
 	}
@@ -235,6 +254,9 @@ func (c *Controller) handleEndAllMeetings(cmd *store.Command) (interface{}, erro
 	backend, err := c.GetBackend(store.Q().Where("id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
+	}
+	if backend == nil {
+		return false, fmt.Errorf("no such backend: %s", req.BackendID)
 	}
 
 	// Send end for all *known* meetings. (We however, should *know*
@@ -343,7 +365,7 @@ func (c *Controller) requestBackendDecommissions() error {
 // backends and warns the user that there are backends offline
 func (c *Controller) warnOfflineBackends() error {
 	// Get offline backends
-	deadline := time.Now().UTC().Add(-1 * time.Second)
+	deadline := time.Now().UTC().Add(-5 * time.Second)
 	states, err := store.GetBackendStates(c.pool, store.Q().
 		Where("backends.agent_heartbeat < ?", deadline))
 	if err != nil {

@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -272,18 +273,15 @@ func (b *Backend) Create(req *bbb.Request) (
 	return createRes, nil
 }
 
-// Join a meeting
-func (b *Backend) Join(
-	req *bbb.Request,
-) (*bbb.JoinResponse, error) {
+// Join via redirect: The client will receive a
+// redirect to the BBB backend and will join there directly.
+func (b *Backend) Join(req *bbb.Request) (*bbb.JoinResponse, error) {
 	// Joining a meeting is a process entirely handled by the
-	// client. Because of a JSESSIONID which is used? I guess?
-	// Or maybe the referrer?
-	// Just passing through the location response did not work.
-	// For the reverseproxy feature we need to fix this.
-	// Even if it means tracking JSESSIONID cookie headers
-	// or the referrer and injecting them back through some
-	// nxing magic on the BBB side.
+	// client. Because of a JSESSIONID which is used for preventing
+	// session stealing, just passing through the location response
+	// does not work. The JSESSIONID cookie is not associtated with
+	// the backend domain and thus the sessionToken is not accepted
+	// as valid.
 	req = req.WithBackend(b.state.Backend)
 
 	// Create custom join response
@@ -308,6 +306,40 @@ func (b *Backend) Join(
 	}))
 
 	return res, nil
+}
+
+// JoinProxy makes a request on behalf of the client.
+// A reverse proxy needs to pass all subsequent requests
+// to the BBB backend.
+func (b *Backend) JoinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
+	// Pass the request to the BBB server and rewrite response
+	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	joinRes := res.(*bbb.JoinResponse)
+	if joinRes.Status() != 302 {
+		return joinRes, nil // Not the expected redirect
+	}
+
+	hostURL, _ := url.Parse(b.state.Backend.Host)
+
+	// Rewrite redirect to us, also keep the jsession cookie
+	// and add the backend host to the query for pinning
+	joinURL, err := url.Parse(joinRes.Header().Get("Location"))
+	if err != nil {
+		return nil, err
+	}
+	joinURL.Scheme = ""
+	joinURL.Host = ""
+
+	q := joinURL.Query()
+	q.Add("b3shost", hostURL.Host)
+	joinURL.RawQuery = q.Encode()
+
+	joinRes.Header().Set("Location", joinURL.String())
+
+	return joinRes, nil
 }
 
 // IsMeetingRunning returns the is meeting running state
@@ -360,14 +392,21 @@ func (b *Backend) GetMeetingInfo(
 				Str("backend", b.state.Backend.Host).
 				Msg("GetMeetingState")
 		} else {
-			// Update meeting state
-			mstate.Meeting = res.Meeting
-			mstate.SyncedAt = time.Now().UTC()
-			if err := mstate.Save(); err != nil {
-				log.Error().
-					Err(err).
+			if mstate == nil {
+				log.Warn().
 					Str("backend", b.state.Backend.Host).
-					Msg("Save")
+					Str("meetingID", meetingID).
+					Msg("GetMeetingInfo for unknown meeting")
+			} else {
+				// Update meeting state
+				mstate.Meeting = res.Meeting
+				mstate.SyncedAt = time.Now().UTC()
+				if err := mstate.Save(); err != nil {
+					log.Error().
+						Err(err).
+						Str("backend", b.state.Backend.Host).
+						Msg("Save")
+				}
 			}
 		}
 	}

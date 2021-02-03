@@ -298,6 +298,9 @@ func (s *MeetingState) Refresh() error {
 	if err != nil {
 		return err
 	}
+	if next == nil {
+		return fmt.Errorf("meeting %s is gone", s.ID)
+	}
 	*s = *next
 	return nil
 }

@@ -15,8 +15,6 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-var version string = "HEAD"
-
 // Flags and parameters
 var (
 	autoregister bool
@@ -43,7 +41,7 @@ func heartbeat(backend *store.BackendState) {
 }
 
 func main() {
-	fmt.Printf("b3scale node agent		v.%s\n", version)
+	fmt.Printf("b3scale node agent		v.%s\n", config.Version)
 
 	// Check if the enviroment was configured, when not try to
 	// load the environment from .env or from a sysconfig env file
@@ -78,7 +76,11 @@ func main() {
 
 	log.Info().Msg("booting b3scalenoded")
 	// Initialize postgres connection
-	pool, err := store.Connect(dbConnStr)
+	pool, err := store.Connect(&store.ConnectOpts{
+		URL:      dbConnStr,
+		MaxConns: 16,
+		MinConns: 1,
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}
