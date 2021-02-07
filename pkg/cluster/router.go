@@ -170,9 +170,11 @@ func (r *Router) Middleware() RequestMiddleware {
 		) (bbb.Response, error) {
 			// Filter backends and only accept state active,
 			// and where the noded is active on the host.
+			// Also we exclude stopped nodes.
 			deadline := time.Now().UTC().Add(-5 * time.Second)
 			backends, err := r.ctrl.GetBackends(store.Q().
 				Where("agent_heartbeat >= ?", deadline).
+				Where("admin_state <> ?", "stopped").
 				Where("node_state = ?", "ready"))
 			if err != nil {
 				return nil, err
@@ -191,7 +193,6 @@ func (r *Router) Middleware() RequestMiddleware {
 				// We found a backend! If it is still available, we skip
 				// the router middleware chain and invoke the next request
 				// middleware with this backend.
-				// TODO: check if this is a good solution...
 				if r.isBackendAvailable(backend, backends) {
 					ctx = ContextWithBackends(ctx, []*Backend{backend})
 					return next(ctx, req)
