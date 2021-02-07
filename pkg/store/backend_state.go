@@ -34,6 +34,8 @@ type BackendState struct {
 	MeetingsCount  uint
 	AttendeesCount uint
 
+	LoadFactor float64
+
 	Backend *bbb.Backend
 
 	Tags []string
@@ -91,6 +93,7 @@ func GetBackendStates(
 		"backends.latency",
 		"backends.meetings_count",
 		"backends.attendees_count",
+		"backends.load_factor",
 		"backends.host",
 		"backends.secret",
 		"backends.tags",
@@ -117,6 +120,7 @@ func GetBackendStates(
 			&state.Latency,
 			&state.MeetingsCount,
 			&state.AttendeesCount,
+			&state.LoadFactor,
 			&state.Backend.Host,
 			&state.Backend.Secret,
 			&state.Tags,
@@ -196,9 +200,11 @@ func (s *BackendState) insert() (string, error) {
 			node_state,
 			admin_state,
 
-			tags
+			tags,
+
+			load_factor
 		)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
 	insertID := ""
@@ -208,7 +214,7 @@ func (s *BackendState) insert() (string, error) {
 		s.Backend.Secret,
 		s.NodeState,
 		s.AdminState,
-		s.Tags).Scan(&insertID)
+		s.Tags, s.LoadFactor).Scan(&insertID)
 
 	return insertID, err
 }
@@ -233,8 +239,10 @@ func (s *BackendState) update() error {
 
 			   tags         = $8,
 
-			   synced_at    = $9,
-			   updated_at   = $10
+			   load_factor  = $9,
+
+			   synced_at    = $10,
+			   updated_at   = $11
 
 		 WHERE id = $1
 	`
@@ -250,6 +258,7 @@ func (s *BackendState) update() error {
 		s.Backend.Host,
 		s.Backend.Secret,
 		s.Tags,
+		s.LoadFactor,
 		s.SyncedAt,
 		time.Now().UTC())
 
