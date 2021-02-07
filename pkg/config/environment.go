@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Well Known Environment Keys
@@ -14,6 +17,7 @@ const (
 	EnvListenHTTP   = "B3SCALE_LISTEN_HTTP"
 	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
 	EnvBBBConfig    = "BBB_CONFIG"
+	EnvLoadFactor   = "B3SCALE_LOAD_FACTOR"
 )
 
 // Defaults
@@ -23,6 +27,7 @@ const (
 	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
 	EnvReverseProxyDefault = "false"
 	EnvBBBConfigDefault    = "/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties"
+	EnvLoadFactorDefault   = "1.0"
 )
 
 // LoadEnv loads the environment from a file and
@@ -83,4 +88,16 @@ func IsEnabled(value string) bool {
 		return true
 	}
 	return false
+}
+
+// GetLoadFactor retrievs the load factor
+// from the environment.
+func GetLoadFactor() float64 {
+	val := EnvOpt(EnvLoadFactor, EnvLoadFactorDefault)
+	factor, err := strconv.ParseFloat(val, 64)
+	if err != nil {
+		log.Error().Err(err).Msg("invalid value for " + EnvLoadFactor)
+		return 1.0
+	}
+	return factor
 }

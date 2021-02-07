@@ -46,8 +46,12 @@ the environment variable for the file is:
 
  * `BBB_CONFIG`, which defaults to:
     `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`
-
+    
 This file must be readable for the b3scalenoded.
+
+The load factor of the backend can be set through:
+
+ * `B3SCALE_LOAD_FACTOR` (default `1.0`)
 
 
 ## Adding Backends
