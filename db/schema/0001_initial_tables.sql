@@ -49,8 +49,6 @@ CREATE TABLE backends (
     meetings_count  INTEGER  NOT NULL DEFAULT 0,
     attendees_count INTEGER  NOT NULL DEFAULT 0, 
 
-    sysload         INTEGER  NOT NULL DEFAULT 0,
-
     load_factor     REAL     NOT NULL DEFAULT 1.0,
 
     last_error text NULL DEFAULT NULL,
