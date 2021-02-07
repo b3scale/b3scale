@@ -56,6 +56,7 @@ func main() {
 	bbbPropFile := config.EnvOpt(config.EnvBBBConfig, config.EnvBBBConfigDefault)
 	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
 	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
+	loadFactor := config.GetLoadFactor()
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{
@@ -103,6 +104,14 @@ func main() {
 				Err(err).
 				Msg("registering the backend failed")
 		}
+	}
+
+	// Set backend load factor
+	backend.LoadFactor = loadFactor
+	if err := backend.Save(); err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("could not set backend load factor")
 	}
 
 	// Make redis client
