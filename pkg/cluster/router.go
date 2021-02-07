@@ -140,6 +140,19 @@ func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
 
 }
 
+// Purge state for request asserts, that we do not have
+// a meeting state associated with the request.
+// The meeting state is identified by its meeting id.
+func (r *Router) purgeStateForRequest(req *bbb.Request) error {
+	// Get meeting id from params. If none is present,
+	// there is again nothing to do for us here.
+	meetingID, ok := req.Params.MeetingID()
+	if !ok {
+		return nil
+	}
+	return r.ctrl.DeleteMeetingStateByID(meetingID)
+}
+
 func (r *Router) isBackendAvailable(
 	backend *Backend,
 	backends []*Backend,
@@ -197,9 +210,21 @@ func (r *Router) Middleware() RequestMiddleware {
 					ctx = ContextWithBackends(ctx, []*Backend{backend})
 					return next(ctx, req)
 				}
+
+				// Reassign meeting, however to be on the safe side
+				// for now we make sure that we forgot about the
+				// meeting entirely.
+				if err := r.purgeStateForRequest(req); err != nil {
+					log.Error().
+						Err(err).
+						Msg("failed removing meeting state")
+				}
+
 			} else {
+				// Router only path
 				log.Debug().
-					Msg("no backend found for meeting... applying routing middlewares")
+					Msg("no backend found for meeting... " +
+						"applying routing middlewares")
 			}
 
 			// Apply routing middleware to backends for a BBB request

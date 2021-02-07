@@ -448,3 +448,10 @@ func (c *Controller) GetMeetingStateByID(id string) (*store.MeetingState, error)
 
 	return state, nil
 }
+
+// DeleteMeetingStateByID purges all knowelege of a meeting
+// identified by its ID. If the meeting is unknown, no error
+// is raised.
+func (c *Controller) DeleteMeetingStateByID(id string) error {
+	return store.DeleteMeetingStateByInternalID(c.pool, id)
+}
