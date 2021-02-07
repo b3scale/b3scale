@@ -40,10 +40,6 @@ func NewRouter(ctrl *Controller) *Router {
 // This pretty much applies to all state mutating
 // API resources like join or create.
 //
-// EDIT: For now we are just using a single
-//       backend and let the backend implementation
-//       hit the database instead of the actual backends.
-//
 // We use the selectDiscardHandler as the end of our
 // middleware chain.
 func selectDiscardHandler(
@@ -136,21 +132,29 @@ func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
 		return nil, nil
 	}
 
-	return backend, nil
-
-}
-
-// Purge state for request asserts, that we do not have
-// a meeting state associated with the request.
-// The meeting state is identified by its meeting id.
-func (r *Router) purgeStateForRequest(req *bbb.Request) error {
-	// Get meeting id from params. If none is present,
-	// there is again nothing to do for us here.
-	meetingID, ok := req.Params.MeetingID()
-	if !ok {
-		return nil
+	// Depending on the request we need to check if
+	// the backend can be used for accepting the request.
+	// To do so, we apply the routing middleware chain
+	// to the backend and see if it is included in the result set.
+	res, err := r.middleware([]*Backend{backend}, req)
+	if err != nil {
+		return nil, err
 	}
-	return r.ctrl.DeleteMeetingStateByID(meetingID)
+	if !r.isBackendAvailable(backend, res) {
+		// The backend associated with the meeting
+		// can not be used for this request. We need to
+		// relocate and will destroy the association
+		// with the backend.
+		if err := r.ctrl.DeleteMeetingStateByID(meetingID); err != nil {
+			log.Error().
+				Err(err).
+				Msg("failed removing meeting state")
+		}
+		return nil, nil
+	}
+
+	// Okay looks like this backend is a good candidate.
+	return backend, nil
 }
 
 func (r *Router) isBackendAvailable(
@@ -187,7 +191,6 @@ func (r *Router) Middleware() RequestMiddleware {
 			deadline := time.Now().UTC().Add(-5 * time.Second)
 			backends, err := r.ctrl.GetBackends(store.Q().
 				Where("agent_heartbeat >= ?", deadline).
-				Where("admin_state <> ?", "stopped").
 				Where("node_state = ?", "ready"))
 			if err != nil {
 				return nil, err
@@ -210,16 +213,6 @@ func (r *Router) Middleware() RequestMiddleware {
 					ctx = ContextWithBackends(ctx, []*Backend{backend})
 					return next(ctx, req)
 				}
-
-				// Reassign meeting, however to be on the safe side
-				// for now we make sure that we forgot about the
-				// meeting entirely.
-				if err := r.purgeStateForRequest(req); err != nil {
-					log.Error().
-						Err(err).
-						Msg("failed removing meeting state")
-				}
-
 			} else {
 				// Router only path
 				log.Debug().
