@@ -40,10 +40,6 @@ func NewRouter(ctrl *Controller) *Router {
 // This pretty much applies to all state mutating
 // API resources like join or create.
 //
-// EDIT: For now we are just using a single
-//       backend and let the backend implementation
-//       hit the database instead of the actual backends.
-//
 // We use the selectDiscardHandler as the end of our
 // middleware chain.
 func selectDiscardHandler(
@@ -136,8 +132,29 @@ func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
 		return nil, nil
 	}
 
-	return backend, nil
+	// Depending on the request we need to check if
+	// the backend can be used for accepting the request.
+	// To do so, we apply the routing middleware chain
+	// to the backend and see if it is included in the result set.
+	res, err := r.middleware([]*Backend{backend}, req)
+	if err != nil {
+		return nil, err
+	}
+	if !r.isBackendAvailable(backend, res) {
+		// The backend associated with the meeting
+		// can not be used for this request. We need to
+		// relocate and will destroy the association
+		// with the backend.
+		if err := r.ctrl.DeleteMeetingStateByID(meetingID); err != nil {
+			log.Error().
+				Err(err).
+				Msg("failed removing meeting state")
+		}
+		return nil, nil
+	}
 
+	// Okay looks like this backend is a good candidate.
+	return backend, nil
 }
 
 func (r *Router) isBackendAvailable(
@@ -170,6 +187,7 @@ func (r *Router) Middleware() RequestMiddleware {
 		) (bbb.Response, error) {
 			// Filter backends and only accept state active,
 			// and where the noded is active on the host.
+			// Also we exclude stopped nodes.
 			deadline := time.Now().UTC().Add(-5 * time.Second)
 			backends, err := r.ctrl.GetBackends(store.Q().
 				Where("agent_heartbeat >= ?", deadline).
@@ -191,14 +209,15 @@ func (r *Router) Middleware() RequestMiddleware {
 				// We found a backend! If it is still available, we skip
 				// the router middleware chain and invoke the next request
 				// middleware with this backend.
-				// TODO: check if this is a good solution...
 				if r.isBackendAvailable(backend, backends) {
 					ctx = ContextWithBackends(ctx, []*Backend{backend})
 					return next(ctx, req)
 				}
 			} else {
+				// Router only path
 				log.Debug().
-					Msg("no backend found for meeting... applying routing middlewares")
+					Msg("no backend found for meeting... " +
+						"applying routing middlewares")
 			}
 
 			// Apply routing middleware to backends for a BBB request

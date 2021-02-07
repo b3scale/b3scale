@@ -410,7 +410,8 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 			b.MeetingsCount,
 			b.AttendeesCount,
 			ratio)
-		fmt.Printf("  Latency:\t%v\n", b.Latency)
+		fmt.Printf("  LoadFactor:\t %v\n", b.LoadFactor)
+		fmt.Printf("  Latency:\t %v\n", b.Latency)
 		if b.NodeState == "error" && b.LastError != nil {
 			fmt.Println("  LastError:", *b.LastError)
 		}

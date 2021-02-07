@@ -60,8 +60,9 @@ func (b *Backend) Host() string {
 }
 
 // Stress calculates the current node load
-func (b *Backend) Stress() uint {
-	return b.state.MeetingsCount + b.state.AttendeesCount
+func (b *Backend) Stress() float64 {
+	f := b.state.LoadFactor
+	return f * float64(b.state.MeetingsCount+b.state.AttendeesCount)
 }
 
 // loadNodeState will fetch all meetings from the backend.

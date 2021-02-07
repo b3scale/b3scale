@@ -306,7 +306,7 @@ func (c *Controller) requestSyncStale() error {
 				synced_at,
 				TIMESTAMP '0001-01-01 00:00:00') > ?`,
 			time.Duration(10*time.Second)).
-		Where("admin_state = ?", "ready"))
+		Where("admin_state <> ?", "init"))
 	if err != nil {
 		return err
 	}
@@ -447,4 +447,11 @@ func (c *Controller) GetMeetingStateByID(id string) (*store.MeetingState, error)
 	}
 
 	return state, nil
+}
+
+// DeleteMeetingStateByID purges all knowelege of a meeting
+// identified by its ID. If the meeting is unknown, no error
+// is raised.
+func (c *Controller) DeleteMeetingStateByID(id string) error {
+	return store.DeleteMeetingStateByInternalID(c.pool, id)
 }
