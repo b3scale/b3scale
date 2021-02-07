@@ -59,7 +59,6 @@ test:
 	cd pkg/bbb && go test
 	cd pkg/iface/http && go test
 	cd pkg/middlewares/routing && go test
-	cd pkg/middlewares/requests && go test 
 
 clean:
 	rm -f cmd/b3scaled/b3scaled
