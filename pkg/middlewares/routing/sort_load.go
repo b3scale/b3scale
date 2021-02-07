@@ -27,6 +27,6 @@ func SortLoad(next cluster.RouterHandler) cluster.RouterHandler {
 		backends []*cluster.Backend, req *bbb.Request,
 	) ([]*cluster.Backend, error) {
 		sort.Sort(BackendsByLoad(backends))
-		return backends, nil
+		return next(backends, req)
 	}
 }

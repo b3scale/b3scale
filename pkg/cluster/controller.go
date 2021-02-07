@@ -306,7 +306,7 @@ func (c *Controller) requestSyncStale() error {
 				synced_at,
 				TIMESTAMP '0001-01-01 00:00:00') > ?`,
 			time.Duration(10*time.Second)).
-		Where("admin_state = ?", "ready"))
+		Where("admin_state <> ?", "init"))
 	if err != nil {
 		return err
 	}
