@@ -7,12 +7,12 @@ import (
 )
 
 func TestBackendStress(t *testing.T) {
-	b := BackendFactory(&store.BackendState{
+	b := &Backend{state: &store.BackendState{
 		ID:             "A",
 		MeetingsCount:  10,
 		LoadFactor:     1,
 		AttendeesCount: 12,
-	})
+	}}
 	if b.Stress() != 22 {
 		t.Error("unexpected result for stress function:", b.Stress())
 	}
