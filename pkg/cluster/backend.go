@@ -522,3 +522,15 @@ func (b *Backend) PutRecordingTextTrack(
 	}
 	return res.(*bbb.PutRecordingTextTrackResponse), nil
 }
+
+// String stringifies the Backend
+func (b *Backend) String() string {
+	if b.state != nil {
+		host := "unknown host"
+		if b.state.Backend != nil {
+			host = b.state.Backend.Host
+		}
+		return fmt.Sprintf("<Backend id='%v' host='%v'>", b.state.ID, host)
+	}
+	return "<Backend>"
+}

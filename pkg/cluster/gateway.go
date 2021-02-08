@@ -143,9 +143,13 @@ func (gw *Gateway) Dispatch(ctx context.Context, req *bbb.Request) bbb.Response 
 	// Make cluster request and initialize context
 	res, err := gw.middleware(ctx, req)
 	if err != nil {
+		be := BackendFromContext(ctx)
+		fe := FrontendFromContext(ctx)
 		// Log the error
 		log.Error().
 			Err(err).
+			Str("backend", fmt.Sprintf("%v", be)).
+			Str("frontend", fmt.Sprintf("%v", fe)).
 			Msg("gateway error")
 		// We encode our error as a BBB error response
 		return &bbb.XMLResponse{

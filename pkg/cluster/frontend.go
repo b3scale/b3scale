@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"fmt"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -20,6 +22,19 @@ func NewFrontend(state *store.FrontendState) *Frontend {
 }
 
 // Frontend gets the states BBB frontend
-func (fe *Frontend) Frontend() *bbb.Frontend {
-	return fe.state.Frontend
+func (f *Frontend) Frontend() *bbb.Frontend {
+	return f.state.Frontend
+}
+
+// String stringifies the frontend
+func (f *Frontend) String() string {
+	if f.state != nil {
+		key := ""
+		if f.state.Frontend != nil {
+			key = f.state.Frontend.Key
+		}
+
+		return fmt.Sprintf("<Frontend id='%v', key='%v'>", f.state.ID, f.state.Key)
+	}
+	return "<Frontend>"
 }
