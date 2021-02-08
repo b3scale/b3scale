@@ -47,6 +47,8 @@ func selectDiscardHandler(
 ) ([]*Backend, error) {
 	res := req.Resource
 	switch res {
+	case bbb.ResourceIndex:
+		return selectFirst(backends), nil
 	case bbb.ResourceJoin:
 		return selectFirst(backends), nil
 	case bbb.ResourceCreate:
