@@ -113,6 +113,9 @@ func main() {
 			Err(err).
 			Msg("could not set backend load factor")
 	}
+	log.Info().
+		Float64("loadFactor", loadFactor).
+		Msg("setting load_factor")
 
 	// Make redis client
 	redisOpts, err := redis.ParseURL(configRedisURL(bbbConf))
