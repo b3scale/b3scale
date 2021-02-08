@@ -235,10 +235,12 @@ func meetingStateFromRequest(
 // will not hit a real backend and is not part of the
 // API interface.
 func (b *Backend) Version(req *bbb.Request) (*bbb.XMLResponse, error) {
-	return &bbb.XMLResponse{
+	res := &bbb.XMLResponse{
 		Returncode: "SUCCESS",
 		Version:    "2.0",
-	}, nil
+	}
+	res.SetStatus(200)
+	return res, nil
 }
 
 // Create a new Meeting
