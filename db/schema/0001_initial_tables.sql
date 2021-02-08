@@ -93,8 +93,8 @@ CREATE TABLE frontends (
 --
 CREATE TABLE meetings (
     -- The BBB meeting ID, and internal ID
-    id          VARCHAR(255),
     internal_id VARCHAR(255) PRIMARY KEY,
+    id          VARCHAR(255),
 
     -- All state data is stored in the jsonb field.
     -- This should be sufficient for now; if required
@@ -131,8 +131,8 @@ CREATE TABLE recordings (
                REFERENCES backends(id)
                ON DELETE CASCADE,
     
-    meeting_id VARCHAR(255) NOT NULL
-               REFERENCES meetings(id)
+    internal_meeting_id VARCHAR(255) NOT NULL
+               REFERENCES meetings(internal_id)
                ON DELETE CASCADE,
 
     -- Timestamps
