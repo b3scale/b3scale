@@ -132,36 +132,7 @@ func (b *Backend) loadNodeState() error {
 	backendMeetings := make([]string, 0, len(res.Meetings))
 	for _, meeting := range res.Meetings {
 		log.Debug().Stringer("meeting", meeting).Msg("refreshing meeting")
-		backendMeetings = append(backendMeetings, meeting.InternalMeetingID)
-		mstate, err := store.GetMeetingState(b.pool, store.Q().
-			Where("meetings.internal_id = ?", meeting.InternalMeetingID))
-		if err != nil {
-			// This will happen if something goes wrong with the
-			// database, so we can break here.
-			return err
-		}
-
-		if mstate == nil {
-			log.Warn().
-				Str("meetingID", meeting.MeetingID).
-				Str("internalMeetingID", meeting.InternalMeetingID).
-				Str("backend", b.state.Backend.Host).
-				Msg("unknown meeting received from backend")
-
-			// Create meeting state, associate with frontend later
-			mstate = store.InitMeetingState(b.pool, &store.MeetingState{
-				ID:         meeting.MeetingID,
-				InternalID: meeting.InternalMeetingID,
-				BackendID:  &b.state.ID,
-				Meeting:    meeting,
-			})
-		}
-
-		// Update meeting info and save state
-		if err := mstate.Meeting.Update(meeting); err != nil {
-			return err
-		}
-		if err := mstate.Save(); err != nil {
+		if updates, err := store.UpdateMeetingStateIfExists(b.pool, meeting); err != nil {
 			// return err
 			log.Error().
 				Err(err).
@@ -169,7 +140,19 @@ func (b *Backend) loadNodeState() error {
 				Str("internalMeetingID", meeting.InternalMeetingID).
 				Msg("could not save meeting state during node refresh")
 			continue
+		} else {
+			if updates == 0 {
+				log.Warn().
+					Str("meetingID", meeting.MeetingID).
+					Str("internalMeetingID", meeting.InternalMeetingID).
+					Msg("meeting not found in cluster")
+			} else {
+				log.Debug().
+					Int("count", int(updates)).
+					Msg("updated meeting during host refresh")
+			}
 		}
+		backendMeetings = append(backendMeetings, meeting.InternalMeetingID)
 	}
 
 	// Cleanup meetings: 2nd pass
