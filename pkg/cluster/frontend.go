@@ -33,8 +33,7 @@ func (f *Frontend) String() string {
 		if f.state.Frontend != nil {
 			key = f.state.Frontend.Key
 		}
-
-		return fmt.Sprintf("<Frontend id='%v', key='%v'>", f.state.ID, f.state.Key)
+		return fmt.Sprintf("<Frontend id='%v', key='%v'>", f.state.ID, key)
 	}
 	return "<Frontend>"
 }
