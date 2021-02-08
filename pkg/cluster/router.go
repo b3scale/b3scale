@@ -122,9 +122,11 @@ func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
 
 	// Lookup backend for meeting in cluster, use backend
 	// if there is one associated - otherwise return
-	// all possible backends.
+	// all possible backends. Also consider the frontend context.
 	backend, err := r.ctrl.GetBackend(store.Q().
 		Join("meetings ON meetings.backend_id = backends.id").
+		LeftJoin("frontends ON meetings.frontend_id = frontends.id").
+		Where("frontends.key = ? OR meetings.frontend_id IS NULL", req.Frontend.Key).
 		Where("meetings.id = ?", meetingID))
 	if err != nil {
 		return nil, err

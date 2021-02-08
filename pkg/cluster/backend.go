@@ -162,7 +162,13 @@ func (b *Backend) loadNodeState() error {
 			return err
 		}
 		if err := mstate.Save(); err != nil {
-			return err
+			// return err
+			log.Error().
+				Err(err).
+				Str("meetingID", meeting.MeetingID).
+				Str("internalMeetingID", meeting.InternalMeetingID).
+				Msg("could not save meeting state during node refresh")
+			continue
 		}
 	}
 
