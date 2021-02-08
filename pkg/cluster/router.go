@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -122,9 +123,13 @@ func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
 
 	// Lookup backend for meeting in cluster, use backend
 	// if there is one associated - otherwise return
-	// all possible backends.
+	// all possible backends. Also consider the frontend context.
 	backend, err := r.ctrl.GetBackend(store.Q().
 		Join("meetings ON meetings.backend_id = backends.id").
+		LeftJoin("frontends ON meetings.frontend_id = frontends.id").
+		Where(sq.Or{
+			sq.Eq{"frontends.key": req.Frontend.Key},
+			sq.Eq{"meetings.frontend_id": nil}}).
 		Where("meetings.id = ?", meetingID))
 	if err != nil {
 		return nil, err

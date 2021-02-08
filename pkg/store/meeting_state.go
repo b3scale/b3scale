@@ -390,6 +390,34 @@ func (s *MeetingState) update() error {
 	return err
 }
 
+// UpdateMeetingStateIfExists updates the meeting attribute of a meeting
+// The meeting state need to have an internal meeting id.
+func UpdateMeetingStateIfExists(pool *pgxpool.Pool, m *bbb.Meeting) (int64, error) {
+	internalID := m.InternalMeetingID
+	if internalID == "" {
+		return 0, fmt.Errorf(
+			"can not use meeting for update without InternalMeetingID")
+	}
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 5*time.Second)
+	defer cancel()
+
+	updatedAt := time.Now().UTC()
+
+	qry := `
+		UPDATE meetings
+		   SET state		= $2,
+			   updated_at   = $3
+	 	 WHERE internal_id = $1`
+	cmd, err := pool.Exec(ctx, qry, internalID, m, updatedAt)
+	if err != nil {
+		return 0, err
+	}
+
+	return cmd.RowsAffected(), nil
+}
+
 // SetBackendID associates a meeting with a backend
 func (s *MeetingState) SetBackendID(id string) error {
 	if s.BackendID != nil && *s.BackendID == id {

@@ -124,6 +124,76 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 	}
 }
 
+func TestMeetingStateUpdateIfExists(t *testing.T) {
+	pool := connectTest(t)
+	state, err := meetingStateFactory(pool, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	m := &bbb.Meeting{
+		MeetingName:       "new-meeting-name",
+		InternalMeetingID: state.InternalID,
+		MeetingID:         state.ID,
+	}
+
+	c, err := UpdateMeetingStateIfExists(pool, m)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if c != 1 {
+		t.Error("there should have been 1 update")
+	}
+
+	state, err = GetMeetingState(pool, Q().
+		Where("id = ?", state.ID))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if state.Meeting.MeetingName != "new-meeting-name" {
+		t.Error("unexpected meeting name:", state.Meeting.MeetingName)
+	}
+
+}
+
+func TestMeetingStateQueryUpdate(t *testing.T) {
+	pool := connectTest(t)
+	state, err := meetingStateFactory(pool, nil)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	state, err = GetMeetingState(pool, Q().
+		Where("id = ?", state.ID))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	state.Meeting = &bbb.Meeting{
+		MeetingName:       "bar",
+		InternalMeetingID: uuid.New().String(),
+	}
+	if err := state.Save(); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func TestMeetingStateIsStale(t *testing.T) {
 	pool := connectTest(t)
 	state, err := meetingStateFactory(pool, nil)
