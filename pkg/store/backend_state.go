@@ -43,14 +43,11 @@ type BackendState struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	SyncedAt  time.Time
-
-	// DB
-	pool *pgxpool.Pool
 }
 
 // InitBackendState initializes a new backend state with
 // an initial state.
-func InitBackendState(pool *pgxpool.Pool, init *BackendState) *BackendState {
+func InitBackendState(init *BackendState) *BackendState {
 	// Add default values
 	if init.NodeState == "" {
 		init.NodeState = "init"
@@ -64,7 +61,6 @@ func InitBackendState(pool *pgxpool.Pool, init *BackendState) *BackendState {
 	if init.Tags == nil {
 		init.Tags = []string{}
 	}
-	init.pool = pool
 	return init
 }
 
