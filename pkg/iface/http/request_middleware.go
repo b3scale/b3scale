@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -30,11 +31,13 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Begin request context and initialize request transaction
-			ctx, err := ctrl.BeginRequest(c.Request().Context())
+			ctx := c.Request.Context()
+			tx, err := ctrl.BeginTx(ctx)
 			if err != nil {
 				return err
 			}
+			defer tx.Rollback()
+			ctx = store.ContextWithTransaction(ctx, tx)
 
 			path := c.Path()
 			if !strings.HasPrefix(path, mountPoint) {
@@ -75,6 +78,13 @@ func BBBRequestMiddleware(
 			}
 
 			res := gateway.Dispatch(ctx, bbbReq)
+
+			if err := tx.Commit(ctx); err != nil {
+				log.Error().
+					Err(err).
+					Msg("tx commit failed after request")
+			}
+
 			return writeBBBResponse(c, res)
 		}
 	}
