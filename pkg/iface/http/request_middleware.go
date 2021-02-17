@@ -30,6 +30,12 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			// Begin request context and initialize request transaction
+			ctx, err := ctrl.BeginRequest(c.Request().Context())
+			if err != nil {
+				return err
+			}
+
 			path := c.Path()
 			if !strings.HasPrefix(path, mountPoint) {
 				return next(c) // nothing to do here.
@@ -38,7 +44,7 @@ func BBBRequestMiddleware(
 			// and verify it.
 			path = path[len(mountPoint):]
 			frontendKey, resource := decodePath(path)
-			frontend, err := ctrl.GetFrontend(store.Q().
+			frontend, err := ctrl.GetFrontend(ctx, store.Q().
 				Where("key = ?", frontendKey))
 			if err != nil {
 				return handleAPIError(c, err)
@@ -67,14 +73,6 @@ func BBBRequestMiddleware(
 			if err := bbbReq.Verify(); err != nil {
 				return handleAPIError(c, err)
 			}
-
-			// Let the gateway handle the request and
-			// make the request context
-			ctx, cancel := context.WithTimeout(
-				context.Background(),
-				60*time.Second)
-			defer cancel()
-			ctx = cluster.ContextWithFrontend(ctx, frontend)
 
 			res := gateway.Dispatch(ctx, bbbReq)
 			return writeBBBResponse(c, res)

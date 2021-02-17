@@ -8,13 +8,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
-func backendStateFactory(pool *pgxpool.Pool) *BackendState {
-	state := InitBackendState(pool, &BackendState{
+func backendStateFactory() *BackendState {
+	state := InitBackendState(&BackendState{
 		Backend: &bbb.Backend{
 			Host:   "testhost-" + uuid.New().String(),
 			Secret: "testsecret",
@@ -25,14 +24,16 @@ func backendStateFactory(pool *pgxpool.Pool) *BackendState {
 }
 
 func TestGetBackendStateByID(t *testing.T) {
-	pool := connectTest(t)
-	state := backendStateFactory(pool)
-	err := state.Save()
+	ctx, end := beginTest(t)
+	defer end()
+
+	state := backendStateFactory()
+	err := state.Save(ctx)
 	if err != nil {
 		t.Error("save failed:", err)
 	}
 
-	dbState, err := GetBackendState(pool, Q().
+	dbState, err := GetBackendState(ctx, Q().
 		Where("id = ?", state.ID))
 	if err != nil {
 		t.Error(err)
@@ -47,9 +48,10 @@ func TestGetBackendStateByID(t *testing.T) {
 }
 
 func TestBackendStateinsert(t *testing.T) {
-	pool := connectTest(t)
-	state := backendStateFactory(pool)
-	id, err := state.insert()
+	ctx, end := beginTest(t)
+	defer end()
+	state := backendStateFactory()
+	id, err := state.insert(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -58,9 +60,10 @@ func TestBackendStateinsert(t *testing.T) {
 }
 
 func TestBackendStateSave(t *testing.T) {
-	pool := connectTest(t)
-	state := backendStateFactory(pool)
-	err := state.Save()
+	ctx, end := beginTest(t)
+	defer end()
+	state := backendStateFactory()
+	err := state.Save(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -71,7 +74,7 @@ func TestBackendStateSave(t *testing.T) {
 
 	// Update host
 	state.Backend.Host = "newhost" + uuid.New().String()
-	err = state.Save()
+	err = state.Save(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,14 +84,15 @@ func TestBackendStateSave(t *testing.T) {
 }
 
 func TestCreateMeeting(t *testing.T) {
-	pool := connectTest(t)
-	bstate := backendStateFactory(pool)
-	if err := bstate.Save(); err != nil {
+	ctx, end := beginTest(t)
+	defer end()
+	bstate := backendStateFactory()
+	if err := bstate.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
-	fstate := frontendStateFactory(pool)
-	if err := fstate.Save(); err != nil {
+	fstate := frontendStateFactory()
+	if err := fstate.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
@@ -107,9 +111,10 @@ func TestCreateMeeting(t *testing.T) {
 }
 
 func TestBackendStateAgentHeartbeat(t *testing.T) {
-	pool := connectTest(t)
-	state := backendStateFactory(pool)
-	err := state.Save()
+	ctx, end := beginTest(t)
+	defer end()
+	state := backendStateFactory()
+	err := state.Save(ctx)
 	if err != nil {
 		t.Error(err)
 	}

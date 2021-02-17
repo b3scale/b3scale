@@ -8,7 +8,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -35,28 +34,22 @@ type MeetingState struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	SyncedAt  time.Time
-
-	pool *pgxpool.Pool
 }
 
 // InitMeetingState initializes meeting state with
 // defaults and a connection
 func InitMeetingState(
-	pool *pgxpool.Pool,
 	init *MeetingState,
 ) *MeetingState {
-	init.pool = pool
 	return init
 }
 
 // GetMeetingStates retrieves all meeting states
 func GetMeetingStates(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	q sq.SelectBuilder,
 ) ([]*MeetingState, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
+	tx := MustTransactionFromContext(ctx)
 
 	qry, params, _ := q.Columns(
 		"meetings.id",
@@ -69,14 +62,14 @@ func GetMeetingStates(
 		"meetings.synced_at").
 		From("meetings").
 		ToSql()
-	rows, err := pool.Query(ctx, qry, params...)
+	rows, err := tx.Query(ctx, qry, params...)
 	if err != nil {
 		return nil, err
 	}
 	cmd := rows.CommandTag()
 	results := make([]*MeetingState, 0, cmd.RowsAffected())
 	for rows.Next() {
-		state, err := meetingStateFromRow(pool, rows)
+		state, err := meetingStateFromRow(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -86,8 +79,8 @@ func GetMeetingStates(
 }
 
 // GetMeetingState tries to retriev a single meeting state
-func GetMeetingState(pool *pgxpool.Pool, q sq.SelectBuilder) (*MeetingState, error) {
-	states, err := GetMeetingStates(pool, q)
+func GetMeetingState(ctx context.Context, q sq.SelectBuilder) (*MeetingState, error) {
+	states, err := GetMeetingStates(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -98,10 +91,9 @@ func GetMeetingState(pool *pgxpool.Pool, q sq.SelectBuilder) (*MeetingState, err
 }
 
 func meetingStateFromRow(
-	pool *pgxpool.Pool,
 	row pgx.Row,
 ) (*MeetingState, error) {
-	state := InitMeetingState(pool, &MeetingState{})
+	state := InitMeetingState(&MeetingState{})
 	err := row.Scan(
 		&state.ID,
 		&state.InternalID,
@@ -119,7 +111,7 @@ func meetingStateFromRow(
 }
 
 // GetBackendState loads the backend state
-func (s *MeetingState) GetBackendState() (*BackendState, error) {
+func (s *MeetingState) GetBackendState(ctx context.Context) (*BackendState, error) {
 	if s.BackendID == nil {
 		return nil, nil
 	}
@@ -130,7 +122,7 @@ func (s *MeetingState) GetBackendState() (*BackendState, error) {
 
 	// Get related backend state
 	var err error
-	s.backend, err = GetBackendState(s.pool, Q().
+	s.backend, err = GetBackendState(ctx, Q().
 		Where("id = ?", s.BackendID))
 	if err != nil {
 		return nil, err
@@ -140,7 +132,7 @@ func (s *MeetingState) GetBackendState() (*BackendState, error) {
 }
 
 // GetFrontendState loads the frontend state for the meeting
-func (s *MeetingState) GetFrontendState() (*FrontendState, error) {
+func (s *MeetingState) GetFrontendState(ctx context.Context) (*FrontendState, error) {
 	if s.FrontendID == nil {
 		return nil, nil
 	}
@@ -151,7 +143,7 @@ func (s *MeetingState) GetFrontendState() (*FrontendState, error) {
 
 	// Load frontend state from database
 	var err error
-	s.frontend, err = GetFrontendState(s.pool, Q().
+	s.frontend, err = GetFrontendState(ctx, Q().
 		Where("id = ?", s.FrontendID))
 	if err != nil {
 		return nil, err
@@ -163,17 +155,8 @@ func (s *MeetingState) GetFrontendState() (*FrontendState, error) {
 // DeleteMeetingStateByID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
 // TODO: merge with DeleteMeetingStateByInternalID
-func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
+func DeleteMeetingStateByID(ctx context.Context, id string) error {
+	tx := MustTransactionFromContext(ctx)
 	// Get affected backend
 	var backendID *string
 	qry := `
@@ -199,7 +182,7 @@ func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 	}
 
 	// Update stat counters
-	if err := updateBackendStatCounters(pool, *backendID); err != nil {
+	if err := updateBackendStatCounters(ctx, *backendID); err != nil {
 		return err
 	}
 
@@ -208,17 +191,8 @@ func DeleteMeetingStateByID(pool *pgxpool.Pool, id string) error {
 
 // DeleteMeetingStateByInternalID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
-func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
+func DeleteMeetingStateByInternalID(ctx context.Context, id string) error {
+	tx := MustTransactionFromContext(ctx)
 	// Get affected backend
 	var backendID *string
 	qry := `
@@ -246,7 +220,7 @@ func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
 	}
 
 	// Update stat counters
-	if err := updateBackendStatCounters(pool, *backendID); err != nil {
+	if err := updateBackendStatCounters(ctx, *backendID); err != nil {
 		return err
 	}
 
@@ -257,13 +231,11 @@ func DeleteMeetingStateByInternalID(pool *pgxpool.Pool, id string) error {
 // in a list of (internal) meeting IDs, but associated
 // with a backend
 func DeleteOrphanMeetings(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	backendID string,
 	backendMeetings []string,
 ) (int64, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 10*time.Second)
-	defer cancel()
+	tx := MustTransactionFromContext(ctx)
 
 	// Okay. I tried to do this the nice way... however
 	// trying to construct something with 'NOT IN' failed,
@@ -283,7 +255,7 @@ func DeleteOrphanMeetings(
 		return 0, err
 	}
 
-	cmd, err := pool.Exec(ctx, qry, params...)
+	cmd, err := tx.Exec(ctx, qry, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -291,9 +263,9 @@ func DeleteOrphanMeetings(
 }
 
 // Refresh the backend state from the database
-func (s *MeetingState) Refresh() error {
+func (s *MeetingState) Refresh(ctx context.Context) error {
 	// Load from database
-	next, err := GetMeetingState(s.pool, Q().
+	next, err := GetMeetingState(ctx, Q().
 		Where("id = ?", s.ID))
 	if err != nil {
 		return err
@@ -307,16 +279,16 @@ func (s *MeetingState) Refresh() error {
 
 // Save updates or inserts a meeting state into our
 // cluster state.
-func (s *MeetingState) Save() error {
+func (s *MeetingState) Save(ctx context.Context) error {
 	var (
 		err error
 		id  string
 	)
 	if s.CreatedAt.IsZero() {
-		id, err = s.insert()
+		id, err = s.insert(ctx)
 		s.ID = id
 	} else {
-		err = s.update()
+		err = s.update(ctx)
 	}
 	if err != nil {
 		return err
@@ -324,20 +296,17 @@ func (s *MeetingState) Save() error {
 
 	// Refresh stats if backend is present
 	if s.BackendID != nil {
-		if err := updateBackendStatCounters(s.pool, *s.BackendID); err != nil {
+		if err := updateBackendStatCounters(ctx, *s.BackendID); err != nil {
 			return err
 		}
 	}
 
-	return s.Refresh()
+	return s.Refresh(ctx)
 }
 
 // Add a new meeting to the database
-func (s *MeetingState) insert() (string, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (s *MeetingState) insert(ctx context.Context) (string, error) {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
 		INSERT INTO meetings (
 			id,
@@ -350,7 +319,7 @@ func (s *MeetingState) insert() (string, error) {
 		) VALUES (
 			$1, $2, $3, $4, $5
 		) RETURNING id`
-	err := s.pool.QueryRow(ctx, qry,
+	err := tx.QueryRow(ctx, qry,
 		s.Meeting.MeetingID,
 		s.Meeting.InternalMeetingID,
 		s.Meeting,
@@ -364,11 +333,8 @@ func (s *MeetingState) insert() (string, error) {
 }
 
 // Update the meeting state
-func (s *MeetingState) update() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (s *MeetingState) update(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	s.UpdatedAt = time.Now().UTC()
 	qry := `
 		UPDATE meetings
@@ -379,7 +345,7 @@ func (s *MeetingState) update() error {
 		  	   synced_at    = $6,
 			   updated_at   = $7 
 	 	 WHERE id = $1`
-	_, err := s.pool.Exec(ctx, qry,
+	_, err := tx.Exec(ctx, qry,
 		s.ID,
 		s.Meeting,
 		s.Meeting.InternalMeetingID,
@@ -392,25 +358,21 @@ func (s *MeetingState) update() error {
 
 // UpdateMeetingStateIfExists updates the meeting attribute of a meeting
 // The meeting state need to have an internal meeting id.
-func UpdateMeetingStateIfExists(pool *pgxpool.Pool, m *bbb.Meeting) (int64, error) {
+func UpdateMeetingStateIfExists(ctx context.Context, m *bbb.Meeting) (int64, error) {
+	tx := MustTransactionFromContext(ctx)
 	internalID := m.InternalMeetingID
 	if internalID == "" {
 		return 0, fmt.Errorf(
 			"can not use meeting for update without InternalMeetingID")
 	}
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
 	updatedAt := time.Now().UTC()
-
 	qry := `
 		UPDATE meetings
 		   SET state		= $2,
 			   updated_at   = $3
 	 	 WHERE internal_id = $1`
-	cmd, err := pool.Exec(ctx, qry, internalID, m, updatedAt)
+	cmd, err := tx.Exec(ctx, qry, internalID, m, updatedAt)
 	if err != nil {
 		return 0, err
 	}
@@ -419,25 +381,22 @@ func UpdateMeetingStateIfExists(pool *pgxpool.Pool, m *bbb.Meeting) (int64, erro
 }
 
 // SetBackendID associates a meeting with a backend
-func (s *MeetingState) SetBackendID(id string) error {
+func (s *MeetingState) SetBackendID(ctx context.Context, id string) error {
 	if s.BackendID != nil && *s.BackendID == id {
 		return nil // nothing to do here
 	}
 
 	// Bind backend
 	s.BackendID = &id
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
 	qry := `UPDATE meetings SET backend_id = $2
 			WHERE id = $1`
-	_, err := s.pool.Exec(ctx, qry, s.ID, id)
+	tx := MustTransactionFromContext(ctx)
+	_, err := tx.Exec(ctx, qry, s.ID, id)
 	return err
 }
 
 // BindFrontendID associates an unclaimed meeting with a frontend
-func (s *MeetingState) BindFrontendID(id string) error {
+func (s *MeetingState) BindFrontendID(ctx context.Context, id string) error {
 	if s.FrontendID != nil {
 		if *s.FrontendID == id {
 			// Nothing to do here
@@ -450,13 +409,10 @@ func (s *MeetingState) BindFrontendID(id string) error {
 
 	// Bind frontend
 	s.FrontendID = &id
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+	tx := MustTransactionFromContext(ctx)
 	qry := `UPDATE meetings SET frontend_id = $2
 			WHERE id = $1`
-	_, err := s.pool.Exec(ctx, qry, s.ID, id)
+	_, err := tx.Exec(ctx, qry, s.ID, id)
 	return err
 }
 
