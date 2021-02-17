@@ -98,7 +98,7 @@ func TestCreateMeeting(t *testing.T) {
 	}
 
 	// Create meeting state
-	mstate, err := bstate.CreateMeetingState(fstate.Frontend, &bbb.Meeting{
+	mstate, err := bstate.CreateMeetingState(ctx, fstate.Frontend, &bbb.Meeting{
 		MeetingID:         uuid.New().String(),
 		InternalMeetingID: uuid.New().String(),
 		MeetingName:       "foo",
@@ -125,7 +125,7 @@ func TestBackendStateAgentHeartbeat(t *testing.T) {
 	}
 
 	// Make heartbeat
-	if err := state.UpdateAgentHeartbeat(); err != nil {
+	if err := state.UpdateAgentHeartbeat(ctx); err != nil {
 		t.Error(err)
 	}
 

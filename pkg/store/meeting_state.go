@@ -173,9 +173,6 @@ func DeleteMeetingStateByID(ctx context.Context, id string) error {
 	if _, err := tx.Exec(ctx, qry, id); err != nil {
 		return err
 	}
-	if err := tx.Commit(ctx); err != nil {
-		return err
-	}
 
 	if backendID == nil {
 		return nil // Meeting is not associated with a backend
@@ -208,10 +205,6 @@ func DeleteMeetingStateByInternalID(ctx context.Context, id string) error {
 		DELETE FROM meetings WHERE internal_id = $1
 	`
 	if _, err := tx.Exec(ctx, qry, id); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 

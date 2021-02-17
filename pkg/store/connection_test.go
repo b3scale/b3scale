@@ -13,43 +13,37 @@ var (
 )
 
 func init() {
-	pool = connectTest()
+	var err error
+	pool, err = connectTest()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // connectTest to pgx db pool. Use b3scale defaults if
 // environment variable is not set.
-func connectTest(t *testing.T) *pgxpool.Pool {
+func connectTest() (*pgxpool.Pool, error) {
 	url := os.Getenv("B3SCALE_TEST_DB_URL")
 	if url == "" {
 		url = "postgres://postgres:postgres@localhost:5432/b3scale_test"
 	}
-	conn, err := Connect(&ConnectOpts{
+	return Connect(&ConnectOpts{
 		URL:      url,
 		MinConns: 2,
 		MaxConns: 16})
-	if err != nil {
-		t.Error(err)
-	}
-	return conn
 }
 
 type endTestFunc func() error
 
 func beginTest(t *testing.T) (context.Context, endTestFunc) {
+	ctx := context.Background()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Error(err)
 	}
-	ctx := ContextWithTransaction(context.Background(), tx)
-
-	end := func() {
+	ctx = ContextWithTransaction(ctx, tx)
+	end := func() error {
 		return tx.Rollback(ctx)
 	}
-
 	return ctx, end
-}
-
-func TestConnect(t *testing.T) {
-	conn := connectTest(t)
-	conn.Close()
 }

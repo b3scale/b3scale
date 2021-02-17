@@ -20,7 +20,9 @@ func frontendStateFactory() *FrontendState {
 }
 
 func TestFrontendStateSave(t *testing.T) {
-	ctx := beginTest(t)
+	ctx, end := beginTest(t)
+	defer end()
+
 	state := frontendStateFactory()
 
 	// Create / Insert
@@ -47,9 +49,10 @@ func TestFrontendStateSave(t *testing.T) {
 }
 
 func TestGetFrontendState(t *testing.T) {
-	ctx := beginTest(t)
+	ctx, end := beginTest(t)
+	defer end()
 	state := frontendStateFactory()
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 	}
 	ret, err := GetFrontendState(ctx, Q().
