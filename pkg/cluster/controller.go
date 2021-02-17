@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -383,8 +384,11 @@ func (c *Controller) warnOfflineBackends() error {
 }
 
 // GetBackends retrives backends with a store query
-func (c *Controller) GetBackends(q sq.SelectBuilder) ([]*Backend, error) {
-	states, err := store.GetBackendStates(c.pool, q)
+func (c *Controller) GetBackends(
+	ctx context.Context,
+	q sq.SelectBuilder,
+) ([]*Backend, error) {
+	states, err := store.GetBackendStates(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -398,8 +402,11 @@ func (c *Controller) GetBackends(q sq.SelectBuilder) ([]*Backend, error) {
 }
 
 // GetBackend retrievs a single backend by query criteria
-func (c *Controller) GetBackend(q sq.SelectBuilder) (*Backend, error) {
-	backends, err := c.GetBackends(q)
+func (c *Controller) GetBackend(
+	ctx context.Context,
+	q sq.SelectBuilder,
+) (*Backend, error) {
+	backends, err := c.GetBackends(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +418,10 @@ func (c *Controller) GetBackend(q sq.SelectBuilder) (*Backend, error) {
 
 // GetFrontends retrieves all frontends from
 // the store matchig a query
-func (c *Controller) GetFrontends(q sq.SelectBuilder) ([]*Frontend, error) {
+func (c *Controller) GetFrontends(
+	ctx context.Context,
+	q sq.SelectBuilder,
+) ([]*Frontend, error) {
 	states, err := store.GetFrontendStates(c.pool, q)
 	if err != nil {
 		return nil, err
@@ -454,4 +464,14 @@ func (c *Controller) GetMeetingStateByID(id string) (*store.MeetingState, error)
 // is raised.
 func (c *Controller) DeleteMeetingStateByID(id string) error {
 	return store.DeleteMeetingStateByInternalID(c.pool, id)
+}
+
+// BeginRequest initializes the request context
+func (c *Controller) BeginRequest(ctx context.Context) (context.Context, error) {
+	tx, err := c.pool.Begin()
+	if err != nil {
+		return ctx, err
+	}
+	ctx = store.ContextWithTransaction(tx)
+	return ctx, nil
 }
