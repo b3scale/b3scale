@@ -54,6 +54,7 @@ func BBBRequestMiddleware(
 				return handleAPIError(c, fmt.Errorf(
 					"no such frontend for key: %s", frontendKey))
 			}
+			ctx = cluster.ContextWithFrontend(ctx, frontend)
 
 			// We have an action, we have a frontend, now
 			// we need the query parameters and request body.
