@@ -84,20 +84,31 @@ func (c *Controller) StartBackground() {
 	// Add some jitter
 	c.lastStartBackground = time.Now()
 
+	timeout := 10 * time.Second
+
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
-	if err := c.requestSyncStale(); err != nil {
+	err := c.WithTransactionContext(timeout, func(ctx context.Context) error {
+		return c.requestSyncStale(ctx)
+	})
+	if err != nil {
 		log.Error().Err(err).Msg("requestSyncStale")
 	}
 
 	// Dispatch decommissioning of marked backends
-	if err := c.requestBackendDecommissions(); err != nil {
+	err = c.WithTransactionContext(timeout, func(ctx context.Context) error {
+		return c.requestBackendDecommissions(ctx)
+	})
+	if err != nil {
 		log.Error().Err(err).Msg("requestBackendDecommissions")
 	}
 
 	// Check if there are backends where the noded is
 	// not present.
-	if err := c.warnOfflineBackends(); err != nil {
+	err = c.WithTransactionContext(timeout, func(ctx context.Context) error {
+		return c.warnOfflineBackends(ctx)
+	})
+	if err != nil {
 		log.Error().Err(err).Msg("warnOfflineBackends")
 	}
 }
@@ -106,27 +117,43 @@ func (c *Controller) StartBackground() {
 // run the command specific handler. As this is invoked
 // by the CommandQueue, these functions are allowed
 // to crash and will be recovered.
-func (c *Controller) handleCommand(
-	ctx context.Context,
-	cmd *store.Command,
-) (interface{}, error) {
+func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
+	// Begin transaction context
+	timeout := 60 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	tx, err := c.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
 	// Invoke command handler
+	var ret interface{}
 	switch cmd.Action {
 	case CmdDecommissionBackend:
 		log.Debug().Str("cmd", CmdDecommissionBackend).Msg("EXEC")
-		return c.handleDecommissionBackend(ctx, cmd)
+		ret, err = c.handleDecommissionBackend(ctx, cmd)
 	case CmdUpdateNodeState:
 		log.Debug().Str("cmd", CmdUpdateNodeState).Msg("EXEC")
-		return c.handleUpdateNodeState(ctx, cmd)
+		ret, err = c.handleUpdateNodeState(ctx, cmd)
 	case CmdUpdateMeetingState:
 		log.Debug().Str("cmd", CmdUpdateMeetingState).Msg("EXEC")
-		return c.handleUpdateMeetingState(ctx, cmd)
+		ret, err = c.handleUpdateMeetingState(ctx, cmd)
 	case CmdEndAllMeetings:
 		log.Debug().Str("cmd", CmdEndAllMeetings).Msg("EXEC")
-		return c.handleEndAllMeetings(ctx, cmd)
+		ret, err = c.handleEndAllMeetings(ctx, cmd)
+	default:
+		ret, err = nil, ErrUnknownCommand
 	}
-
-	return nil, ErrUnknownCommand
+	if err != nil {
+		return ret, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 // Command: DecommissionBackend
@@ -479,6 +506,34 @@ func (c *Controller) DeleteMeetingStateByID(ctx context.Context, id string) erro
 }
 
 // BeginTx starts a new transaction in the pool
-func (c *Controller) BeginTx(ctx context.Context) pgx.Tx {
+func (c *Controller) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return c.pool.Begin(ctx)
+}
+
+// TxFunc is a function to be wrapped with
+// a transaction context
+type TxFunc func(ctx context.Context) error
+
+// WithTransactionContext is a decorator function
+// to wrap units of operations in a context with
+// a transaction.
+func (c *Controller) WithTransactionContext(
+	timeout time.Duration,
+	txFunc TxFunc,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	tx, err := c.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
+	if err := txFunc(ctx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
