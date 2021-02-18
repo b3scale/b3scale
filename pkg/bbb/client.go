@@ -6,6 +6,7 @@ package bbb
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -86,7 +87,7 @@ func unmarshalRequestResponse(req *Request, data []byte) (Response, error) {
 // Do sends the request to the backend.
 // The request is signed.
 // The response is decoded into a BBB response.
-func (c *Client) Do(req *Request) (Response, error) {
+func (c *Client) Do(ctx context.Context, req *Request) (Response, error) {
 	log.Debug().
 		Str("method", req.Request.Method).
 		Str("url", req.URL()).
@@ -96,7 +97,8 @@ func (c *Client) Do(req *Request) (Response, error) {
 	if req.Body != nil {
 		bodyReader = bytes.NewReader(req.Body)
 	}
-	httpReq, err := http.NewRequest(
+	httpReq, err := http.NewRequestWithContext(
+		ctx,
 		req.Request.Method,
 		req.URL(),
 		bodyReader)
