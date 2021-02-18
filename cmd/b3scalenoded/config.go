@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
@@ -51,6 +53,17 @@ func configToBackendState(
 	pool *pgxpool.Pool,
 	conf config.Properties,
 ) (*store.BackendState, error) {
+	timeout := 10 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
 	serverURL, ok := conf.Get(CfgWebServerURL)
 	if !ok {
 		return nil, ErrServerURLNotInConfig
@@ -61,7 +74,7 @@ func configToBackendState(
 	}
 
 	// Try to get backend
-	state, err := store.GetBackendState(pool, store.Q().
+	state, err := store.GetBackendState(ctx, store.Q().
 		Where("host ILIKE ?", serverURL+"%"))
 	if err != nil {
 		return nil, err
@@ -79,9 +92,13 @@ func configToBackendState(
 			Msg("updating changed secret for backend")
 
 		state.Backend.Secret = secret
-		if err := state.Save(); err != nil {
+		if err := state.Save(ctx); err != nil {
 			return nil, err
 		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 
 	return state, nil
@@ -93,6 +110,17 @@ func configRegisterBackendState(
 	pool *pgxpool.Pool,
 	conf config.Properties,
 ) (*store.BackendState, error) {
+	timeout := 10 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
 	serverURL, ok := conf.Get(CfgWebServerURL)
 	if !ok {
 		return nil, ErrServerURLNotInConfig
@@ -110,14 +138,18 @@ func configRegisterBackendState(
 	apiURL += "bigbluebutton/api/"
 
 	// Register new backend
-	state := store.InitBackendState(pool, &store.BackendState{
+	state := store.InitBackendState(&store.BackendState{
 		Backend: &bbb.Backend{
 			Host:   apiURL,
 			Secret: secret,
 		},
 		AdminState: "init",
 	})
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 

@@ -1,16 +1,16 @@
 package store
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
-func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState, error) {
+func meetingStateFactory(ctx context.Context, init *MeetingState) (*MeetingState, error) {
 	// We start with a blank meeting
 	if init == nil {
 		init = &MeetingState{
@@ -21,15 +21,15 @@ func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState,
 	// A meeting should not exist without a backend and
 	// frontend.
 	if init.frontend == nil {
-		init.frontend = frontendStateFactory(pool)
-		if err := init.frontend.Save(); err != nil {
+		init.frontend = frontendStateFactory()
+		if err := init.frontend.Save(ctx); err != nil {
 			return nil, err
 		}
 		init.FrontendID = &init.frontend.ID
 	}
 	if init.backend == nil {
-		init.backend = backendStateFactory(pool)
-		if err := init.backend.Save(); err != nil {
+		init.backend = backendStateFactory()
+		if err := init.backend.Save(ctx); err != nil {
 			return nil, err
 		}
 		init.BackendID = &init.backend.ID
@@ -44,13 +44,14 @@ func meetingStateFactory(pool *pgxpool.Pool, init *MeetingState) (*MeetingState,
 	init.Meeting.MeetingID = init.ID
 	init.Meeting.InternalMeetingID = init.InternalID
 
-	return InitMeetingState(pool, init), nil
+	return InitMeetingState(init), nil
 }
 
 func TestGetMeetingStates(t *testing.T) {
-	pool := connectTest(t)
+	ctx, end := beginTest(t)
+	defer end()
 
-	m1, err := meetingStateFactory(pool, &MeetingState{
+	m1, err := meetingStateFactory(ctx, &MeetingState{
 		ID:         uuid.New().String(),
 		InternalID: uuid.New().String(),
 		Meeting: &bbb.Meeting{
@@ -61,14 +62,14 @@ func TestGetMeetingStates(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = m1.Save()
+	err = m1.Save(ctx)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
 	// Get running meetings
-	states, err := GetMeetingStates(pool, Q().
+	states, err := GetMeetingStates(ctx, Q().
 		Where("id = ?", m1.ID).
 		Where("state->'Running' = ?", true))
 	if err != nil {
@@ -81,9 +82,10 @@ func TestGetMeetingStates(t *testing.T) {
 }
 
 func TestMeetingStateSave(t *testing.T) {
-	pool := connectTest(t)
+	ctx, end := beginTest(t)
+	defer end()
 
-	state, err := meetingStateFactory(pool, nil)
+	state, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -94,7 +96,7 @@ func TestMeetingStateSave(t *testing.T) {
 		"backendID:", state.BackendID,
 		"frontendID:", state.FrontendID)
 
-	err = state.Save()
+	err = state.Save(ctx)
 	if err != nil {
 		t.Error(err)
 		return
@@ -103,13 +105,14 @@ func TestMeetingStateSave(t *testing.T) {
 }
 
 func TestMeetingStateSaveUpdate(t *testing.T) {
-	pool := connectTest(t)
-	state, err := meetingStateFactory(pool, nil)
+	ctx, end := beginTest(t)
+	defer end()
+	state, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
@@ -118,20 +121,21 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 		MeetingName:       "bar",
 		InternalMeetingID: uuid.New().String(),
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
 }
 
 func TestMeetingStateUpdateIfExists(t *testing.T) {
-	pool := connectTest(t)
-	state, err := meetingStateFactory(pool, nil)
+	ctx, end := beginTest(t)
+	defer end()
+	state, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
@@ -142,7 +146,7 @@ func TestMeetingStateUpdateIfExists(t *testing.T) {
 		MeetingID:         state.ID,
 	}
 
-	c, err := UpdateMeetingStateIfExists(pool, m)
+	c, err := UpdateMeetingStateIfExists(ctx, m)
 	if err != nil {
 		t.Error(err)
 		return
@@ -152,7 +156,7 @@ func TestMeetingStateUpdateIfExists(t *testing.T) {
 		t.Error("there should have been 1 update")
 	}
 
-	state, err = GetMeetingState(pool, Q().
+	state, err = GetMeetingState(ctx, Q().
 		Where("id = ?", state.ID))
 	if err != nil {
 		t.Error(err)
@@ -166,18 +170,19 @@ func TestMeetingStateUpdateIfExists(t *testing.T) {
 }
 
 func TestMeetingStateQueryUpdate(t *testing.T) {
-	pool := connectTest(t)
-	state, err := meetingStateFactory(pool, nil)
+	ctx, end := beginTest(t)
+	defer end()
+	state, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
 
-	state, err = GetMeetingState(pool, Q().
+	state, err = GetMeetingState(ctx, Q().
 		Where("id = ?", state.ID))
 	if err != nil {
 		t.Error(err)
@@ -188,28 +193,29 @@ func TestMeetingStateQueryUpdate(t *testing.T) {
 		MeetingName:       "bar",
 		InternalMeetingID: uuid.New().String(),
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
 }
 
 func TestMeetingStateIsStale(t *testing.T) {
-	pool := connectTest(t)
-	state, err := meetingStateFactory(pool, nil)
+	ctx, end := beginTest(t)
+	defer end()
+	state, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	t.Log("before SavE()")
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
 	t.Log("after SavE()")
 
 	state.SyncedAt = time.Now().UTC()
-	err = state.Save()
+	err = state.Save(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,7 +225,7 @@ func TestMeetingStateIsStale(t *testing.T) {
 	}
 
 	state.SyncedAt = time.Now().UTC().Add(-10 * time.Minute)
-	err = state.Save()
+	err = state.Save(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -230,42 +236,45 @@ func TestMeetingStateIsStale(t *testing.T) {
 }
 
 func TestDeleteMeetingStateByInternalID(t *testing.T) {
-	pool := connectTest(t)
-	state, err := meetingStateFactory(pool, nil)
+	ctx, end := beginTest(t)
+	defer end()
+	state, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 	}
 
 	// Now delete the meeting state
-	if err := DeleteMeetingStateByInternalID(pool, state.InternalID); err != nil {
+	if err := DeleteMeetingStateByInternalID(ctx, state.InternalID); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDeleteMeetingStateByID(t *testing.T) {
-	pool := connectTest(t)
-	state, err := meetingStateFactory(pool, nil)
+	ctx, end := beginTest(t)
+	defer end()
+	state, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 	}
 
 	// Now delete the meeting state
-	if err := DeleteMeetingStateByID(pool, state.ID); err != nil {
+	if err := DeleteMeetingStateByID(ctx, state.ID); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestDeleteOrphanMeetings(t *testing.T) {
-	pool := connectTest(t)
-	m1, err := meetingStateFactory(pool, nil)
+	ctx, end := beginTest(t)
+	defer end()
+	m1, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
@@ -273,11 +282,11 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 	backend := m1.backend // this is lost because of the refresh at save...
 	t.Log(backend.ID)
 
-	if err := m1.Save(); err != nil {
+	if err := m1.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
-	m2, err := meetingStateFactory(pool, &MeetingState{
+	m2, err := meetingStateFactory(ctx, &MeetingState{
 		ID:         uuid.New().String(),
 		InternalID: uuid.New().String(),
 		backend:    backend,
@@ -287,11 +296,11 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := m2.Save(); err != nil {
+	if err := m2.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
-	m3, err := meetingStateFactory(pool, &MeetingState{
+	m3, err := meetingStateFactory(ctx, &MeetingState{
 		ID:         uuid.New().String(),
 		InternalID: uuid.New().String(),
 		backend:    backend,
@@ -301,25 +310,25 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if err := m2.Save(); err != nil {
+	if err := m2.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
 
 	// Create an unrelated meeting at a different backend
-	mUnrel, err := meetingStateFactory(pool, nil)
+	mUnrel, err := meetingStateFactory(ctx, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if err := mUnrel.Save(); err != nil {
+	if err := mUnrel.Save(ctx); err != nil {
 		t.Error(err)
 		return
 	}
 
 	// Delete meeting
 	keep := []string{m1.InternalID, m3.InternalID}
-	count, err := DeleteOrphanMeetings(pool, *m1.BackendID, keep)
+	count, err := DeleteOrphanMeetings(ctx, *m1.BackendID, keep)
 	if err != nil {
 		t.Error(err)
 		return
@@ -330,7 +339,7 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 	}
 
 	// The unrelated meeting should still be present
-	m, err := GetMeetingState(pool, Q().
+	m, err := GetMeetingState(ctx, Q().
 		Where("meetings.id = ?", mUnrel.ID))
 	if err != nil {
 		t.Error(err)

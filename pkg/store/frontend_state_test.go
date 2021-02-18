@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
-func frontendStateFactory(pool *pgxpool.Pool) *FrontendState {
-	state := InitFrontendState(pool, &FrontendState{
+func frontendStateFactory() *FrontendState {
+	state := InitFrontendState(&FrontendState{
 		Frontend: &bbb.Frontend{
 			Key:    uuid.New().String(),
 			Secret: "v3rys3cr37",
@@ -21,14 +20,16 @@ func frontendStateFactory(pool *pgxpool.Pool) *FrontendState {
 }
 
 func TestFrontendStateSave(t *testing.T) {
-	pool := connectTest(t)
-	state := frontendStateFactory(pool)
+	ctx, end := beginTest(t)
+	defer end()
+
+	state := frontendStateFactory()
 
 	// Create / Insert
 	if state.ID != "" {
 		t.Log("Unexcted empty ID for new state:", state.ID)
 	}
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error()
 	}
 	if state.ID == "" {
@@ -38,7 +39,7 @@ func TestFrontendStateSave(t *testing.T) {
 
 	// Update
 	state.Active = false
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 	}
 
@@ -48,12 +49,13 @@ func TestFrontendStateSave(t *testing.T) {
 }
 
 func TestGetFrontendState(t *testing.T) {
-	pool := connectTest(t)
-	state := frontendStateFactory(pool)
-	if err := state.Save(); err != nil {
+	ctx, end := beginTest(t)
+	defer end()
+	state := frontendStateFactory()
+	if err := state.Save(ctx); err != nil {
 		t.Error(err)
 	}
-	ret, err := GetFrontendState(pool, Q().
+	ret, err := GetFrontendState(ctx, Q().
 		Where("key = ?", state.Frontend.Key))
 	if err != nil {
 		t.Error(err)

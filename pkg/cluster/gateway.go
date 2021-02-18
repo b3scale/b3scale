@@ -64,7 +64,7 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 
 		// Make sure the meeting is associated with the backend
 		if meetingID, ok := req.Params.MeetingID(); ok {
-			meeting, err := ctrl.GetMeetingStateByID(meetingID)
+			meeting, err := ctrl.GetMeetingStateByID(ctx, meetingID)
 			if err != nil {
 				log.Error().
 					Err(err).
@@ -73,11 +73,11 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 			} else {
 				if meeting != nil {
 					// Assign to backend
-					if err := meeting.SetBackendID(backend.ID()); err != nil {
+					if err := meeting.SetBackendID(ctx, backend.ID()); err != nil {
 						return nil, err
 					}
 					// Assign frontend if not present
-					if err := meeting.BindFrontendID(frontend.state.ID); err != nil {
+					if err := meeting.BindFrontendID(ctx, frontend.state.ID); err != nil {
 						return nil, err
 					}
 				}
@@ -90,35 +90,35 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 			return backend.Version(req)
 		case bbb.ResourceJoin:
 			if gw.opts.IsReverseProxyEnabled {
-				return backend.JoinProxy(req)
+				return backend.JoinProxy(ctx, req)
 			}
-			return backend.Join(req)
+			return backend.Join(ctx, req)
 		case bbb.ResourceCreate:
-			return backend.Create(req)
+			return backend.Create(ctx, req)
 		case bbb.ResourceIsMeetingRunning:
-			return backend.IsMeetingRunning(req)
+			return backend.IsMeetingRunning(ctx, req)
 		case bbb.ResourceEnd:
-			return backend.End(req)
+			return backend.End(ctx, req)
 		case bbb.ResourceGetMeetingInfo:
-			return backend.GetMeetingInfo(req)
+			return backend.GetMeetingInfo(ctx, req)
 		case bbb.ResourceGetMeetings:
-			return backend.GetMeetings(req)
+			return backend.GetMeetings(ctx, req)
 		case bbb.ResourceGetRecordings:
-			return backend.GetRecordings(req)
+			return backend.GetRecordings(ctx, req)
 		case bbb.ResourcePublishRecordings:
-			return backend.PublishRecordings(req)
+			return backend.PublishRecordings(ctx, req)
 		case bbb.ResourceDeleteRecordings:
-			return backend.DeleteRecordings(req)
+			return backend.DeleteRecordings(ctx, req)
 		case bbb.ResourceUpdateRecordings:
-			return backend.UpdateRecordings(req)
+			return backend.UpdateRecordings(ctx, req)
 		case bbb.ResourceGetDefaultConfigXML:
-			return backend.GetDefaultConfigXML(req)
+			return backend.GetDefaultConfigXML(ctx, req)
 		case bbb.ResourceSetConfigXML:
-			return backend.SetConfigXML(req)
+			return backend.SetConfigXML(ctx, req)
 		case bbb.ResourceGetRecordingTextTracks:
-			return backend.GetRecordingTextTracks(req)
+			return backend.GetRecordingTextTracks(ctx, req)
 		case bbb.ResourcePutRecordingTextTrack:
-			return backend.PutRecordingTextTrack(req)
+			return backend.PutRecordingTextTrack(ctx, req)
 		}
 
 		// We could not dispatch this

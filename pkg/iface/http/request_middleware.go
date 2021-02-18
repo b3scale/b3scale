@@ -2,14 +2,13 @@ package http
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	netHTTP "net/http"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -30,6 +29,14 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			ctx := c.Request().Context()
+			tx, err := ctrl.BeginTx(ctx)
+			if err != nil {
+				return err
+			}
+			defer tx.Rollback(ctx)
+			ctx = store.ContextWithTransaction(ctx, tx)
+
 			path := c.Path()
 			if !strings.HasPrefix(path, mountPoint) {
 				return next(c) // nothing to do here.
@@ -38,7 +45,7 @@ func BBBRequestMiddleware(
 			// and verify it.
 			path = path[len(mountPoint):]
 			frontendKey, resource := decodePath(path)
-			frontend, err := ctrl.GetFrontend(store.Q().
+			frontend, err := ctrl.GetFrontend(ctx, store.Q().
 				Where("key = ?", frontendKey))
 			if err != nil {
 				return handleAPIError(c, err)
@@ -68,15 +75,14 @@ func BBBRequestMiddleware(
 				return handleAPIError(c, err)
 			}
 
-			// Let the gateway handle the request and
-			// make the request context
-			ctx, cancel := context.WithTimeout(
-				context.Background(),
-				60*time.Second)
-			defer cancel()
-			ctx = cluster.ContextWithFrontend(ctx, frontend)
-
 			res := gateway.Dispatch(ctx, bbbReq)
+
+			if err := tx.Commit(ctx); err != nil {
+				log.Error().
+					Err(err).
+					Msg("tx commit failed after request")
+			}
+
 			return writeBBBResponse(c, res)
 		}
 	}

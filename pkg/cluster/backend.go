@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -81,7 +82,7 @@ func (b *Backend) Stress() float64 {
 // TODO: This function has become way too long.
 //       You need to refactor this. Please.
 //
-func (b *Backend) loadNodeState() error {
+func (b *Backend) loadNodeState(ctx context.Context) error {
 	log.Debug().
 		Str("backend", b.state.Backend.Host).
 		Msg("processing backend meetings")
@@ -89,14 +90,14 @@ func (b *Backend) loadNodeState() error {
 	// Measure latency
 	t0 := time.Now()
 	req := bbb.GetMeetingsRequest(bbb.Params{}).WithBackend(b.state.Backend)
-	rep, err := b.client.Do(req)
+	rep, err := b.client.Do(ctx, req)
 	if err != nil {
 		// The backend does not even respond, we mark this
 		// as an error
 		errMsg := fmt.Sprintf("%s", err)
 		b.state.NodeState = "error"
 		b.state.LastError = &errMsg
-		if err := b.state.Save(); err != nil {
+		if err := b.state.Save(ctx); err != nil {
 			log.Error().Err(err).Msg("save backend state")
 		}
 
@@ -111,7 +112,7 @@ func (b *Backend) loadNodeState() error {
 		errMsg := fmt.Sprintf("%s: %s", res.MessageKey, res.Message)
 		b.state.LastError = &errMsg
 		b.state.NodeState = "error"
-		if err := b.state.Save(); err != nil {
+		if err := b.state.Save(ctx); err != nil {
 			log.Error().Err(err).Msg("save backend state")
 		}
 		return err
@@ -124,7 +125,7 @@ func (b *Backend) loadNodeState() error {
 	if b.state.AdminState == "ready" {
 		b.state.NodeState = "ready"
 	}
-	if err := b.state.Save(); err != nil {
+	if err := b.state.Save(ctx); err != nil {
 		return err
 	}
 
@@ -132,7 +133,7 @@ func (b *Backend) loadNodeState() error {
 	backendMeetings := make([]string, 0, len(res.Meetings))
 	for _, meeting := range res.Meetings {
 		log.Debug().Stringer("meeting", meeting).Msg("refreshing meeting")
-		if updates, err := store.UpdateMeetingStateIfExists(b.pool, meeting); err != nil {
+		if updates, err := store.UpdateMeetingStateIfExists(ctx, meeting); err != nil {
 			// return err
 			log.Error().
 				Err(err).
@@ -156,8 +157,7 @@ func (b *Backend) loadNodeState() error {
 	}
 
 	// Cleanup meetings: 2nd pass
-	count, err := store.DeleteOrphanMeetings(
-		b.pool, b.state.ID, backendMeetings)
+	count, err := store.DeleteOrphanMeetings(ctx, b.state.ID, backendMeetings)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (b *Backend) loadNodeState() error {
 	}
 
 	// Update meetings and attendees counter
-	if err := b.state.UpdateStatCounters(); err != nil {
+	if err := b.state.UpdateStatCounters(ctx); err != nil {
 		return err
 	}
 
@@ -183,12 +183,13 @@ func (b *Backend) loadNodeState() error {
 // already be handled throught the b3scalenoded on the
 // backend instance.
 func (b *Backend) refreshMeetingState(
+	ctx context.Context,
 	state *store.MeetingState,
 ) error {
 	req := bbb.GetMeetingInfoRequest(bbb.Params{
 		"meetingID": state.ID,
 	}).WithBackend(b.state.Backend)
-	rep, err := b.client.Do(req)
+	rep, err := b.client.Do(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -201,13 +202,13 @@ func (b *Backend) refreshMeetingState(
 	// Update meeting state
 	state.Meeting = res.Meeting
 	state.SyncedAt = time.Now().UTC()
-	return state.Save()
+	return state.Save(ctx)
 }
 
 // BBB API Implementation
 
 func meetingStateFromRequest(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	req *bbb.Request,
 ) (*store.MeetingState, error) {
 	meetingID, ok := req.Params.MeetingID()
@@ -215,7 +216,7 @@ func meetingStateFromRequest(
 		return nil, fmt.Errorf("meetingID required")
 	}
 	// Check if meeting does exist
-	meetingState, err := store.GetMeetingState(pool, store.Q().
+	meetingState, err := store.GetMeetingState(ctx, store.Q().
 		Where("id = ?", meetingID))
 	return meetingState, err
 }
@@ -233,23 +234,23 @@ func (b *Backend) Version(req *bbb.Request) (*bbb.XMLResponse, error) {
 }
 
 // Create a new Meeting
-func (b *Backend) Create(req *bbb.Request) (
+func (b *Backend) Create(ctx context.Context, req *bbb.Request) (
 	*bbb.CreateResponse, error,
 ) {
 	// Pass the request to the BBB server
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
 	createRes := res.(*bbb.CreateResponse)
 
 	// Update or save meeeting state
-	meetingState, err := meetingStateFromRequest(b.pool, req)
+	meetingState, err := meetingStateFromRequest(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	if meetingState == nil {
-		_, err = b.state.CreateMeetingState(req.Frontend, createRes.Meeting)
+		_, err = b.state.CreateMeetingState(ctx, req.Frontend, createRes.Meeting)
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +258,7 @@ func (b *Backend) Create(req *bbb.Request) (
 		// Update state, associate with backend and frontend
 		meetingState.Meeting = createRes.Meeting
 		meetingState.SyncedAt = time.Now().UTC()
-		if err := meetingState.Save(); err != nil {
+		if err := meetingState.Save(ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -267,7 +268,10 @@ func (b *Backend) Create(req *bbb.Request) (
 
 // Join via redirect: The client will receive a
 // redirect to the BBB backend and will join there directly.
-func (b *Backend) Join(req *bbb.Request) (*bbb.JoinResponse, error) {
+func (b *Backend) Join(
+	ctx context.Context,
+	req *bbb.Request,
+) (*bbb.JoinResponse, error) {
 	// Joining a meeting is a process entirely handled by the
 	// client. Because of a JSESSIONID which is used for preventing
 	// session stealing, just passing through the location response
@@ -303,9 +307,12 @@ func (b *Backend) Join(req *bbb.Request) (*bbb.JoinResponse, error) {
 // JoinProxy makes a request on behalf of the client.
 // A reverse proxy needs to pass all subsequent requests
 // to the BBB backend.
-func (b *Backend) JoinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
+func (b *Backend) JoinProxy(
+	ctx context.Context,
+	req *bbb.Request,
+) (*bbb.JoinResponse, error) {
 	// Pass the request to the BBB server and rewrite response
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -336,9 +343,10 @@ func (b *Backend) JoinProxy(req *bbb.Request) (*bbb.JoinResponse, error) {
 
 // IsMeetingRunning returns the is meeting running state
 func (b *Backend) IsMeetingRunning(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.IsMeetingRunningResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -346,15 +354,18 @@ func (b *Backend) IsMeetingRunning(
 	meetingID, _ := req.Params.MeetingID()
 	if isMeetingRunningRes.Returncode == "ERROR" {
 		// Delete meeting
-		store.DeleteMeetingStateByID(b.pool, meetingID)
+		store.DeleteMeetingStateByID(ctx, meetingID)
 	}
 
 	return isMeetingRunningRes, err
 }
 
 // End a meeting
-func (b *Backend) End(req *bbb.Request) (*bbb.EndResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+func (b *Backend) End(
+	ctx context.Context,
+	req *bbb.Request,
+) (*bbb.EndResponse, error) {
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -363,9 +374,10 @@ func (b *Backend) End(req *bbb.Request) (*bbb.EndResponse, error) {
 
 // GetMeetingInfo gets the meeting details
 func (b *Backend) GetMeetingInfo(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.GetMeetingInfoResponse, error) {
-	rep, err := b.client.Do(req.WithBackend(b.state.Backend))
+	rep, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +386,7 @@ func (b *Backend) GetMeetingInfo(
 	// Update our meeting in the store
 	if res.XMLResponse.Returncode == "SUCCESS" {
 		meetingID, _ := req.Params.MeetingID()
-		mstate, err := store.GetMeetingState(b.pool, store.Q().
+		mstate, err := store.GetMeetingState(ctx, store.Q().
 			Where("id = ?", meetingID))
 		if err != nil {
 			// We only log the error, as this might fail
@@ -393,7 +405,7 @@ func (b *Backend) GetMeetingInfo(
 				// Update meeting state
 				mstate.Meeting = res.Meeting
 				mstate.SyncedAt = time.Now().UTC()
-				if err := mstate.Save(); err != nil {
+				if err := mstate.Save(ctx); err != nil {
 					log.Error().
 						Err(err).
 						Str("backend", b.state.Backend.Host).
@@ -408,11 +420,12 @@ func (b *Backend) GetMeetingInfo(
 
 // GetMeetings retrieves a list of meetings
 func (b *Backend) GetMeetings(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.GetMeetingsResponse, error) {
 	// Get all meetings from our store associated
 	// with the requesting frontend.
-	mstates, err := store.GetMeetingStates(b.pool, store.Q().
+	mstates, err := store.GetMeetingStates(ctx, store.Q().
 		Join("frontends ON frontends.id = meetings.frontend_id").
 		Where("meetings.backend_id IS NOT NULL").
 		Where("frontends.key = ?", req.Frontend.Key))
@@ -431,15 +444,15 @@ func (b *Backend) GetMeetings(
 		},
 		Meetings: meetings,
 	}
-
 	return res, nil
 }
 
 // GetRecordings retrieves a list of recordings
 func (b *Backend) GetRecordings(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.GetRecordingsResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -448,9 +461,10 @@ func (b *Backend) GetRecordings(
 
 // PublishRecordings publishes a recording
 func (b *Backend) PublishRecordings(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.PublishRecordingsResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -459,9 +473,10 @@ func (b *Backend) PublishRecordings(
 
 // DeleteRecordings deletes recordings
 func (b *Backend) DeleteRecordings(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.DeleteRecordingsResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -470,9 +485,10 @@ func (b *Backend) DeleteRecordings(
 
 // UpdateRecordings updates recordings
 func (b *Backend) UpdateRecordings(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.UpdateRecordingsResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -481,9 +497,10 @@ func (b *Backend) UpdateRecordings(
 
 // GetDefaultConfigXML retrieves the default config xml
 func (b *Backend) GetDefaultConfigXML(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.GetDefaultConfigXMLResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -492,9 +509,10 @@ func (b *Backend) GetDefaultConfigXML(
 
 // SetConfigXML sets the? config xml
 func (b *Backend) SetConfigXML(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.SetConfigXMLResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -503,9 +521,10 @@ func (b *Backend) SetConfigXML(
 
 // GetRecordingTextTracks retrievs all text tracks
 func (b *Backend) GetRecordingTextTracks(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.GetRecordingTextTracksResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
@@ -514,9 +533,10 @@ func (b *Backend) GetRecordingTextTracks(
 
 // PutRecordingTextTrack adds a text track
 func (b *Backend) PutRecordingTextTrack(
+	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.PutRecordingTextTrackResponse, error) {
-	res, err := b.client.Do(req.WithBackend(b.state.Backend))
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}

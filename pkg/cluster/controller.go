@@ -1,12 +1,14 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
@@ -82,20 +84,31 @@ func (c *Controller) StartBackground() {
 	// Add some jitter
 	c.lastStartBackground = time.Now()
 
+	timeout := 10 * time.Second
+
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
-	if err := c.requestSyncStale(); err != nil {
+	err := c.WithTransactionContext(timeout, func(ctx context.Context) error {
+		return c.requestSyncStale(ctx)
+	})
+	if err != nil {
 		log.Error().Err(err).Msg("requestSyncStale")
 	}
 
 	// Dispatch decommissioning of marked backends
-	if err := c.requestBackendDecommissions(); err != nil {
+	err = c.WithTransactionContext(timeout, func(ctx context.Context) error {
+		return c.requestBackendDecommissions(ctx)
+	})
+	if err != nil {
 		log.Error().Err(err).Msg("requestBackendDecommissions")
 	}
 
 	// Check if there are backends where the noded is
 	// not present.
-	if err := c.warnOfflineBackends(); err != nil {
+	err = c.WithTransactionContext(timeout, func(ctx context.Context) error {
+		return c.warnOfflineBackends(ctx)
+	})
+	if err != nil {
 		log.Error().Err(err).Msg("warnOfflineBackends")
 	}
 }
@@ -105,28 +118,48 @@ func (c *Controller) StartBackground() {
 // by the CommandQueue, these functions are allowed
 // to crash and will be recovered.
 func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
+	// Begin transaction context
+	timeout := 60 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	tx, err := c.BeginTx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
 	// Invoke command handler
+	var ret interface{}
 	switch cmd.Action {
 	case CmdDecommissionBackend:
 		log.Debug().Str("cmd", CmdDecommissionBackend).Msg("EXEC")
-		return c.handleDecommissionBackend(cmd)
+		ret, err = c.handleDecommissionBackend(ctx, cmd)
 	case CmdUpdateNodeState:
 		log.Debug().Str("cmd", CmdUpdateNodeState).Msg("EXEC")
-		return c.handleUpdateNodeState(cmd)
+		ret, err = c.handleUpdateNodeState(ctx, cmd)
 	case CmdUpdateMeetingState:
 		log.Debug().Str("cmd", CmdUpdateMeetingState).Msg("EXEC")
-		return c.handleUpdateMeetingState(cmd)
+		ret, err = c.handleUpdateMeetingState(ctx, cmd)
 	case CmdEndAllMeetings:
 		log.Debug().Str("cmd", CmdEndAllMeetings).Msg("EXEC")
-		return c.handleEndAllMeetings(cmd)
+		ret, err = c.handleEndAllMeetings(ctx, cmd)
+	default:
+		ret, err = nil, ErrUnknownCommand
 	}
-
-	return nil, ErrUnknownCommand
+	if err != nil {
+		return ret, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 // Command: DecommissionBackend
 // Removes a backend state identified by id from the state
 func (c *Controller) handleDecommissionBackend(
+	ctx context.Context,
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &DecommissionBackendRequest{}
@@ -135,7 +168,7 @@ func (c *Controller) handleDecommissionBackend(
 	}
 
 	// Get backend for decommissioning
-	bstate, err := store.GetBackendState(c.pool, store.Q().
+	bstate, err := store.GetBackendState(ctx, store.Q().
 		Where("id = ?", req.ID))
 	if err != nil {
 		return nil, err
@@ -149,7 +182,7 @@ func (c *Controller) handleDecommissionBackend(
 	// However, as the admin state indicates a non ready state
 	// the router will not longer select this backend
 	// for new meetings - so we are good to go here.
-	mstates, err := store.GetMeetingStates(c.pool, store.Q().
+	mstates, err := store.GetMeetingStates(ctx, store.Q().
 		Where("meetings.backend_id = ?", req.ID).
 		Where("meetings.state->'Running' = ?", true))
 	if err != nil {
@@ -166,7 +199,7 @@ func (c *Controller) handleDecommissionBackend(
 
 	// Decommission backend by deleting the state
 	// and related meetings
-	if err := bstate.Delete(); err != nil {
+	if err := bstate.Delete(ctx); err != nil {
 		return false, err
 	}
 
@@ -175,6 +208,7 @@ func (c *Controller) handleDecommissionBackend(
 
 // Command: UpdateNodeState
 func (c *Controller) handleUpdateNodeState(
+	ctx context.Context,
 	cmd *store.Command,
 ) (interface{}, error) {
 	// Get backend from command
@@ -182,15 +216,15 @@ func (c *Controller) handleUpdateNodeState(
 	if err := cmd.FetchParams(req); err != nil {
 		return nil, err
 	}
-	backend, err := c.GetBackend(
-		store.Q().Where("id = ?", req.ID))
+	backend, err := c.GetBackend(ctx, store.Q().
+		Where("id = ?", req.ID))
 	if err != nil {
 		return false, err
 	}
 	if backend == nil {
 		return false, fmt.Errorf("backend not found: %s", req.ID)
 	}
-	err = backend.loadNodeState()
+	err = backend.loadNodeState(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -200,6 +234,7 @@ func (c *Controller) handleUpdateNodeState(
 // handleUpdateMeetingState syncs the meeting state
 // from a backend
 func (c *Controller) handleUpdateMeetingState(
+	ctx context.Context,
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &UpdateMeetingStateRequest{}
@@ -208,10 +243,12 @@ func (c *Controller) handleUpdateMeetingState(
 	}
 
 	// Get meeting from store
-	mstate, err := store.GetMeetingState(c.pool, store.Q().
+	mstate, err := store.GetMeetingState(ctx, store.Q().
 		Where("id = ?", req.ID))
 	if err != nil {
-		log.Error().Err(err).Msg("GetMeetingState for handleUpdateMeetingState")
+		log.Error().
+			Err(err).
+			Msg("GetMeetingState for handleUpdateMeetingState")
 		return nil, err
 	}
 	if mstate == nil {
@@ -222,8 +259,8 @@ func (c *Controller) handleUpdateMeetingState(
 	}
 
 	// Get Backend
-	backend, err := c.GetBackend(
-		store.Q().Where("id = ?", mstate.BackendID))
+	backend, err := c.GetBackend(ctx, store.Q().
+		Where("id = ?", mstate.BackendID))
 	if err != nil {
 		log.Error().Err(err).Msg("GetBackend")
 		return nil, err
@@ -236,7 +273,7 @@ func (c *Controller) handleUpdateMeetingState(
 	}
 
 	// Refresh state
-	if err := backend.refreshMeetingState(mstate); err != nil {
+	if err := backend.refreshMeetingState(ctx, mstate); err != nil {
 		return false, err
 	}
 
@@ -245,13 +282,16 @@ func (c *Controller) handleUpdateMeetingState(
 
 // handleEndAllMeetings will send an end request
 // for all meetings on a backend
-func (c *Controller) handleEndAllMeetings(cmd *store.Command) (interface{}, error) {
+func (c *Controller) handleEndAllMeetings(
+	ctx context.Context,
+	cmd *store.Command,
+) (interface{}, error) {
 	req := &EndAllMeetingsRequest{}
 	if err := cmd.FetchParams(req); err != nil {
 		return nil, err
 	}
-
-	backend, err := c.GetBackend(store.Q().Where("id = ?", req.BackendID))
+	backend, err := c.GetBackend(ctx, store.Q().
+		Where("id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +301,7 @@ func (c *Controller) handleEndAllMeetings(cmd *store.Command) (interface{}, erro
 
 	// Send end for all *known* meetings. (We however, should *know*
 	// all meetings on the backend after a while.)
-	mstates, err := store.GetMeetingStates(c.pool, store.Q().
+	mstates, err := store.GetMeetingStates(ctx, store.Q().
 		Where("backend_id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
@@ -277,7 +317,7 @@ func (c *Controller) handleEndAllMeetings(cmd *store.Command) (interface{}, erro
 			"meetingID": m.Meeting.MeetingID,
 			"password":  m.Meeting.ModeratorPW,
 		})
-		res, err := backend.End(req)
+		res, err := backend.End(ctx, req)
 		if err != nil {
 			return nil, err
 		}
@@ -299,9 +339,9 @@ func (c *Controller) handleEndAllMeetings(cmd *store.Command) (interface{}, erro
 
 // requestSyncStale triggers a background sync of the
 // entire node state
-func (c *Controller) requestSyncStale() error {
+func (c *Controller) requestSyncStale(ctx context.Context) error {
 	log.Debug().Msg("starting stale node refresh")
-	stale, err := c.GetBackends(store.Q().
+	stale, err := c.GetBackends(ctx, store.Q().
 		Where(`now() - COALESCE(
 				synced_at,
 				TIMESTAMP '0001-01-01 00:00:00') > ?`,
@@ -330,9 +370,9 @@ func (c *Controller) requestSyncStale() error {
 // requestBackendDecommissions will request a decommissioning
 // of a backend for all backends, which admin state is marked
 // as decommissioned.
-func (c *Controller) requestBackendDecommissions() error {
+func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
 	// Get backend states to decommission
-	states, err := store.GetBackendStates(c.pool, store.Q().
+	states, err := store.GetBackendStates(ctx, store.Q().
 		Where("admin_state = ?", "decommissioned"))
 	if err != nil {
 		log.Error().Err(err).Msg("decommissioning GetBackendStates")
@@ -363,10 +403,10 @@ func (c *Controller) requestBackendDecommissions() error {
 
 // warnOfflineBackends iterates through all unlocked
 // backends and warns the user that there are backends offline
-func (c *Controller) warnOfflineBackends() error {
+func (c *Controller) warnOfflineBackends(ctx context.Context) error {
 	// Get offline backends
 	deadline := time.Now().UTC().Add(-5 * time.Second)
-	states, err := store.GetBackendStates(c.pool, store.Q().
+	states, err := store.GetBackendStates(ctx, store.Q().
 		Where("backends.agent_heartbeat < ?", deadline))
 	if err != nil {
 		return err
@@ -383,8 +423,11 @@ func (c *Controller) warnOfflineBackends() error {
 }
 
 // GetBackends retrives backends with a store query
-func (c *Controller) GetBackends(q sq.SelectBuilder) ([]*Backend, error) {
-	states, err := store.GetBackendStates(c.pool, q)
+func (c *Controller) GetBackends(
+	ctx context.Context,
+	q sq.SelectBuilder,
+) ([]*Backend, error) {
+	states, err := store.GetBackendStates(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -398,8 +441,11 @@ func (c *Controller) GetBackends(q sq.SelectBuilder) ([]*Backend, error) {
 }
 
 // GetBackend retrievs a single backend by query criteria
-func (c *Controller) GetBackend(q sq.SelectBuilder) (*Backend, error) {
-	backends, err := c.GetBackends(q)
+func (c *Controller) GetBackend(
+	ctx context.Context,
+	q sq.SelectBuilder,
+) (*Backend, error) {
+	backends, err := c.GetBackends(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -411,8 +457,11 @@ func (c *Controller) GetBackend(q sq.SelectBuilder) (*Backend, error) {
 
 // GetFrontends retrieves all frontends from
 // the store matchig a query
-func (c *Controller) GetFrontends(q sq.SelectBuilder) ([]*Frontend, error) {
-	states, err := store.GetFrontendStates(c.pool, q)
+func (c *Controller) GetFrontends(
+	ctx context.Context,
+	q sq.SelectBuilder,
+) ([]*Frontend, error) {
+	states, err := store.GetFrontendStates(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -427,8 +476,8 @@ func (c *Controller) GetFrontends(q sq.SelectBuilder) ([]*Frontend, error) {
 
 // GetFrontend fetches a frontend with a state from
 // the store
-func (c *Controller) GetFrontend(q sq.SelectBuilder) (*Frontend, error) {
-	frontends, err := c.GetFrontends(q)
+func (c *Controller) GetFrontend(ctx context.Context, q sq.SelectBuilder) (*Frontend, error) {
+	frontends, err := c.GetFrontends(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -439,8 +488,8 @@ func (c *Controller) GetFrontend(q sq.SelectBuilder) (*Frontend, error) {
 }
 
 // GetMeetingStateByID fetches a meeting state from the store
-func (c *Controller) GetMeetingStateByID(id string) (*store.MeetingState, error) {
-	state, err := store.GetMeetingState(c.pool, store.Q().
+func (c *Controller) GetMeetingStateByID(ctx context.Context, id string) (*store.MeetingState, error) {
+	state, err := store.GetMeetingState(ctx, store.Q().
 		Where("id = ?", id))
 	if err != nil {
 		return nil, err
@@ -452,6 +501,39 @@ func (c *Controller) GetMeetingStateByID(id string) (*store.MeetingState, error)
 // DeleteMeetingStateByID purges all knowelege of a meeting
 // identified by its ID. If the meeting is unknown, no error
 // is raised.
-func (c *Controller) DeleteMeetingStateByID(id string) error {
-	return store.DeleteMeetingStateByInternalID(c.pool, id)
+func (c *Controller) DeleteMeetingStateByID(ctx context.Context, id string) error {
+	return store.DeleteMeetingStateByInternalID(ctx, id)
+}
+
+// BeginTx starts a new transaction in the pool
+func (c *Controller) BeginTx(ctx context.Context) (pgx.Tx, error) {
+	return c.pool.Begin(ctx)
+}
+
+// TxFunc is a function to be wrapped with
+// a transaction context
+type TxFunc func(ctx context.Context) error
+
+// WithTransactionContext is a decorator function
+// to wrap units of operations in a context with
+// a transaction.
+func (c *Controller) WithTransactionContext(
+	timeout time.Duration,
+	txFunc TxFunc,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	tx, err := c.BeginTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
+	if err := txFunc(ctx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
