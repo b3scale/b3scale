@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -28,14 +30,40 @@ func init() {
 		&autoregister, "a", false, usage+" (shorthand)")
 }
 
-func heartbeat(backend *store.BackendState) {
+type txFunc func(context.Context) error
+
+func withTransactionContext(
+	pool *pgxpool.Pool,
+	timeout time.Duration,
+	txFunc txFunc,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
+	if err := txFunc(ctx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
+func heartbeat(pool *pgxpool.Pool, backend *store.BackendState) {
+	timeout := 10 * time.Second
 	for {
-		if err := backend.UpdateAgentHeartbeat(); err != nil {
+		if err := withTransactionContext(pool, timeout, func(ctx context.Context) error {
+			return backend.UpdateAgentHeartbeat(ctx)
+		}); err != nil {
 			log.Error().
 				Err(err).
-				Msg("agentHeartbeat")
+				Msg("update heartbeat failed")
 		}
-
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -108,7 +136,9 @@ func main() {
 
 	// Set backend load factor
 	backend.LoadFactor = loadFactor
-	if err := backend.Save(); err != nil {
+	if err := withTransactionContext(pool, 10*time.Second, func(ctx context.Context) error {
+		return backend.Save(ctx)
+	}); err != nil {
 		log.Fatal().
 			Err(err).
 			Msg("could not set backend load factor")
@@ -124,7 +154,7 @@ func main() {
 	}
 
 	// Mark the presence of the noded
-	go heartbeat(backend)
+	go heartbeat(pool, backend)
 
 	rdb := redis.NewClient(redisOpts)
 	monitor := events.NewMonitor(rdb)
@@ -132,8 +162,11 @@ func main() {
 	for ev := range channel {
 		// We are handling an event in it's own goroutine
 		go func(ev bbb.Event) {
-			handler := NewEventHandler(pool, backend)
-			err := handler.Dispatch(ev)
+			handler := NewEventHandler(backend)
+			err := withTransactionContext(
+				pool, 10*time.Second, func(ctx context.Context) error {
+					return handler.Dispatch(ctx, ev)
+				})
 			if err != nil {
 				log.Error().
 					Err(err).

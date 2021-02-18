@@ -1,10 +1,9 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"time"
-
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -23,14 +22,14 @@ var (
 // for the internal meeting to come up. We should give
 // up after 2-5 seconds.
 func awaitInternalMeeting(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	internalID string,
 	deadlineAfter time.Duration,
 ) (*store.MeetingState, error) {
 	t0 := time.Now()
 
 	for {
-		mstate, err := store.GetMeetingState(pool, store.Q().
+		mstate, err := store.GetMeetingState(ctx, store.Q().
 			Where("meetings.internal_id = ?", internalID))
 		if err != nil {
 			return nil, err
