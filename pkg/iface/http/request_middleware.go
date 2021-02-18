@@ -2,12 +2,10 @@ package http
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	netHTTP "net/http"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -31,12 +29,12 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			ctx := c.Request.Context()
+			ctx := c.Request().Context()
 			tx, err := ctrl.BeginTx(ctx)
 			if err != nil {
 				return err
 			}
-			defer tx.Rollback()
+			defer tx.Rollback(ctx)
 			ctx = store.ContextWithTransaction(ctx, tx)
 
 			path := c.Path()
