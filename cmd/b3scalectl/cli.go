@@ -1,10 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/urfave/cli/v2"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -21,17 +21,14 @@ const RetNoChange = 64
 type Cli struct {
 	app        *cli.App
 	queue      *store.CommandQueue
-	pool       *pgxpool.Pool
 	returnCode int
 }
 
 // NewCli initializes the CLI application
 func NewCli(
 	queue *store.CommandQueue,
-	pool *pgxpool.Pool,
 ) *Cli {
 	c := &Cli{
-		pool:  pool,
 		queue: queue,
 	}
 	c.app = &cli.App{
@@ -191,7 +188,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 	secret := ctx.String("secret")
 
 	// Get or create frontend
-	state, err := store.GetFrontendState(c.pool, store.Q().
+	state, err := store.GetFrontendState(ctx.Context, store.Q().
 		Where("key = ?", key))
 	if err != nil {
 		return err
@@ -202,14 +199,14 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 		if secret == "" {
 			return fmt.Errorf("secret may not be empty")
 		}
-		state = store.InitFrontendState(c.pool, &store.FrontendState{
+		state = store.InitFrontendState(&store.FrontendState{
 			Frontend: &bbb.Frontend{
 				Key:    key,
 				Secret: secret,
 			},
 		})
 		if !dry {
-			if err := state.Save(); err != nil {
+			if err := state.Save(ctx.Context); err != nil {
 				return err
 			}
 			fmt.Println("created frontend:", state.ID, state.Frontend.Key)
@@ -232,7 +229,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			c.returnCode = RetNoChange
 		} else {
 			if !dry {
-				if err := state.Save(); err != nil {
+				if err := state.Save(ctx.Context); err != nil {
 					return err
 				}
 				fmt.Println("updated frontend")
@@ -254,7 +251,7 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <key>")
 	}
 	key := ctx.Args().Get(0)
-	state, err := store.GetFrontendState(c.pool, store.Q().
+	state, err := store.GetFrontendState(ctx.Context, store.Q().
 		Where("key = ?", key))
 	if err != nil {
 		return err
@@ -269,12 +266,12 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("delete frontend:", state.ID)
-	return state.Delete()
+	return state.Delete(ctx.Context)
 }
 
 // show a list of all frontends
 func (c *Cli) showFrontends(ctx *cli.Context) error {
-	states, err := store.GetFrontendStates(c.pool, store.Q().
+	states, err := store.GetFrontendStates(ctx.Context, store.Q().
 		OrderBy("frontends.key ASC"))
 	if err != nil {
 		return err
@@ -304,7 +301,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	}
 
 	// Check if backend exists
-	state, err := store.GetBackendState(c.pool, store.Q().
+	state, err := store.GetBackendState(ctx.Context, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -315,7 +312,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			return fmt.Errorf("need secret to create host")
 		}
 		// Create Backend
-		state = store.InitBackendState(c.pool, &store.BackendState{
+		state = store.InitBackendState(&store.BackendState{
 			Backend: &bbb.Backend{
 				Host:   host,
 				Secret: ctx.String("secret"),
@@ -324,7 +321,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			Tags:       tags,
 		})
 		if !dry {
-			if err := state.Save(); err != nil {
+			if err := state.Save(ctx.Context); err != nil {
 				return err
 			}
 			fmt.Println("created backend:", state.ID, state.Backend.Host)
@@ -358,7 +355,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 		}
 		if changes {
 			if !dry {
-				if err := state.Save(); err != nil {
+				if err := state.Save(ctx.Context); err != nil {
 					return err
 				}
 				fmt.Println("updated backend")
@@ -386,7 +383,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 
 // showBackends displays a list of our backends
 func (c *Cli) showBackends(ctx *cli.Context) error {
-	backends, err := store.GetBackendStates(c.pool, store.Q().
+	backends, err := store.GetBackendStates(ctx.Context, store.Q().
 		OrderBy("backends.host ASC"))
 	if err != nil {
 		return err
@@ -430,7 +427,7 @@ func (c *Cli) enableBackend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-	return c.setBackendAdminState(host, dry, "ready")
+	return c.setBackendAdminState(ctx.Context, host, dry, "ready")
 }
 
 func (c *Cli) disableBackend(ctx *cli.Context) error {
@@ -440,10 +437,15 @@ func (c *Cli) disableBackend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-	return c.setBackendAdminState(host, dry, "stopped")
+	return c.setBackendAdminState(ctx.Context, host, dry, "stopped")
 }
 
-func (c *Cli) setBackendAdminState(host string, dry bool, adminState string) error {
+func (c *Cli) setBackendAdminState(
+	ctx context.Context,
+	host string,
+	dry bool,
+	adminState string,
+) error {
 	if !strings.HasPrefix(host, "http") {
 		return fmt.Errorf("host should start with http(s)://")
 	}
@@ -452,7 +454,7 @@ func (c *Cli) setBackendAdminState(host string, dry bool, adminState string) err
 	}
 
 	// Check if backend exists
-	state, err := store.GetBackendState(c.pool, store.Q().
+	state, err := store.GetBackendState(ctx, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -469,7 +471,7 @@ func (c *Cli) setBackendAdminState(host string, dry bool, adminState string) err
 	}
 	if changes {
 		if !dry {
-			if err := state.Save(); err != nil {
+			if err := state.Save(ctx); err != nil {
 				return err
 			}
 			fmt.Println("updated backend admin state")
@@ -502,7 +504,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-	state, err := store.GetBackendState(c.pool, store.Q().
+	state, err := store.GetBackendState(ctx.Context, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -525,7 +527,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 		}
 
 		fmt.Println("deleting backend")
-		return state.Delete()
+		return state.Delete(ctx.Context)
 	}
 
 	// Otherwise, we mark the node for decommissioning
@@ -535,7 +537,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 		return nil
 	}
 
-	if err := state.Save(); err != nil {
+	if err := state.Save(ctx.Context); err != nil {
 		return err
 	}
 
@@ -550,7 +552,7 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-	state, err := store.GetBackendState(c.pool, store.Q().
+	state, err := store.GetBackendState(ctx.Context, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -578,6 +580,6 @@ func (c *Cli) showVersion(ctx *cli.Context) error {
 }
 
 // Run starts the CLI
-func (c *Cli) Run(args []string) error {
-	return c.app.Run(args)
+func (c *Cli) Run(ctx context.Context, args []string) error {
+	return c.app.RunContext(ctx, args)
 }

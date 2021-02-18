@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/rs/zerolog/log"
@@ -42,10 +43,23 @@ func main() {
 	}
 	queue := store.NewCommandQueue(dbPool)
 
+	// Begin TX
+	ctx := context.Background()
+	tx, err := dbPool.Begin(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx)
+	ctx = store.ContextWithTransaction(ctx, tx)
+
 	// Start the CLI
-	cli := NewCli(queue, dbPool)
-	if err := cli.Run(os.Args); err != nil {
+	cli := NewCli(queue)
+	if err := cli.Run(ctx, os.Args); err != nil {
 		log.Fatal().Err(err).Msg("this is fatal")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Fatal().Err(err).Msg("could not commit transaction")
 	}
 
 	// A note about the return code:
