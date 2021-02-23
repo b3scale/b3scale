@@ -93,8 +93,8 @@ CREATE TABLE frontends (
 --
 CREATE TABLE meetings (
     -- The BBB meeting ID, and internal ID
-    internal_id VARCHAR(255) PRIMARY KEY,
-    id          VARCHAR(255),
+    id          VARCHAR(255) PRIMARY KEY,
+    internal_id VARCHAR(255) UNIQUE,
 
     -- All state data is stored in the jsonb field.
     -- This should be sufficient for now; if required
