@@ -71,11 +71,19 @@ After registering the node, you have to enable it.
 The default `admin_state` of the node is init. To enable the
 node, set the admin state to `ready`.
 
-    $ b3scalectl set backend --state ready https://bbbb01.example.net/bigbluebutton/api/
+    $ b3scalectl enable backend https://bbbb01.example.net/bigbluebutton/api/
 
 The host should match the one you see with
 
     $ b3scalectl show backends
+
+
+## Disable Backends
+
+You can exclude backends as targets for new meetings
+by running
+
+    $ b3scalectl disable backend https://bbbb01.example.net/bigbluebutton/api/
 
 
 ## Deleting Backends
