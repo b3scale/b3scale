@@ -68,7 +68,7 @@ func main() {
 		IsReverseProxyEnabled: revProxyEnabled,
 	})
 
-	// gateway.Use(requests.NewDispatchMerge()) // should not be required anymore
+	gateway.Use(requests.RewriteUniqueMeetingID())
 	gateway.Use(router.Middleware())
 
 	// Start cluster controller
