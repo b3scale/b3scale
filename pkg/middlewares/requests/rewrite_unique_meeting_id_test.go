@@ -53,3 +53,20 @@ func TestRewriteUniqueMeetingIDRequest(t *testing.T) {
 		t.Error("expected a changed meeting ID")
 	}
 }
+
+func TestMaybeDecodeMeetingID(t *testing.T) {
+	id := "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd"
+	id1 := maybeDecodeMeetingID(id)
+	if id1 == id {
+		t.Error("id1 should be decoded")
+	}
+	if id1 != "mid1" {
+		t.Error("unexpected id:", id1)
+	}
+
+	id2 := "wyjma2v"
+	id3 := maybeDecodeMeetingID(id2)
+	if id2 != id3 {
+		t.Error("id should not have been touched")
+	}
+}

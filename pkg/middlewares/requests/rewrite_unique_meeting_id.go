@@ -56,6 +56,46 @@ func DecodeFrontendKeyMeetingID(id string) *FrontendKeyMeetingID {
 	}
 }
 
+// Decode the meetingID if it is encoded, otherwise
+// just be transparent
+func maybeDecodeMeetingID(id string) string {
+	fkmid := DecodeFrontendKeyMeetingID(id)
+	if fkmid == nil {
+		return id
+	}
+	return fkmid.MeetingID
+}
+
+// Apply the meetingID rewrite to meetingID fields
+// of a meeting and breakout.
+func maybeRewriteMeeting(m *bbb.Meeting) *bbb.Meeting {
+	m.MeetingID = maybeDecodeMeetingID(m.MeetingID)
+	if m.Breakout != nil {
+		m.Breakout.ParentMeetingID = maybeDecodeMeetingID(
+			m.Breakout.ParentMeetingID)
+	}
+	return m
+}
+
+func maybeRewriteMeetingsCollection(c []*bbb.Meeting) []*bbb.Meeting {
+	for _, m := range c {
+		m = maybeRewriteMeeting(m)
+	}
+	return c
+}
+
+func maybeRewriteRecording(r *bbb.Recording) *bbb.Recording {
+	r.MeetingID = maybeDecodeMeetingID(r.MeetingID)
+	return r
+}
+
+func maybeRewriteRecordingsCollection(c []*bbb.Recording) []*bbb.Recording {
+	for _, r := range c {
+		r = maybeRewriteRecording(r)
+	}
+	return c
+}
+
 // RewriteUniqueMeetingID ensures that the meeting id is unique
 // by combining FrontendKey and MeetingID.
 //
@@ -87,9 +127,7 @@ func rewriteUniqueMeetingIDRequest(req *bbb.Request) *bbb.Request {
 	if !ok {
 		return req // nothing to do here.
 	}
-
 	frontendKey := req.Frontend.Key
-
 	// Encode key and secret
 	fkmid := (&FrontendKeyMeetingID{
 		FrontendKey: frontendKey,
@@ -102,5 +140,19 @@ func rewriteUniqueMeetingIDRequest(req *bbb.Request) *bbb.Request {
 
 // Rewrite the response
 func rewriteUniqueMeetingIDResponse(res bbb.Response) (bbb.Response, error) {
+	// We need to treat each reponse a bit differently
+	switch r := res.(type) {
+	case *bbb.JoinResponse:
+		r.MeetingID = maybeDecodeMeetingID(r.MeetingID)
+	case *bbb.CreateResponse:
+		r.Meeting = maybeRewriteMeeting(r.Meeting)
+	case *bbb.GetMeetingInfoResponse:
+		r.Meeting = maybeRewriteMeeting(r.Meeting)
+	case *bbb.GetMeetingsResponse:
+		r.Meetings = maybeRewriteMeetingsCollection(r.Meetings)
+	case *bbb.GetRecordingsResponse:
+		r.Recordings = maybeRewriteRecordingsCollection(r.Recordings)
+	}
+
 	return res, nil
 }
