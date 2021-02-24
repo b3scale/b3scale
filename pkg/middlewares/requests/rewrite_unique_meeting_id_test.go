@@ -70,3 +70,62 @@ func TestMaybeDecodeMeetingID(t *testing.T) {
 		t.Error("id should not have been touched")
 	}
 }
+
+func TestRewriteUniqueMeetingIDResponse(t *testing.T) {
+	id := "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd"
+	res1 := &bbb.JoinResponse{
+		MeetingID: id,
+		UserID:    "test",
+	}
+	resRewrite, err := rewriteUniqueMeetingIDResponse(res1)
+	if err != nil {
+		t.Error(err)
+	}
+	if resRewrite.(*bbb.JoinResponse).MeetingID != "mid1" {
+		t.Error("unexpected meetingID")
+	}
+
+}
+
+func TestRewriteUniqueMeetingIDResponseMeeting(t *testing.T) {
+	id := "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd"
+	// MeetingInfo
+	res1 := &bbb.GetMeetingInfoResponse{
+		Meeting: &bbb.Meeting{
+			MeetingID: id,
+		},
+	}
+	resRewrite, err := rewriteUniqueMeetingIDResponse(res1)
+	if err != nil {
+		t.Error(err)
+	}
+	if resRewrite.(*bbb.GetMeetingInfoResponse).Meeting.MeetingID != "mid1" {
+		t.Error("unexpected meetingID")
+	}
+}
+
+func TestRewriteUniqueMeetingIDResponseCollection(t *testing.T) {
+	id := "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd"
+
+	// Collection
+	res1 := &bbb.GetMeetingsResponse{
+		Meetings: []*bbb.Meeting{
+			&bbb.Meeting{
+				MeetingID: id,
+			},
+			&bbb.Meeting{
+				MeetingID: "foo",
+			},
+		},
+	}
+	resRewrite, err := rewriteUniqueMeetingIDResponse(res1)
+	if err != nil {
+		t.Error(err)
+	}
+	if resRewrite.(*bbb.GetMeetingsResponse).Meetings[0].MeetingID != "mid1" {
+		t.Error("unexpected meetingID")
+	}
+	if resRewrite.(*bbb.GetMeetingsResponse).Meetings[1].MeetingID != "foo" {
+		t.Error("unexpected meetingID")
+	}
+}
