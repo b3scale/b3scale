@@ -70,10 +70,7 @@ func RewriteUniqueMeetingID() cluster.RequestMiddleware {
 
 func rewriteUniqueMeetingIDHandler(next cluster.RequestHandler) cluster.RequestHandler {
 	return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {
-		req, err := rewriteUniqueMeetingIDRequest(req)
-		if err != nil {
-			return nil, err
-		}
+		req = rewriteUniqueMeetingIDRequest(req)
 		res, err := next(ctx, req)
 		if err != nil {
 			return nil, err
@@ -85,10 +82,10 @@ func rewriteUniqueMeetingIDHandler(next cluster.RequestHandler) cluster.RequestH
 // Rewrite the request
 // Warning: this mutates the request. We'll change this
 // if it actually becomes a problem.
-func rewriteUniqueMeetingIDRequest(req *bbb.Request) (*bbb.Request, error) {
+func rewriteUniqueMeetingIDRequest(req *bbb.Request) *bbb.Request {
 	meetingID, ok := req.Params.MeetingID()
 	if !ok {
-		return req, nil // nothing to do here.
+		return req // nothing to do here.
 	}
 
 	frontendKey := req.Frontend.Key
@@ -100,8 +97,7 @@ func rewriteUniqueMeetingIDRequest(req *bbb.Request) (*bbb.Request, error) {
 
 	// Update request params
 	req.Params[bbb.ParamMeetingID] = fkmid
-
-	return req, nil
+	return req
 }
 
 // Rewrite the response

@@ -2,6 +2,8 @@ package requests
 
 import (
 	"testing"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
 
 func TestFrontendKeyMeetingIDEncodeDecode(t *testing.T) {
@@ -31,5 +33,23 @@ func TestFrontendKeyMeetingIDEncodeDecodeError(t *testing.T) {
 	decode := DecodeFrontendKeyMeetingID(id)
 	if decode != nil {
 		t.Error("decode should have been unsuccessful")
+	}
+}
+
+func TestRewriteUniqueMeetingIDRequest(t *testing.T) {
+	req := &bbb.Request{
+		Params: bbb.Params{
+			bbb.ParamMeetingID: "meetingID23",
+		},
+		Frontend: &bbb.Frontend{
+			Key: "frontend42",
+		},
+	}
+
+	req1 := rewriteUniqueMeetingIDRequest(req)
+
+	mid, _ := req1.Params.MeetingID()
+	if mid == "meetingID23" {
+		t.Error("expected a changed meeting ID")
 	}
 }
