@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -113,7 +112,10 @@ func (r *Router) Use(middleware RouterMiddleware) {
 
 // Lookup middleware for retriving an already associated
 // backend for a given meeting.
-func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
+func (r *Router) lookupBackendForRequest(
+	ctx context.Context,
+	req *bbb.Request,
+) (*Backend, error) {
 	// Get meeting id from params. If none is present,
 	// there is nothing to do for us here.
 	meetingID, ok := req.Params.MeetingID()
@@ -121,15 +123,15 @@ func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
 		return nil, nil
 	}
 
+	log.Debug().
+		Str("meetingID", meetingID).
+		Msg("lookupBackendForRequest")
+
 	// Lookup backend for meeting in cluster, use backend
 	// if there is one associated - otherwise return
-	// all possible backends. Also consider the frontend context.
-	backend, err := r.ctrl.GetBackend(store.Q().
+	// all possible backends.
+	backend, err := r.ctrl.GetBackend(ctx, store.Q().
 		Join("meetings ON meetings.backend_id = backends.id").
-		LeftJoin("frontends ON meetings.frontend_id = frontends.id").
-		Where(sq.Or{
-			sq.Eq{"frontends.key": req.Frontend.Key},
-			sq.Eq{"meetings.frontend_id": nil}}).
 		Where("meetings.id = ?", meetingID))
 	if err != nil {
 		return nil, err
@@ -152,7 +154,7 @@ func (r *Router) lookupBackendForRequest(req *bbb.Request) (*Backend, error) {
 		// can not be used for this request. We need to
 		// relocate and will destroy the association
 		// with the backend.
-		if err := r.ctrl.DeleteMeetingStateByID(meetingID); err != nil {
+		if err := r.ctrl.DeleteMeetingStateByID(ctx, meetingID); err != nil {
 			log.Error().
 				Err(err).
 				Msg("failed removing meeting state")
@@ -196,7 +198,7 @@ func (r *Router) Middleware() RequestMiddleware {
 			// and where the noded is active on the host.
 			// Also we exclude stopped nodes.
 			deadline := time.Now().UTC().Add(-5 * time.Second)
-			backends, err := r.ctrl.GetBackends(store.Q().
+			backends, err := r.ctrl.GetBackends(ctx, store.Q().
 				Where("agent_heartbeat >= ?", deadline).
 				Where("node_state = ?", "ready"))
 			if err != nil {
@@ -207,7 +209,7 @@ func (r *Router) Middleware() RequestMiddleware {
 			}
 
 			// Try to lookup meeting for the incoming request
-			backend, err := r.lookupBackendForRequest(req)
+			backend, err := r.lookupBackendForRequest(ctx, req)
 			if backend != nil {
 				log.Debug().
 					Str("backendID", backend.ID()).

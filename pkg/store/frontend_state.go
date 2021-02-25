@@ -5,7 +5,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -20,14 +19,11 @@ type FrontendState struct {
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
-
-	pool *pgxpool.Pool
 }
 
 // InitFrontendState initializes the state with a
 // database pool and default values where required.
-func InitFrontendState(pool *pgxpool.Pool, init *FrontendState) *FrontendState {
-	init.pool = pool
+func InitFrontendState(init *FrontendState) *FrontendState {
 	if init.Frontend == nil {
 		init.Frontend = &bbb.Frontend{}
 	}
@@ -37,12 +33,10 @@ func InitFrontendState(pool *pgxpool.Pool, init *FrontendState) *FrontendState {
 // GetFrontendStates retrievs all frontend states from
 // the database.
 func GetFrontendStates(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	q sq.SelectBuilder,
 ) ([]*FrontendState, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
+	tx := MustTransactionFromContext(ctx)
 
 	qry, params, _ := q.Columns(
 		"id",
@@ -53,7 +47,7 @@ func GetFrontendStates(
 		"updated_at").
 		From("frontends").
 		ToSql()
-	rows, err := pool.Query(ctx, qry, params...)
+	rows, err := tx.Query(ctx, qry, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +56,7 @@ func GetFrontendStates(
 	cmd := rows.CommandTag()
 	results := make([]*FrontendState, 0, cmd.RowsAffected())
 	for rows.Next() {
-		state := InitFrontendState(pool, &FrontendState{})
+		state := InitFrontendState(&FrontendState{})
 		err := rows.Scan(
 			&state.ID,
 			&state.Frontend.Key, &state.Frontend.Secret,
@@ -79,10 +73,10 @@ func GetFrontendStates(
 // GetFrontendState gets a single row from the store.
 // This may return nil without an error.
 func GetFrontendState(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	q sq.SelectBuilder,
 ) (*FrontendState, error) {
-	states, err := GetFrontendStates(pool, q)
+	states, err := GetFrontendStates(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -93,20 +87,17 @@ func GetFrontendState(
 }
 
 // Save will create or update a frontend state
-func (s *FrontendState) Save() error {
+func (s *FrontendState) Save(ctx context.Context) error {
 	if s.CreatedAt.IsZero() {
-		return s.insert()
+		return s.insert(ctx)
 	}
-	return s.update()
+	return s.update(ctx)
 }
 
 // insert will create a new row with the frontend
 // state in the database
-func (s *FrontendState) insert() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (s *FrontendState) insert(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
 		INSERT INTO frontends (
 			key, secret, active
@@ -119,7 +110,7 @@ func (s *FrontendState) insert() error {
 		id        string
 		createdAt time.Time
 	)
-	if err := s.pool.QueryRow(ctx, qry,
+	if err := tx.QueryRow(ctx, qry,
 		s.Frontend.Key,
 		s.Frontend.Secret,
 		s.Active).Scan(&id, &createdAt); err != nil {
@@ -132,12 +123,9 @@ func (s *FrontendState) insert() error {
 }
 
 // update a database row of a frontend state
-func (s *FrontendState) update() error {
+func (s *FrontendState) update(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	s.UpdatedAt = time.Now().UTC()
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
 	qry := `
 		UPDATE frontends
 		   SET key        = $2,
@@ -145,7 +133,7 @@ func (s *FrontendState) update() error {
 			   active     = $4,
 			   updated_at = $5
 		 WHERE id = $1`
-	if _, err := s.pool.Exec(ctx, qry,
+	if _, err := tx.Exec(ctx, qry,
 		s.ID,
 		// Values
 		s.Frontend.Key,
@@ -158,14 +146,11 @@ func (s *FrontendState) update() error {
 }
 
 // Delete will remove a frontend state from the store
-func (s *FrontendState) Delete() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (s *FrontendState) Delete(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
 		DELETE FROM frontends WHERE id = $1
 	`
-	_, err := s.pool.Exec(ctx, qry, s.ID)
+	_, err := tx.Exec(ctx, qry, s.ID)
 	return err
 }

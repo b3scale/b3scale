@@ -7,7 +7,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v4/pgxpool"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -43,14 +42,11 @@ type BackendState struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	SyncedAt  time.Time
-
-	// DB
-	pool *pgxpool.Pool
 }
 
 // InitBackendState initializes a new backend state with
 // an initial state.
-func InitBackendState(pool *pgxpool.Pool, init *BackendState) *BackendState {
+func InitBackendState(init *BackendState) *BackendState {
 	// Add default values
 	if init.NodeState == "" {
 		init.NodeState = "init"
@@ -64,26 +60,15 @@ func InitBackendState(pool *pgxpool.Pool, init *BackendState) *BackendState {
 	if init.Tags == nil {
 		init.Tags = []string{}
 	}
-	init.pool = pool
 	return init
 }
 
 // GetBackendStates retrievs all backends
 func GetBackendStates(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	q sq.SelectBuilder,
 ) ([]*BackendState, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
-	// To utilize the locking of the we wrap this in a transaction
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-
+	tx := MustTransactionFromContext(ctx)
 	qry, params, _ := q.From("backends").Columns(
 		"backends.id",
 		"backends.node_state",
@@ -110,7 +95,7 @@ func GetBackendStates(
 	// fmt.Println("Affected rows:", cmd.RowsAffected())
 	results := make([]*BackendState, 0, cmd.RowsAffected())
 	for rows.Next() {
-		state := InitBackendState(pool, &BackendState{})
+		state := InitBackendState(&BackendState{})
 		err := rows.Scan(
 			&state.ID,
 			&state.NodeState,
@@ -138,10 +123,10 @@ func GetBackendStates(
 
 // GetBackendState tries to retriev a single backend state
 func GetBackendState(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	q sq.SelectBuilder,
 ) (*BackendState, error) {
-	states, err := GetBackendStates(pool, q)
+	states, err := GetBackendStates(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -152,9 +137,9 @@ func GetBackendState(
 }
 
 // Refresh the backend state from the database
-func (s *BackendState) Refresh() error {
+func (s *BackendState) Refresh(ctx context.Context) error {
 	// Load from database
-	next, err := GetBackendState(s.pool, Q().Where(
+	next, err := GetBackendState(ctx, Q().Where(
 		sq.Eq{"id": s.ID},
 	))
 	if err != nil {
@@ -168,30 +153,27 @@ func (s *BackendState) Refresh() error {
 }
 
 // Save persists the backend state in the database store
-func (s *BackendState) Save() error {
+func (s *BackendState) Save(ctx context.Context) error {
 	var (
 		err error
 		id  string
 	)
 	if s.CreatedAt.IsZero() {
-		id, err = s.insert()
+		id, err = s.insert(ctx)
 		s.ID = id
 	} else {
-		err = s.update()
+		err = s.update(ctx)
 	}
 	if err != nil {
 		return err
 	}
 
-	return s.Refresh()
+	return s.Refresh(ctx)
 }
 
 // Private insert: adds a new row to the backends table
-func (s *BackendState) insert() (string, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (s *BackendState) insert(ctx context.Context) (string, error) {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
 		INSERT INTO backends (
 			host,
@@ -208,7 +190,7 @@ func (s *BackendState) insert() (string, error) {
 		RETURNING id
 	`
 	insertID := ""
-	err := s.pool.QueryRow(ctx, qry,
+	err := tx.QueryRow(ctx, qry,
 		// Values
 		s.Backend.Host,
 		s.Backend.Secret,
@@ -220,11 +202,8 @@ func (s *BackendState) insert() (string, error) {
 }
 
 // Private update: updates the db row
-func (s *BackendState) update() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (s *BackendState) update(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
 		UPDATE backends
 		   SET node_state   = $2,
@@ -246,7 +225,7 @@ func (s *BackendState) update() error {
 
 		 WHERE id = $1
 	`
-	_, err := s.pool.Exec(
+	_, err := tx.Exec(
 		ctx, qry,
 		// Identifier
 		s.ID,
@@ -266,43 +245,30 @@ func (s *BackendState) update() error {
 }
 
 // Delete will remove the backend from the store
-func (s *BackendState) Delete() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
+func (s *BackendState) Delete(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	// For now we take all the meetings with us.
 	qry := `
 		DELETE FROM meetings WHERE backend_id = $1
 	`
-	_, err = tx.Exec(ctx, qry, s.ID)
-	if err != nil {
+	if _, err := tx.Exec(ctx, qry, s.ID); err != nil {
 		return err
 	}
 
 	qry = `
 		DELETE FROM backends WHERE id = $1
 	`
-	_, err = tx.Exec(ctx, qry, s.ID)
-	if err != nil {
+	if _, err := tx.Exec(ctx, qry, s.ID); err != nil {
 		return err
 	}
 
-	return tx.Commit(ctx)
+	return nil
 }
 
 // UpdateAgentHeartbeat will set the attribute to the
 // current timestamp
-func (s *BackendState) UpdateAgentHeartbeat() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
+func (s *BackendState) UpdateAgentHeartbeat(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
 		UPDATE backends
 		   SET agent_heartbeat = $2
@@ -310,13 +276,11 @@ func (s *BackendState) UpdateAgentHeartbeat() error {
 	`
 
 	now := time.Now().UTC()
-	_, err := s.pool.Exec(ctx, qry, s.ID, now)
+	_, err := tx.Exec(ctx, qry, s.ID, now)
 	if err != nil {
 		return err
 	}
-
 	s.AgentHeartbeat = now
-
 	return nil
 }
 
@@ -329,14 +293,12 @@ func (s *BackendState) IsAgentAlive() bool {
 }
 
 // ClearMeetings will remove all meetings in the current state
-func (s *BackendState) ClearMeetings() error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
+func (s *BackendState) ClearMeetings(ctx context.Context) error {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
 		DELETE FROM meetings WHERE backend_id = $1
 	`
-	_, err := s.pool.Exec(ctx, qry, s.ID)
+	_, err := tx.Exec(ctx, qry, s.ID)
 	if err != nil {
 		return err
 	}
@@ -347,11 +309,13 @@ func (s *BackendState) ClearMeetings() error {
 // Internal: updateBackendStatCounters counts meetings
 // and attendees for a given backendID
 func updateBackendStatCounters(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	backendID string,
 ) error {
+	tx := MustTransactionFromContext(ctx)
+
 	// Get meeting states and refresh counters
-	mstates, err := GetMeetingStates(pool, Q().
+	mstates, err := GetMeetingStates(ctx, Q().
 		Where("meetings.backend_id = ?", backendID))
 	if err != nil {
 		return err
@@ -364,14 +328,13 @@ func updateBackendStatCounters(
 		acount += len(m.Meeting.Attendees)
 	}
 
-	ctx := context.Background()
 	qry := `
 		UPDATE backends
 		   SET meetings_count = $2,
 		       attendees_count = $3
 		 WHERE backends.id = $1
 	`
-	if _, err := pool.Exec(ctx, qry, backendID, mcount, acount); err != nil {
+	if _, err := tx.Exec(ctx, qry, backendID, mcount, acount); err != nil {
 		return err
 	}
 
@@ -379,19 +342,20 @@ func updateBackendStatCounters(
 }
 
 // UpdateStatCounters counts meetings and attendees and updates the properties
-func (s *BackendState) UpdateStatCounters() error {
-	return updateBackendStatCounters(s.pool, s.ID)
+func (s *BackendState) UpdateStatCounters(ctx context.Context) error {
+	return updateBackendStatCounters(ctx, s.ID)
 }
 
 // CreateMeetingState will create a new state for the
 // current backend state. A frontend is attached.
 func (s *BackendState) CreateMeetingState(
+	ctx context.Context,
 	frontend *bbb.Frontend,
 	meeting *bbb.Meeting,
 ) (*MeetingState, error) {
 	// Combine frontend and backend state together
 	// with meeting data into a meeting state.
-	fstate, err := GetFrontendState(s.pool, Q().
+	fstate, err := GetFrontendState(ctx, Q().
 		Where("key = ?", frontend.Key))
 	if err != nil {
 		return nil, err
@@ -399,12 +363,12 @@ func (s *BackendState) CreateMeetingState(
 	if fstate == nil {
 		return nil, ErrFrontendRequired
 	}
-	mstate := InitMeetingState(s.pool, &MeetingState{
+	mstate := InitMeetingState(&MeetingState{
 		BackendID:  &s.ID,
 		FrontendID: &fstate.ID,
 		Meeting:    meeting,
 	})
-	if err := mstate.Save(); err != nil {
+	if err := mstate.Save(ctx); err != nil {
 		return nil, err
 	}
 	return mstate, nil

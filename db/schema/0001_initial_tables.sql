@@ -93,8 +93,8 @@ CREATE TABLE frontends (
 --
 CREATE TABLE meetings (
     -- The BBB meeting ID, and internal ID
-    internal_id VARCHAR(255) PRIMARY KEY,
-    id          VARCHAR(255),
+    id          VARCHAR(255) PRIMARY KEY,
+    internal_id VARCHAR(255) UNIQUE,
 
     -- All state data is stored in the jsonb field.
     -- This should be sufficient for now; if required
@@ -115,8 +115,6 @@ CREATE TABLE meetings (
     created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced_at   TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    UNIQUE (id, frontend_id)
 );
 
 -- Recordings are quite like meetings, however
