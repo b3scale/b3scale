@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
+	"github.com/rs/zerolog/log"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 )
@@ -128,10 +130,17 @@ func rewriteUniqueMeetingIDRequest(req *bbb.Request) *bbb.Request {
 		return req // nothing to do here.
 	}
 	frontendKey := req.Frontend.Key
+
 	// Encode key and secret
 	fkmid := (&FrontendKeyMeetingID{
 		FrontendKey: frontendKey,
 		MeetingID:   meetingID}).EncodeToString()
+
+	log.Debug().
+		Str("frontendKey", frontendKey).
+		Str("orgMeetingID", meetingID).
+		Str("newMeetingID", fkmid).
+		Msg("rewrote meetingID")
 
 	// Update request params
 	req.Params[bbb.ParamMeetingID] = fkmid
