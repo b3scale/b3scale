@@ -7,7 +7,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
 	"gitlab.com/infra.run/public/b3scale/pkg/logging"
-	// "gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
+	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -69,8 +69,8 @@ func main() {
 		IsReverseProxyEnabled: revProxyEnabled,
 	})
 
-	// gateway.Use(requests.RewriteUniqueMeetingID())
 	gateway.Use(router.Middleware())
+	gateway.Use(requests.RewriteUniqueMeetingID())
 
 	// Start cluster controller
 	go ctrl.Start()
