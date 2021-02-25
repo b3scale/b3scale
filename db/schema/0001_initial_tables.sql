@@ -115,8 +115,6 @@ CREATE TABLE meetings (
     created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced_at   TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    UNIQUE (id, frontend_id)
 );
 
 -- Recordings are quite like meetings, however
