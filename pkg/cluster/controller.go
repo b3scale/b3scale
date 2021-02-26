@@ -147,11 +147,13 @@ func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
 	default:
 		ret, err = nil, ErrUnknownCommand
 	}
+	// We need to commit now, even in an error case
+	// to persist the logged error in the database
+	if commitErr := tx.Commit(ctx); commitErr != nil {
+		return nil, commitErr
+	}
 	if err != nil {
 		return ret, err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
 	}
 	return ret, nil
 }
