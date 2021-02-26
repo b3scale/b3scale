@@ -127,7 +127,7 @@ func EndRequest(params Params) *Request {
 func CreateRequest(params Params, body []byte) *Request {
 	return &Request{
 		Request: &http.Request{
-			Method: http.MethodGet,
+			Method: http.MethodPost,
 			Header: http.Header{
 				"Content-Type": []string{"application/xml"},
 			},
