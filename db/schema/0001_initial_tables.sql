@@ -114,7 +114,7 @@ CREATE TABLE meetings (
     -- Timestamps
     created_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    synced_at   TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    synced_at   TIMESTAMP  NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Recordings are quite like meetings, however
