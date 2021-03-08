@@ -117,45 +117,27 @@ func (c *Controller) StartBackground() {
 // run the command specific handler. As this is invoked
 // by the CommandQueue, these functions are allowed
 // to crash and will be recovered.
-func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
-	// Begin transaction context
-	timeout := 60 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	tx, err := c.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-	ctx = store.ContextWithTransaction(ctx, tx)
-
+func (c *Controller) handleCommand(
+	ctx context.Context,
+	cmd *store.Command,
+) (interface{}, error) {
 	// Invoke command handler
-	var ret interface{}
 	switch cmd.Action {
 	case CmdDecommissionBackend:
 		log.Debug().Str("cmd", CmdDecommissionBackend).Msg("EXEC")
-		ret, err = c.handleDecommissionBackend(ctx, cmd)
+		return c.handleDecommissionBackend(ctx, cmd)
 	case CmdUpdateNodeState:
 		log.Debug().Str("cmd", CmdUpdateNodeState).Msg("EXEC")
-		ret, err = c.handleUpdateNodeState(ctx, cmd)
+		return c.handleUpdateNodeState(ctx, cmd)
 	case CmdUpdateMeetingState:
 		log.Debug().Str("cmd", CmdUpdateMeetingState).Msg("EXEC")
-		ret, err = c.handleUpdateMeetingState(ctx, cmd)
+		return c.handleUpdateMeetingState(ctx, cmd)
 	case CmdEndAllMeetings:
 		log.Debug().Str("cmd", CmdEndAllMeetings).Msg("EXEC")
-		ret, err = c.handleEndAllMeetings(ctx, cmd)
+		return c.handleEndAllMeetings(ctx, cmd)
 	default:
-		ret, err = nil, ErrUnknownCommand
+		return nil, ErrUnknownCommand
 	}
-	// We need to commit now, even in an error case
-	// to persist the logged error in the database
-	if commitErr := tx.Commit(ctx); commitErr != nil {
-		return nil, commitErr
-	}
-	if err != nil {
-		return ret, err
-	}
-	return ret, nil
 }
 
 // Command: DecommissionBackend
@@ -165,7 +147,7 @@ func (c *Controller) handleDecommissionBackend(
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &DecommissionBackendRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -215,7 +197,7 @@ func (c *Controller) handleUpdateNodeState(
 ) (interface{}, error) {
 	// Get backend from command
 	req := &UpdateNodeStateRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
 	backend, err := c.GetBackend(ctx, store.Q().
@@ -240,7 +222,7 @@ func (c *Controller) handleUpdateMeetingState(
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &UpdateMeetingStateRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
 
@@ -289,7 +271,7 @@ func (c *Controller) handleEndAllMeetings(
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &EndAllMeetingsRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
 	backend, err := c.GetBackend(ctx, store.Q().

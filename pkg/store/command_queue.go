@@ -26,7 +26,7 @@ const cmdQueue = "commands_queue"
 // CommandHandler is a callback function for handling
 // commands. The command was successful if no error was
 // returned.
-type CommandHandler func(*Command) (interface{}, error)
+type CommandHandler func(context.Context, *Command) (interface{}, error)
 
 // A Command is a representation of an operation
 type Command struct {
@@ -48,16 +48,15 @@ type Command struct {
 }
 
 // FetchParams loads the parameters and decodes them
-func (cmd *Command) FetchParams(req interface{}) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (cmd *Command) FetchParams(
+	ctx context.Context,
+	req interface{},
+) error {
+	tx := MustTransactionFromContext(ctx)
 	qry := `
-		SELECT params
-		  FROM commands WHERE id = $1
+		SELECT params FROM commands WHERE id = $1
 	`
-	return cmd.pool.QueryRow(ctx, qry, cmd.ID).Scan(req)
+	return tx.QueryRow(ctx, qry, cmd.ID).Scan(req)
 }
 
 // The CommandQueue is connected to the database and
@@ -184,6 +183,7 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 
 // Run the handler, but recover if an error occured.
 func safeExecHandler(
+	ctx context.Context,
 	cmd *Command,
 	handler CommandHandler,
 	errc chan error,
@@ -195,7 +195,7 @@ func safeExecHandler(
 	}(errc)
 
 	// Run handler
-	res, err := handler(cmd)
+	res, err := handler(ctx, cmd)
 	errc <- err
 	return res
 }
@@ -204,6 +204,21 @@ func safeExecHandler(
 // handler function to it. If not command was dequeued 'false'
 // will be returned.
 func (q *CommandQueue) process(handler CommandHandler) error {
+	// Begin transaction with a total timelimit
+	// of 300 seconds for the entire command
+	startedAt := time.Now()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 300*time.Second)
+	defer cancel()
+
+	tx, err := q.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	ctx = ContextWithTransaction(ctx, tx)
+
 	// We dequeue and fetch a command within a transaction.
 	// During handling the command will be locked.
 	qry := `
@@ -218,19 +233,6 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		 ORDER BY seq ASC
 		 LIMIT 1
 		   FOR UPDATE SKIP LOCKED`
-
-	// Begin transaction with a total timelimit
-	// of 60 seconds for the entire command
-	startedAt := time.Now()
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 60*time.Second)
-	defer cancel()
-
-	tx, err := q.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
 
 	// Select command
 	cmd := &Command{pool: q.pool}
@@ -256,7 +258,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	} else {
 		// Apply command handler
 		errc := make(chan error, 1)
-		result = safeExecHandler(cmd, handler, errc)
+		result = safeExecHandler(ctx, cmd, handler, errc)
 		err = <-errc
 		if err != nil {
 			log.Error().
