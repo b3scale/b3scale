@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	netHTTP "net/http"
@@ -29,7 +30,13 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			ctx := c.Request().Context()
+			// We can not reuse the request context, as it might
+			// get canceled when the connection gets killed (which can
+			// happen on purpose e.g. with a short timeout.)
+			// However, we still want to commit any state changes here.
+			// So we create a new top level context for the incoming requst
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 			tx, err := ctrl.BeginTx(ctx)
 			if err != nil {
 				return err

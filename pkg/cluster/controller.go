@@ -236,10 +236,10 @@ func (c *Controller) handleUpdateMeetingState(
 		return nil, err
 	}
 	if mstate == nil {
-		log.Info().
+		log.Debug().
 			Str("meetingID", req.ID).
 			Msg("meeting is already gone; refesh canceled")
-		return false, fmt.Errorf("meeting not found: %s", req.ID)
+		return false, nil
 	}
 
 	// Get Backend

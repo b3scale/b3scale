@@ -43,7 +43,7 @@ func NewInterface(
 	// in order of Use.
 	e.Use(middleware.Recover())
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		Timeout: 45 * time.Second,
+		Timeout: 120 * time.Second,
 	}))
 	e.Use(lecho.Middleware(lecho.Config{
 		Logger: logger,

@@ -195,8 +195,9 @@ func (b *Backend) refreshMeetingState(
 	}
 	res := rep.(*bbb.GetMeetingInfoResponse)
 	if res.XMLResponse.Returncode != "SUCCESS" {
-		return fmt.Errorf("meeting sync error: %v",
-			res.XMLResponse.Message)
+		// The meeting could not be found
+		// For now, let's remove the meeting from our state
+		return store.DeleteMeetingStateByInternalID(ctx, state.InternalID)
 	}
 
 	// Update meeting state
@@ -295,7 +296,7 @@ func (b *Backend) Join(
 		"location":     []string{req.URL()},
 	})
 
-	// Dispatch updating the meeing state
+	// Dispatch updating the meeting state
 	meetingID, _ := req.Params.MeetingID()
 	b.cmds.Queue(UpdateMeetingState(&UpdateMeetingStateRequest{
 		ID: meetingID,
