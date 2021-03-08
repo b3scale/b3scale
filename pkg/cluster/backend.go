@@ -133,25 +133,13 @@ func (b *Backend) loadNodeState(ctx context.Context) error {
 	backendMeetings := make([]string, 0, len(res.Meetings))
 	for _, meeting := range res.Meetings {
 		log.Debug().Stringer("meeting", meeting).Msg("refreshing meeting")
-		if updates, err := store.UpdateMeetingStateIfExists(ctx, meeting); err != nil {
-			// return err
+		if err := b.state.CreateOrUpdateMeetingState(ctx, meeting); err != nil {
 			log.Error().
 				Err(err).
 				Str("meetingID", meeting.MeetingID).
 				Str("internalMeetingID", meeting.InternalMeetingID).
 				Msg("could not save meeting state during node refresh")
 			continue
-		} else {
-			if updates == 0 {
-				log.Warn().
-					Str("meetingID", meeting.MeetingID).
-					Str("internalMeetingID", meeting.InternalMeetingID).
-					Msg("meeting not found in cluster")
-			} else {
-				log.Debug().
-					Int("count", int(updates)).
-					Msg("updated meeting during host refresh")
-			}
 		}
 		backendMeetings = append(backendMeetings, meeting.InternalMeetingID)
 	}
@@ -244,6 +232,11 @@ func (b *Backend) Create(ctx context.Context, req *bbb.Request) (
 		return nil, err
 	}
 	createRes := res.(*bbb.CreateResponse)
+	if createRes.Meeting == nil {
+		log.Error().
+			Msg("create returned without a meeting")
+		return nil, fmt.Errorf("meeting was not created on server")
+	}
 
 	// Update or save meeeting state
 	meetingState, err := meetingStateFromRequest(ctx, req)

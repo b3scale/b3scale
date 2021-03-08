@@ -7,6 +7,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -347,29 +348,59 @@ func (s *BackendState) UpdateStatCounters(ctx context.Context) error {
 }
 
 // CreateMeetingState will create a new state for the
-// current backend state. A frontend is attached.
+// current backend state. A frontend is attached if present.
 func (s *BackendState) CreateMeetingState(
 	ctx context.Context,
 	frontend *bbb.Frontend,
 	meeting *bbb.Meeting,
 ) (*MeetingState, error) {
-	// Combine frontend and backend state together
-	// with meeting data into a meeting state.
-	fstate, err := GetFrontendState(ctx, Q().
-		Where("key = ?", frontend.Key))
-	if err != nil {
-		return nil, err
-	}
-	if fstate == nil {
-		return nil, ErrFrontendRequired
-	}
 	mstate := InitMeetingState(&MeetingState{
-		BackendID:  &s.ID,
-		FrontendID: &fstate.ID,
-		Meeting:    meeting,
+		BackendID: &s.ID,
+		Meeting:   meeting,
 	})
+
+	// Attach frontend if present
+	if frontend != nil {
+		// Combine frontend and backend state together
+		// with meeting data into a meeting state.
+		fstate, err := GetFrontendState(ctx, Q().
+			Where("key = ?", frontend.Key))
+		if err != nil {
+			return nil, err
+		}
+		mstate.FrontendID = &fstate.ID
+	}
+
 	if err := mstate.Save(ctx); err != nil {
 		return nil, err
 	}
+
 	return mstate, nil
+}
+
+// CreateOrUpdateMeetingState will try to update the meeting
+// or will create a new meeting state if the meeting does
+// not exists. The new meeting will not be associated with
+// a frontend state - however the meeting can later be claimed
+// by a frontend.
+func (s *BackendState) CreateOrUpdateMeetingState(
+	ctx context.Context,
+	meeting *bbb.Meeting,
+) error {
+	// Try to update the meeting state
+	update, err := UpdateMeetingStateIfExists(ctx, meeting)
+	if err != nil {
+		return err
+	}
+	if update == 0 {
+		// Meeting not found, create the meeting state
+		if _, err := s.CreateMeetingState(ctx, nil, meeting); err != nil {
+			return err
+		}
+		log.Debug().
+			Str("meetingID", meeting.MeetingID).
+			Str("internalMeetingID", meeting.InternalMeetingID).
+			Msg("recovered meeting from backend")
+	}
+	return nil
 }

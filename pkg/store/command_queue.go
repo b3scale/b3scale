@@ -149,9 +149,10 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 		// if we got informed that there is a job waiting.
 		ctx, cancel := context.WithTimeout(
 			context.Background(), time.Second)
-		defer cancel()
 		// Await command, after a timeout just try to dequeue
 		_, err := q.subscription.Conn().WaitForNotification(ctx)
+		cancel() // Invalidate context
+
 		if err != nil {
 			q.subscription.Release()
 			q.subscription = nil
@@ -183,11 +184,22 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 
 // Run the handler, but recover if an error occured.
 func safeExecHandler(
-	ctx context.Context,
+	pool *pgxpool.Pool,
 	cmd *Command,
 	handler CommandHandler,
 	errc chan error,
 ) interface{} {
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 300*time.Second)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	ctx = ContextWithTransaction(ctx, tx)
 	defer func(e chan error) {
 		if r := recover(); r != nil {
 			e <- fmt.Errorf("%v", r)
@@ -197,6 +209,13 @@ func safeExecHandler(
 	// Run handler
 	res, err := handler(ctx, cmd)
 	errc <- err
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error().
+			Err(err).
+			Msg("could not commit background job result")
+	}
+
 	return res
 }
 
@@ -216,8 +235,6 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-
-	ctx = ContextWithTransaction(ctx, tx)
 
 	// We dequeue and fetch a command within a transaction.
 	// During handling the command will be locked.
@@ -258,7 +275,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	} else {
 		// Apply command handler
 		errc := make(chan error, 1)
-		result = safeExecHandler(ctx, cmd, handler, errc)
+		result = safeExecHandler(q.pool, cmd, handler, errc)
 		err = <-errc
 		if err != nil {
 			log.Error().
