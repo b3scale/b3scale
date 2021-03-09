@@ -30,7 +30,7 @@ func TestGetBackendStateByID(t *testing.T) {
 	defer rollback()
 
 	state := backendStateFactory()
-	err := state.Save(ctx, tx)
+	err := state.Save(context.Background(), tx)
 	if err != nil {
 		t.Error("save failed:", err)
 	}
