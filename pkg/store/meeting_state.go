@@ -410,9 +410,9 @@ func (s *MeetingState) BindFrontendID(ctx context.Context, id string) error {
 }
 
 // IsStale checks if the last sync is longer
-// ago than a given threashold.
-func (s *MeetingState) IsStale() bool {
-	return time.Now().UTC().Sub(s.SyncedAt) > 1*time.Minute
+// ago than a given threshold.
+func (s *MeetingState) IsStale(threshold time.Duration) bool {
+	return time.Now().UTC().Sub(s.SyncedAt) > threshold
 }
 
 // MarkSynced sets the synced at timestamp

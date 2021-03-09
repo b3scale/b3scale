@@ -220,7 +220,7 @@ func TestMeetingStateIsStale(t *testing.T) {
 		t.Error(err)
 	}
 
-	if state.IsStale() {
+	if state.IsStale(time.Minute) {
 		t.Error("state should be fresh")
 	}
 
@@ -230,7 +230,7 @@ func TestMeetingStateIsStale(t *testing.T) {
 		t.Error(err)
 	}
 
-	if !state.IsStale() {
+	if !state.IsStale(1 * time.Minute) {
 		t.Error("state should be stale")
 	}
 }

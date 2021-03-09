@@ -242,6 +242,12 @@ func (c *Controller) handleUpdateMeetingState(
 		return false, nil
 	}
 
+	// Debounce: Do not refresh the meeting state more than
+	// once in 15 seconds
+	if !mstate.IsStale(15 * time.Second) {
+		return false, nil
+	}
+
 	// Get Backend
 	backend, err := c.GetBackend(ctx, store.Q().
 		Where("id = ?", mstate.BackendID))

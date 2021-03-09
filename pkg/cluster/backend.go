@@ -190,7 +190,8 @@ func (b *Backend) refreshMeetingState(
 
 	// Update meeting state
 	state.Meeting = res.Meeting
-	state.SyncedAt = time.Now().UTC()
+	state.MarkSynced()
+
 	return state.Save(ctx)
 }
 
