@@ -47,10 +47,9 @@ func InitMeetingState(
 // GetMeetingStates retrieves all meeting states
 func GetMeetingStates(
 	ctx context.Context,
+	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) ([]*MeetingState, error) {
-	tx := MustTransactionFromContext(ctx)
-
 	qry, params, _ := q.Columns(
 		"meetings.id",
 		"meetings.internal_id",
@@ -79,8 +78,12 @@ func GetMeetingStates(
 }
 
 // GetMeetingState tries to retriev a single meeting state
-func GetMeetingState(ctx context.Context, q sq.SelectBuilder) (*MeetingState, error) {
-	states, err := GetMeetingStates(ctx, q)
+func GetMeetingState(
+	ctx context.Context,
+	tx pgx.Tx,
+	q sq.SelectBuilder,
+) (*MeetingState, error) {
+	states, err := GetMeetingStates(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +114,10 @@ func meetingStateFromRow(
 }
 
 // GetBackendState loads the backend state
-func (s *MeetingState) GetBackendState(ctx context.Context) (*BackendState, error) {
+func (s *MeetingState) GetBackendState(
+	ctx context.Context,
+	tx pgx.Tx,
+) (*BackendState, error) {
 	if s.BackendID == nil {
 		return nil, nil
 	}
@@ -122,7 +128,7 @@ func (s *MeetingState) GetBackendState(ctx context.Context) (*BackendState, erro
 
 	// Get related backend state
 	var err error
-	s.backend, err = GetBackendState(ctx, Q().
+	s.backend, err = GetBackendState(ctx, tx, Q().
 		Where("id = ?", s.BackendID))
 	if err != nil {
 		return nil, err
@@ -132,7 +138,10 @@ func (s *MeetingState) GetBackendState(ctx context.Context) (*BackendState, erro
 }
 
 // GetFrontendState loads the frontend state for the meeting
-func (s *MeetingState) GetFrontendState(ctx context.Context) (*FrontendState, error) {
+func (s *MeetingState) GetFrontendState(
+	ctx context.Context,
+	tx pgx.Tx,
+) (*FrontendState, error) {
 	if s.FrontendID == nil {
 		return nil, nil
 	}
@@ -143,7 +152,7 @@ func (s *MeetingState) GetFrontendState(ctx context.Context) (*FrontendState, er
 
 	// Load frontend state from database
 	var err error
-	s.frontend, err = GetFrontendState(ctx, Q().
+	s.frontend, err = GetFrontendState(ctx, tx, Q().
 		Where("id = ?", s.FrontendID))
 	if err != nil {
 		return nil, err
@@ -155,8 +164,11 @@ func (s *MeetingState) GetFrontendState(ctx context.Context) (*FrontendState, er
 // DeleteMeetingStateByID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
 // TODO: merge with DeleteMeetingStateByInternalID
-func DeleteMeetingStateByID(ctx context.Context, id string) error {
-	tx := MustTransactionFromContext(ctx)
+func DeleteMeetingStateByID(
+	ctx context.Context,
+	tx pgx.Tx,
+	id string,
+) error {
 	// Get affected backend
 	var backendID *string
 	qry := `
@@ -179,7 +191,7 @@ func DeleteMeetingStateByID(ctx context.Context, id string) error {
 	}
 
 	// Update stat counters
-	if err := updateBackendStatCounters(ctx, *backendID); err != nil {
+	if err := updateBackendStatCounters(ctx, tx, *backendID); err != nil {
 		return err
 	}
 
@@ -188,8 +200,11 @@ func DeleteMeetingStateByID(ctx context.Context, id string) error {
 
 // DeleteMeetingStateByInternalID will remove a meeting state.
 // It will succeed, even if no such meeting was present.
-func DeleteMeetingStateByInternalID(ctx context.Context, id string) error {
-	tx := MustTransactionFromContext(ctx)
+func DeleteMeetingStateByInternalID(
+	ctx context.Context,
+	tx pgx.Tx,
+	id string,
+) error {
 	// Get affected backend
 	var backendID *string
 	qry := `
@@ -213,7 +228,7 @@ func DeleteMeetingStateByInternalID(ctx context.Context, id string) error {
 	}
 
 	// Update stat counters
-	if err := updateBackendStatCounters(ctx, *backendID); err != nil {
+	if err := updateBackendStatCounters(ctx, tx, *backendID); err != nil {
 		return err
 	}
 
@@ -225,11 +240,10 @@ func DeleteMeetingStateByInternalID(ctx context.Context, id string) error {
 // with a backend
 func DeleteOrphanMeetings(
 	ctx context.Context,
+	tx pgx.Tx,
 	backendID string,
 	backendMeetings []string,
 ) (int64, error) {
-	tx := MustTransactionFromContext(ctx)
-
 	// Okay. I tried to do this the nice way... however
 	// trying to construct something with 'NOT IN' failed,
 	// and the only workaround I found was constructing
@@ -256,10 +270,8 @@ func DeleteOrphanMeetings(
 }
 
 // Refresh the backend state from the database
-func (s *MeetingState) Refresh(ctx context.Context) error {
-	// Load from database
-	next, err := GetMeetingState(ctx, Q().
-		Where("id = ?", s.ID))
+func (s *MeetingState) Refresh(ctx context.Context, tx pgx.Tx) error {
+	next, err := GetMeetingState(ctx, tx, Q().Where("id = ?", s.ID))
 	if err != nil {
 		return err
 	}
@@ -272,16 +284,16 @@ func (s *MeetingState) Refresh(ctx context.Context) error {
 
 // Save updates or inserts a meeting state into our
 // cluster state.
-func (s *MeetingState) Save(ctx context.Context) error {
+func (s *MeetingState) Save(ctx context.Context, tx pgx.Tx) error {
 	var (
 		err error
 		id  string
 	)
 	if s.CreatedAt.IsZero() {
-		id, err = s.insert(ctx)
+		id, err = s.insert(ctx, tx)
 		s.ID = id
 	} else {
-		err = s.update(ctx)
+		err = s.update(ctx, tx)
 	}
 	if err != nil {
 		return err
@@ -289,17 +301,16 @@ func (s *MeetingState) Save(ctx context.Context) error {
 
 	// Refresh stats if backend is present
 	if s.BackendID != nil {
-		if err := updateBackendStatCounters(ctx, *s.BackendID); err != nil {
+		if err := updateBackendStatCounters(ctx, tx, *s.BackendID); err != nil {
 			return err
 		}
 	}
 
-	return s.Refresh(ctx)
+	return s.Refresh(ctx, tx)
 }
 
 // Add a new meeting to the database
-func (s *MeetingState) insert(ctx context.Context) (string, error) {
-	tx := MustTransactionFromContext(ctx)
+func (s *MeetingState) insert(ctx context.Context, tx pgx.Tx) (string, error) {
 	qry := `
 		INSERT INTO meetings (
 			id,
@@ -326,8 +337,7 @@ func (s *MeetingState) insert(ctx context.Context) (string, error) {
 }
 
 // Update the meeting state
-func (s *MeetingState) update(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *MeetingState) update(ctx context.Context, tx pgx.Tx) error {
 	s.UpdatedAt = time.Now().UTC()
 	qry := `
 		UPDATE meetings
@@ -351,8 +361,11 @@ func (s *MeetingState) update(ctx context.Context) error {
 
 // UpdateMeetingStateIfExists updates the meeting attribute of a meeting
 // The meeting state need to have an internal meeting id.
-func UpdateMeetingStateIfExists(ctx context.Context, m *bbb.Meeting) (int64, error) {
-	tx := MustTransactionFromContext(ctx)
+func UpdateMeetingStateIfExists(
+	ctx context.Context,
+	tx pgx.Tx,
+	m *bbb.Meeting,
+) (int64, error) {
 	internalID := m.InternalMeetingID
 	if internalID == "" {
 		return 0, fmt.Errorf(
@@ -374,22 +387,28 @@ func UpdateMeetingStateIfExists(ctx context.Context, m *bbb.Meeting) (int64, err
 }
 
 // SetBackendID associates a meeting with a backend
-func (s *MeetingState) SetBackendID(ctx context.Context, id string) error {
+func (s *MeetingState) SetBackendID(
+	ctx context.Context,
+	tx pgx.Tx,
+	id string,
+) error {
 	if s.BackendID != nil && *s.BackendID == id {
 		return nil // nothing to do here
 	}
-
 	// Bind backend
 	s.BackendID = &id
 	qry := `UPDATE meetings SET backend_id = $2
 			WHERE id = $1`
-	tx := MustTransactionFromContext(ctx)
 	_, err := tx.Exec(ctx, qry, s.ID, id)
 	return err
 }
 
 // BindFrontendID associates an unclaimed meeting with a frontend
-func (s *MeetingState) BindFrontendID(ctx context.Context, id string) error {
+func (s *MeetingState) BindFrontendID(
+	ctx context.Context,
+	tx pgx.Tx,
+	id string,
+) error {
 	if s.FrontendID != nil {
 		if *s.FrontendID == id {
 			// Nothing to do here
@@ -399,10 +418,8 @@ func (s *MeetingState) BindFrontendID(ctx context.Context, id string) error {
 		return fmt.Errorf(
 			"meeting is already associated with different frontend")
 	}
-
 	// Bind frontend
 	s.FrontendID = &id
-	tx := MustTransactionFromContext(ctx)
 	qry := `UPDATE meetings SET frontend_id = $2
 			WHERE id = $1`
 	_, err := tx.Exec(ctx, qry, s.ID, id)

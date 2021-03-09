@@ -5,6 +5,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v4"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -34,10 +35,9 @@ func InitFrontendState(init *FrontendState) *FrontendState {
 // the database.
 func GetFrontendStates(
 	ctx context.Context,
+	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) ([]*FrontendState, error) {
-	tx := MustTransactionFromContext(ctx)
-
 	qry, params, _ := q.Columns(
 		"id",
 		"key",
@@ -74,9 +74,10 @@ func GetFrontendStates(
 // This may return nil without an error.
 func GetFrontendState(
 	ctx context.Context,
+	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) (*FrontendState, error) {
-	states, err := GetFrontendStates(ctx, q)
+	states, err := GetFrontendStates(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -87,17 +88,19 @@ func GetFrontendState(
 }
 
 // Save will create or update a frontend state
-func (s *FrontendState) Save(ctx context.Context) error {
+func (s *FrontendState) Save(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	if s.CreatedAt.IsZero() {
-		return s.insert(ctx)
+		return s.insert(ctx, tx)
 	}
-	return s.update(ctx)
+	return s.update(ctx, tx)
 }
 
 // insert will create a new row with the frontend
 // state in the database
-func (s *FrontendState) insert(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *FrontendState) insert(ctx context.Context, tx pgx.Tx) error {
 	qry := `
 		INSERT INTO frontends (
 			key, secret, active
@@ -123,8 +126,7 @@ func (s *FrontendState) insert(ctx context.Context) error {
 }
 
 // update a database row of a frontend state
-func (s *FrontendState) update(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *FrontendState) update(ctx context.Context, tx pgx.Tx) error {
 	s.UpdatedAt = time.Now().UTC()
 	qry := `
 		UPDATE frontends
@@ -146,8 +148,7 @@ func (s *FrontendState) update(ctx context.Context) error {
 }
 
 // Delete will remove a frontend state from the store
-func (s *FrontendState) Delete(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *FrontendState) Delete(ctx context.Context, tx pgx.Tx) error {
 	qry := `
 		DELETE FROM frontends WHERE id = $1
 	`

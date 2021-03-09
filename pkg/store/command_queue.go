@@ -50,12 +50,10 @@ type Command struct {
 // FetchParams loads the parameters and decodes them
 func (cmd *Command) FetchParams(
 	ctx context.Context,
+	tx pgx.Tx,
 	req interface{},
 ) error {
-	tx := MustTransactionFromContext(ctx)
-	qry := `
-		SELECT params FROM commands WHERE id = $1
-	`
+	qry := `SELECT params FROM commands WHERE id = $1`
 	return tx.QueryRow(ctx, qry, cmd.ID).Scan(req)
 }
 
@@ -199,7 +197,6 @@ func safeExecHandler(
 	}
 	defer tx.Rollback(ctx)
 
-	ctx = ContextWithTransaction(ctx, tx)
 	defer func(e chan error) {
 		if r := recover(); r != nil {
 			e <- fmt.Errorf("%v", r)

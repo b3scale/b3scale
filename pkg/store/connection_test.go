@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
@@ -33,17 +34,15 @@ func connectTest() (*pgxpool.Pool, error) {
 		MaxConns: 16})
 }
 
-type endTestFunc func() error
-
-func beginTest(t *testing.T) (context.Context, endTestFunc) {
-	ctx := context.Background()
+func beginTest(ctx context.Context, t *testing.T) (pgx.Tx, func()) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Error(err)
 	}
-	ctx = ContextWithTransaction(ctx, tx)
-	end := func() error {
-		return tx.Rollback(ctx)
+	rollback := func() {
+		if err := tx.Rollback(ctx); err != nil {
+			t.Error(err)
+		}
 	}
-	return ctx, end
+	return tx, rollback
 }
