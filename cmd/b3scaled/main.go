@@ -47,7 +47,7 @@ func main() {
 	}
 
 	// Initialize postgres connection
-	dbConn, err := store.Connect(&store.ConnectOpts{
+	err := store.Connect(&store.ConnectOpts{
 		URL:      dbConnStr,
 		MaxConns: 256,
 		MinConns: 8,
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	// Initialize cluster
-	ctrl := cluster.NewController(dbConn)
+	ctrl := cluster.NewController()
 
 	// Start router
 	router := cluster.NewRouter(ctrl)

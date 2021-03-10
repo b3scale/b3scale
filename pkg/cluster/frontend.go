@@ -1,7 +1,11 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
+
+	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v4"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
@@ -36,4 +40,40 @@ func (f *Frontend) String() string {
 		return fmt.Sprintf("<Frontend id='%v', key='%v'>", f.state.ID, key)
 	}
 	return "<Frontend>"
+}
+
+// GetFrontends retrieves all frontends from
+// the store matchig a query
+func GetFrontends(
+	ctx context.Context,
+	tx pgx.Tx,
+	q sq.SelectBuilder,
+) ([]*Frontend, error) {
+	states, err := store.GetFrontendStates(ctx, tx, q)
+	if err != nil {
+		return nil, err
+	}
+	// Make cluster backend from each state
+	frontends := make([]*Frontend, 0, len(states))
+	for _, s := range states {
+		frontends = append(frontends, NewFrontend(s))
+	}
+	return frontends, nil
+}
+
+// GetFrontend fetches a frontend with a state from
+// the store
+func GetFrontend(
+	ctx context.Context,
+	tx pgx.Tx,
+	q sq.SelectBuilder,
+) (*Frontend, error) {
+	frontends, err := GetFrontends(ctx, tx, q)
+	if err != nil {
+		return nil, err
+	}
+	if len(frontends) == 0 {
+		return nil, nil
+	}
+	return frontends[0], nil
 }

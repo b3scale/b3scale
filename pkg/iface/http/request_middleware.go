@@ -37,22 +37,24 @@ func BBBRequestMiddleware(
 			// So we create a new top level context for the incoming requst
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-			tx, err := ctrl.BeginTx(ctx)
-			if err != nil {
-				return err
-			}
-			defer tx.Rollback(ctx)
-			ctx = store.ContextWithTransaction(ctx, tx)
 
 			path := c.Path()
 			if !strings.HasPrefix(path, mountPoint) {
 				return next(c) // nothing to do here.
 			}
+
+			// We need to lookup our front and backend
+			tx, err := store.Begin(ctx)
+			if err != nil {
+				return err
+			}
+			defer tx.Rollback(ctx)
+
 			// Decode HTTP request into a BBB request
 			// and verify it.
 			path = path[len(mountPoint):]
 			frontendKey, resource := decodePath(path)
-			frontend, err := ctrl.GetFrontend(ctx, store.Q().
+			frontend, err := cluster.GetFrontend(ctx, tx, store.Q().
 				Where("key = ?", frontendKey))
 			if err != nil {
 				return handleAPIError(c, err)

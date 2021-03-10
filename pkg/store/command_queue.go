@@ -43,8 +43,6 @@ type Command struct {
 	StartedAt *time.Time
 	StoppedAt *time.Time
 	CreatedAt time.Time
-
-	pool *pgxpool.Pool
 }
 
 // FetchParams loads the parameters and decodes them
@@ -60,16 +58,13 @@ func (cmd *Command) FetchParams(
 // The CommandQueue is connected to the database and
 // provides methods for queuing and dequeuing commands.
 type CommandQueue struct {
-	pool         *pgxpool.Pool
 	subscription *pgxpool.Conn
 }
 
 // NewCommandQueue initializes a new command queue
-func NewCommandQueue(pool *pgxpool.Pool) *CommandQueue {
+func NewCommandQueue() *CommandQueue {
 	// Subscribe to notifications
-	return &CommandQueue{
-		pool: pool,
-	}
+	return &CommandQueue{}
 }
 
 // Subscribe will let the queue listen for notifications
@@ -82,7 +77,7 @@ func (q *CommandQueue) subscribe() error {
 		context.Background(), time.Second)
 	defer cancel()
 
-	conn, err := q.pool.Acquire(ctx)
+	conn, err := Acquire(ctx)
 	if err != nil {
 		return err
 	}
@@ -96,8 +91,8 @@ func (q *CommandQueue) subscribe() error {
 	return nil
 }
 
-// Queue adds a new command to the queue
-func (q *CommandQueue) Queue(ctx context.Context, tx pgx.Tx, cmd *Command) error {
+// QueueCommand adds a new command to the queue
+func QueueCommand(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 	// Our command will always expire. For now 2 minutes.
 	deadline := time.Now().UTC().Add(120 * time.Second)
 	// Marshal payload
@@ -176,7 +171,6 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 
 // Run the handler, but recover if an error occured.
 func safeExecHandler(
-	pool *pgxpool.Pool,
 	cmd *Command,
 	handler CommandHandler,
 	errc chan error,
@@ -185,7 +179,7 @@ func safeExecHandler(
 		context.Background(), 300*time.Second)
 	defer cancel()
 
-	tx, err := pool.Begin(ctx)
+	tx, err := Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -221,7 +215,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		context.Background(), 300*time.Second)
 	defer cancel()
 
-	tx, err := q.pool.Begin(ctx)
+	tx, err := Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -243,7 +237,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		   FOR UPDATE SKIP LOCKED`
 
 	// Select command
-	cmd := &Command{pool: q.pool}
+	cmd := &Command{}
 	err = tx.QueryRow(ctx, qry).Scan(
 		&cmd.ID,
 		&cmd.Seq,
@@ -266,7 +260,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	} else {
 		// Apply command handler
 		errc := make(chan error, 1)
-		result = safeExecHandler(q.pool, cmd, handler, errc)
+		result = safeExecHandler(cmd, handler, errc)
 		err = <-errc
 		if err != nil {
 			log.Error().

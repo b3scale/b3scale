@@ -380,6 +380,7 @@ func (s *BackendState) CreateMeetingState(
 		BackendID: &s.ID,
 		Meeting:   meeting,
 	})
+	mstate.MarkSynced()
 
 	// Attach frontend if present
 	if frontend != nil {

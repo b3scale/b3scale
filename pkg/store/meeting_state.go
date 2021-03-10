@@ -93,6 +93,17 @@ func GetMeetingState(
 	return states[0], nil
 }
 
+// GetMeetingStateByID is a convenience wrapper
+// around GetMeetingState.
+func GetMeetingStateByID(
+	ctx context.Context,
+	tx pgx.Tx,
+	id string,
+) (*MeetingState, error) {
+	return GetMeetingState(ctx, tx, Q().
+		Where("id = ?", id))
+}
+
 func meetingStateFromRow(
 	row pgx.Row,
 ) (*MeetingState, error) {
@@ -372,13 +383,14 @@ func UpdateMeetingStateIfExists(
 			"can not use meeting for update without InternalMeetingID")
 	}
 
-	updatedAt := time.Now().UTC()
+	now := time.Now().UTC()
 	qry := `
 		UPDATE meetings
 		   SET state		= $2,
-			   updated_at   = $3
+			   updated_at   = $3,
+			   synced_at    = $4
 	 	 WHERE internal_id = $1`
-	cmd, err := tx.Exec(ctx, qry, internalID, m, updatedAt)
+	cmd, err := tx.Exec(ctx, qry, internalID, m, now, now)
 	if err != nil {
 		return 0, err
 	}

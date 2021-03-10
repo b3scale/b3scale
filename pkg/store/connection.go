@@ -77,6 +77,15 @@ func Begin(ctx context.Context) (pgx.Tx, error) {
 	return pool.Begin(ctx)
 }
 
+// Acquire tries to get a database connection
+// from the pool
+func Acquire(ctx context.Context) (*pgxpool.Conn, error) {
+	if pool == nil {
+		return nil, ErrNotInitialized
+	}
+	return pool.Acquire(ctx)
+}
+
 // AssertDatabaseVersion tests if the current
 // version of the database is equal to a required version
 func AssertDatabaseVersion(pool *pgxpool.Pool, version int) error {
