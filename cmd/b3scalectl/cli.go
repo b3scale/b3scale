@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -20,7 +21,6 @@ const RetNoChange = 64
 // Cli is the main command line interface application
 type Cli struct {
 	app        *cli.App
-	queue      *store.CommandQueue
 	returnCode int
 }
 
@@ -28,9 +28,7 @@ type Cli struct {
 func NewCli(
 	queue *store.CommandQueue,
 ) *Cli {
-	c := &Cli{
-		queue: queue,
-	}
+	c := &Cli{}
 	c.app = &cli.App{
 		Usage:                "manage the b3scale cluster",
 		EnableBashCompletion: true,
@@ -187,8 +185,15 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 	key := ctx.Args().Get(0)
 	secret := ctx.String("secret")
 
+	// Begin TX
+	tx, err := store.Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
 	// Get or create frontend
-	state, err := store.GetFrontendState(ctx.Context, store.Q().
+	state, err := store.GetFrontendState(ctx.Context, tx, store.Q().
 		Where("key = ?", key))
 	if err != nil {
 		return err
@@ -206,7 +211,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			},
 		})
 		if !dry {
-			if err := state.Save(ctx.Context); err != nil {
+			if err := state.Save(ctx.Context, tx); err != nil {
 				return err
 			}
 			fmt.Println("created frontend:", state.ID, state.Frontend.Key)
@@ -229,7 +234,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			c.returnCode = RetNoChange
 		} else {
 			if !dry {
-				if err := state.Save(ctx.Context); err != nil {
+				if err := state.Save(ctx.Context, tx); err != nil {
 					return err
 				}
 				fmt.Println("updated frontend")
@@ -239,19 +244,27 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 		}
 	}
 
-	return nil
+	// Commit changes
+	return tx.Commit(ctx.Context)
 }
 
 // deleteFrontend removes a frontend from the cluster
 func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	dry := ctx.Bool("dry")
 
+	// Begin TX
+	tx, err := store.Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
 	// Args should be host
 	if ctx.NArg() < 1 {
 		return fmt.Errorf("require: <key>")
 	}
 	key := ctx.Args().Get(0)
-	state, err := store.GetFrontendState(ctx.Context, store.Q().
+	state, err := store.GetFrontendState(ctx.Context, tx, store.Q().
 		Where("key = ?", key))
 	if err != nil {
 		return err
@@ -266,12 +279,22 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("delete frontend:", state.ID)
-	return state.Delete(ctx.Context)
+	if err := state.Delete(ctx.Context, tx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx.Context)
 }
 
 // show a list of all frontends
 func (c *Cli) showFrontends(ctx *cli.Context) error {
-	states, err := store.GetFrontendStates(ctx.Context, store.Q().
+	// Begin TX
+	tx, err := store.Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+	states, err := store.GetFrontendStates(ctx.Context, tx, store.Q().
 		OrderBy("frontends.key ASC"))
 	if err != nil {
 		return err
@@ -284,6 +307,13 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 
 // setBackend manages the backends in the cluster
 func (c *Cli) setBackend(ctx *cli.Context) error {
+	// Begin TX
+	tx, err := store.Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
 	adminState := ctx.String("state")
 	dry := ctx.Bool("dry")
 
@@ -301,7 +331,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	}
 
 	// Check if backend exists
-	state, err := store.GetBackendState(ctx.Context, store.Q().
+	state, err := store.GetBackendState(ctx.Context, tx, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -321,7 +351,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			Tags:       tags,
 		})
 		if !dry {
-			if err := state.Save(ctx.Context); err != nil {
+			if err := state.Save(ctx.Context, tx); err != nil {
 				return err
 			}
 			fmt.Println("created backend:", state.ID, state.Backend.Host)
@@ -355,7 +385,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 		}
 		if changes {
 			if !dry {
-				if err := state.Save(ctx.Context); err != nil {
+				if err := state.Save(ctx.Context, tx); err != nil {
 					return err
 				}
 				fmt.Println("updated backend")
@@ -373,17 +403,24 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 		cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
 			ID: state.ID,
 		})
-		if err := c.queue.Queue(cmd); err != nil {
+		if err := store.QueueCommand(ctx.Context, tx, cmd); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return tx.Commit(ctx.Context)
 }
 
 // showBackends displays a list of our backends
 func (c *Cli) showBackends(ctx *cli.Context) error {
-	backends, err := store.GetBackendStates(ctx.Context, store.Q().
+	// Begin TX
+	tx, err := store.Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
+	backends, err := store.GetBackendStates(ctx.Context, tx, store.Q().
 		OrderBy("backends.host ASC"))
 	if err != nil {
 		return err
@@ -453,8 +490,15 @@ func (c *Cli) setBackendAdminState(
 		host += "/"
 	}
 
+	// Begin TX
+	tx, err := store.Begin(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx)
+
 	// Check if backend exists
-	state, err := store.GetBackendState(ctx, store.Q().
+	state, err := store.GetBackendState(ctx, tx, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -471,7 +515,7 @@ func (c *Cli) setBackendAdminState(
 	}
 	if changes {
 		if !dry {
-			if err := state.Save(ctx); err != nil {
+			if err := state.Save(ctx, tx); err != nil {
 				return err
 			}
 			fmt.Println("updated backend admin state")
@@ -488,11 +532,11 @@ func (c *Cli) setBackendAdminState(
 		cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
 			ID: state.ID,
 		})
-		if err := c.queue.Queue(cmd); err != nil {
+		if err := store.QueueCommand(ctx, tx, cmd); err != nil {
 			return err
 		}
 	}
-	return nil
+	return tx.Commit(ctx)
 }
 
 // delete backend removes a backend from the store
@@ -503,8 +547,16 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
 		return fmt.Errorf("require: <host>")
 	}
+
+	// Begin TX
+	tx, err := store.Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
 	host := ctx.Args().Get(0)
-	state, err := store.GetBackendState(ctx.Context, store.Q().
+	state, err := store.GetBackendState(ctx.Context, tx, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -527,22 +579,24 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 		}
 
 		fmt.Println("deleting backend")
-		return state.Delete(ctx.Context)
-	}
+		if err := state.Delete(ctx.Context, tx); err != nil {
+			return err
+		}
+	} else {
+		// Otherwise, we mark the node for decommissioning
+		state.AdminState = "decommissioned"
+		if dry {
+			fmt.Println("skipping decommissioning backend (dry run)")
+			return nil
+		}
 
-	// Otherwise, we mark the node for decommissioning
-	state.AdminState = "decommissioned"
-	if dry {
-		fmt.Println("skipping decommissioning backend (dry run)")
-		return nil
-	}
-
-	if err := state.Save(ctx.Context); err != nil {
-		return err
+		if err := state.Save(ctx.Context, tx); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("backend marked for decommissioning")
-	return nil
+	return tx.Commit(ctx.Context)
 }
 
 // end all meetings on a backend
@@ -552,7 +606,15 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-	state, err := store.GetBackendState(ctx.Context, store.Q().
+
+	// Begin TX
+	tx, err := store.Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
+	state, err := store.GetBackendState(ctx.Context, tx, store.Q().
 		Where("host = ?", host))
 	if err != nil {
 		return err
@@ -564,11 +626,11 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 	cmd := cluster.EndAllMeetings(&cluster.EndAllMeetingsRequest{
 		BackendID: state.ID,
 	})
-	if err := c.queue.Queue(cmd); err != nil {
+	if err := store.QueueCommand(ctx.Context, tx, cmd); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx.Context)
 }
 
 // show the current version

@@ -33,7 +33,7 @@ func main() {
 		panic(err)
 	}
 
-	dbPool, err := store.Connect(&store.ConnectOpts{
+	err := store.Connect(&store.ConnectOpts{
 		URL:      dbConnStr,
 		MaxConns: 8,
 		MinConns: 1,
@@ -41,25 +41,13 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}
-	queue := store.NewCommandQueue(dbPool)
 
-	// Begin TX
-	ctx := context.Background()
-	tx, err := dbPool.Begin(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx)
-	ctx = store.ContextWithTransaction(ctx, tx)
+	queue := store.NewCommandQueue()
 
 	// Start the CLI
 	cli := NewCli(queue)
-	if err := cli.Run(ctx, os.Args); err != nil {
+	if err := cli.Run(context.Background(), os.Args); err != nil {
 		log.Fatal().Err(err).Msg("this is fatal")
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		log.Fatal().Err(err).Msg("could not commit transaction")
 	}
 
 	// A note about the return code:
