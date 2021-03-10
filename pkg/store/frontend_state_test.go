@@ -22,8 +22,8 @@ func frontendStateFactory() *FrontendState {
 
 func TestFrontendStateSave(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := frontendStateFactory()
 
@@ -52,8 +52,8 @@ func TestFrontendStateSave(t *testing.T) {
 
 func TestGetFrontendState(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := frontendStateFactory()
 	if err := state.Save(ctx, tx); err != nil {

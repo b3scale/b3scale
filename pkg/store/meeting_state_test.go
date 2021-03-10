@@ -54,8 +54,8 @@ func meetingStateFactory(
 
 func TestGetMeetingStates(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	m1, err := meetingStateFactory(ctx, tx, &MeetingState{
 		ID:         uuid.New().String(),
@@ -89,8 +89,8 @@ func TestGetMeetingStates(t *testing.T) {
 
 func TestMeetingStateSave(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -113,8 +113,8 @@ func TestMeetingStateSave(t *testing.T) {
 
 func TestMeetingStateSaveUpdate(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -138,8 +138,8 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 
 func TestMeetingStateUpdateIfExists(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -182,8 +182,9 @@ func TestMeetingStateUpdateIfExists(t *testing.T) {
 
 func TestMeetingStateQueryUpdate(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
 		t.Error(err)
@@ -213,8 +214,9 @@ func TestMeetingStateQueryUpdate(t *testing.T) {
 
 func TestMeetingStateIsStale(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
 		t.Error(err)
@@ -250,8 +252,8 @@ func TestMeetingStateIsStale(t *testing.T) {
 
 func TestDeleteMeetingStateByInternalID(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -270,8 +272,8 @@ func TestDeleteMeetingStateByInternalID(t *testing.T) {
 
 func TestDeleteMeetingStateByID(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -290,8 +292,8 @@ func TestDeleteMeetingStateByID(t *testing.T) {
 
 func TestDeleteOrphanMeetings(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	m1, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {

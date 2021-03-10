@@ -26,8 +26,8 @@ func backendStateFactory() *BackendState {
 
 func TestGetBackendStateByID(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := backendStateFactory()
 	err := state.Save(context.Background(), tx)
@@ -51,8 +51,8 @@ func TestGetBackendStateByID(t *testing.T) {
 
 func TestBackendStateinsert(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := backendStateFactory()
 	id, err := state.insert(ctx, tx)
@@ -65,8 +65,8 @@ func TestBackendStateinsert(t *testing.T) {
 
 func TestBackendStateSave(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := backendStateFactory()
 	err := state.Save(ctx, tx)
@@ -91,8 +91,8 @@ func TestBackendStateSave(t *testing.T) {
 
 func TestCreateMeeting(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	bstate := backendStateFactory()
 	if err := bstate.Save(ctx, tx); err != nil {
@@ -120,8 +120,8 @@ func TestCreateMeeting(t *testing.T) {
 
 func TestBackendStateAgentHeartbeat(t *testing.T) {
 	ctx := context.Background()
-	tx, rollback := beginTest(ctx, t)
-	defer rollback()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := backendStateFactory()
 	err := state.Save(ctx, tx)

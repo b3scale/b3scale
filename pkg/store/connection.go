@@ -2,13 +2,31 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 )
+
+var (
+	// ErrNotInitialized will be returned if the
+	// database pool is accessed before initializing using
+	// Connect.
+	ErrNotInitialized = errors.New("store not initialized, pool not ready")
+
+	// ErrMaxConnsUnconfigured will be returned, if the
+	// the maximum connections are zero.
+	ErrMaxConnsUnconfigured = errors.New("MaxConns not configured")
+)
+
+// Pool is the stores global connection pool and
+// will be initialized during Connect.
+// Database transactions can then be started with store.Begin.
+var pool *pgxpool.Pool
 
 // ConnectOpts database connection options
 type ConnectOpts struct {
@@ -17,35 +35,46 @@ type ConnectOpts struct {
 	MinConns int32
 }
 
-// Connect establishes a database connection and
+// Connect initializes the connection pool and
 // checks the schema version of the database.
-func Connect(opts *ConnectOpts) (*pgxpool.Pool, error) {
+func Connect(opts *ConnectOpts) error {
 	log.Debug().Str("url", opts.URL).Msg("using database")
 
 	// Initialize postgres connection
 	cfg, err := pgxpool.ParseConfig(opts.URL)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cfg.ConnConfig.RuntimeParams["application_name"] = os.Args[0]
 	if opts.MaxConns == 0 {
-		return nil, fmt.Errorf("MaxConns not configured for connection")
+		return ErrMaxConnsUnconfigured
 	}
 
 	// We need some more connections
 	cfg.MaxConns = opts.MaxConns
 	cfg.MinConns = opts.MinConns
 
-	pool, err := pgxpool.ConnectConfig(context.Background(), cfg)
+	p, err := pgxpool.ConnectConfig(context.Background(), cfg)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err = AssertDatabaseVersion(pool, 1); err != nil {
-		return nil, err
+	if err = AssertDatabaseVersion(p, 1); err != nil {
+		return err
 	}
 
-	return pool, nil
+	// Use pool
+	pool = p
+
+	return nil
+}
+
+// Begin starts a transaction in the database pool.
+func Begin(ctx context.Context) (pgx.Tx, error) {
+	if pool == nil {
+		return nil, ErrNotInitialized
+	}
+	return pool.Begin(ctx)
 }
 
 // AssertDatabaseVersion tests if the current

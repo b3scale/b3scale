@@ -26,7 +26,7 @@ const cmdQueue = "commands_queue"
 // CommandHandler is a callback function for handling
 // commands. The command was successful if no error was
 // returned.
-type CommandHandler func(context.Context, *Command) (interface{}, error)
+type CommandHandler func(context.Context, pgx.Tx, *Command) (interface{}, error)
 
 // A Command is a representation of an operation
 type Command struct {
@@ -97,11 +97,7 @@ func (q *CommandQueue) subscribe() error {
 }
 
 // Queue adds a new command to the queue
-func (q *CommandQueue) Queue(cmd *Command) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+func (q *CommandQueue) Queue(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 	// Our command will always expire. For now 2 minutes.
 	deadline := time.Now().UTC().Add(120 * time.Second)
 	// Marshal payload
@@ -117,8 +113,7 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 	  )
 	  RETURNING id`
 	var cmdID string
-	err = q.pool.
-		QueryRow(ctx, qry, cmd.Action, params, deadline).
+	err = tx.QueryRow(ctx, qry, cmd.Action, params, deadline).
 		Scan(&cmdID)
 	if err != nil {
 		return err
@@ -127,7 +122,6 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 	// Update command
 	cmd.ID = cmdID
 	cmd.CreatedAt = time.Now().UTC()
-
 	return nil
 }
 
@@ -204,7 +198,7 @@ func safeExecHandler(
 	}(errc)
 
 	// Run handler
-	res, err := handler(ctx, cmd)
+	res, err := handler(ctx, tx, cmd)
 	errc <- err
 
 	if err := tx.Commit(ctx); err != nil {
