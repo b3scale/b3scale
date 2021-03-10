@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v4"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -23,13 +25,13 @@ var (
 // up after 2-5 seconds.
 func awaitInternalMeeting(
 	ctx context.Context,
+	tx pgx.Tx,
 	internalID string,
 	deadlineAfter time.Duration,
 ) (*store.MeetingState, error) {
 	t0 := time.Now()
-
 	for {
-		mstate, err := store.GetMeetingState(ctx, store.Q().
+		mstate, err := store.GetMeetingState(ctx, tx, store.Q().
 			Where("meetings.internal_id = ?", internalID))
 		if err != nil {
 			return nil, err
