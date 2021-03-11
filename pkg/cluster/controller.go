@@ -392,8 +392,7 @@ func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
 		Where(`now() - COALESCE(
 				synced_at,
 				TIMESTAMP '0001-01-01 00:00:00') > ?`,
-			MeetingSyncInterval).
-		Where("admin_state <> ?", "init"))
+			MeetingSyncInterval))
 	if err != nil {
 		return err
 	}
