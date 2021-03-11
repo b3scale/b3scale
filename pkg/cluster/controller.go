@@ -101,9 +101,15 @@ func (c *Controller) StartBackground() {
 
 	// Dispatch refreshing stale meetings if the last
 	// sync was a while ago.
-	if err := c.requestSyncStaleMeetings(ctx); err != nil {
-		log.Error().Err(err).Msg("requestSyncStaleMeetings")
-	}
+	/*
+		CAVEAT:
+		This puts a high pressure on the system and might
+		not be necessary. For now this is disabled.
+
+		if err := c.requestSyncStaleMeetings(ctx); err != nil {
+			log.Error().Err(err).Msg("requestSyncStaleMeetings")
+		}
+	*/
 
 	// Dispatch decommissioning of marked backends
 	if err := c.requestBackendDecommissions(ctx); err != nil {

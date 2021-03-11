@@ -30,12 +30,12 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// We can not reuse the request context, as it might
-			// get canceled when the connection gets killed (which can
-			// happen on purpose e.g. with a short timeout.)
-			// However, we still want to commit any state changes here.
-			// So we create a new top level context for the incoming requst
-			ctx, cancel := context.WithCancel(context.Background())
+			// We use the request context as our base. The context
+			// will be canceled or time out. While this is okay for
+			// subsequent http client requests, however, this means
+			// we may have to use a dedicated context for persisting
+			// changes.
+			ctx, cancel := context.WithTimeout(c.Request().Context(), RequestTimeout)
 			defer cancel()
 
 			path := c.Path()
@@ -43,22 +43,27 @@ func BBBRequestMiddleware(
 				return next(c) // nothing to do here.
 			}
 
+			// Decode HTTP request into a BBB request
+			// and verify it.
+			path = path[len(mountPoint):]
+			frontendKey, resource := decodePath(path)
+
 			// We need to lookup our front and backend
 			tx, err := store.Begin(ctx)
 			if err != nil {
 				return err
 			}
-			defer tx.Rollback(ctx)
-
-			// Decode HTTP request into a BBB request
-			// and verify it.
-			path = path[len(mountPoint):]
-			frontendKey, resource := decodePath(path)
 			frontend, err := cluster.GetFrontend(ctx, tx, store.Q().
 				Where("key = ?", frontendKey))
 			if err != nil {
 				return handleAPIError(c, err)
 			}
+			// As a rule: End transactions early whenever possible,
+			// only put as little as possible (e.g. for consistency
+			// requirements) in a transaction.
+			tx.Rollback(ctx)
+
+			// Check if the frontend could be identified
 			if frontend == nil {
 				return handleAPIError(c, fmt.Errorf(
 					"no such frontend for key: %s", frontendKey))
@@ -86,12 +91,6 @@ func BBBRequestMiddleware(
 			}
 
 			res := gateway.Dispatch(ctx, bbbReq)
-
-			if err := tx.Commit(ctx); err != nil {
-				log.Error().
-					Err(err).
-					Msg("tx commit failed after request")
-			}
 
 			return writeBBBResponse(c, res)
 		}

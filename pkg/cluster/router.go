@@ -201,7 +201,6 @@ func (r *Router) Middleware() RequestMiddleware {
 				return nil, err
 			}
 			defer tx.Rollback(ctx)
-
 			// Filter backends and only accept state active,
 			// and where the noded is active on the host.
 			// Also we exclude stopped nodes.
