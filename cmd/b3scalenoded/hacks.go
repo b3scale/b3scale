@@ -25,12 +25,18 @@ var (
 // up after 2-5 seconds.
 func awaitInternalMeeting(
 	ctx context.Context,
-	tx pgx.Tx,
 	internalID string,
 	deadlineAfter time.Duration,
 ) (*store.MeetingState, error) {
 	t0 := time.Now()
 	for {
+		tx, err := store.Begin(ctx)
+		if err != nil {
+			time.Sleep(150 * time.Millisecond)
+			continue
+		}
+		defer tx.Rollback(ctx)
+
 		mstate, err := store.GetMeetingState(ctx, tx, store.Q().
 			Where("meetings.internal_id = ?", internalID))
 		if err != nil {
@@ -39,6 +45,8 @@ func awaitInternalMeeting(
 		if mstate != nil {
 			return mstate, nil
 		}
+
+		tx.Rollback(ctx) // Close transaction
 
 		dt := time.Now().Sub(t0)
 		if dt > deadlineAfter {
