@@ -86,6 +86,21 @@ func Acquire(ctx context.Context) (*pgxpool.Conn, error) {
 	return pool.Acquire(ctx)
 }
 
+// BeginFunc executes a function with a transaction and
+// will forward the error. Rollbacks and commits will
+// be handled.
+func BeginFunc(ctx context.Context, fn func(pgx.Tx) error) error {
+	tx, err := Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err := fn(tx); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 // AssertDatabaseVersion tests if the current
 // version of the database is equal to a required version
 func AssertDatabaseVersion(pool *pgxpool.Pool, version int) error {

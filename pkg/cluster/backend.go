@@ -62,13 +62,18 @@ func (b *Backend) Host() string {
 // filterable with a query.
 func GetBackends(
 	ctx context.Context,
-	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) ([]*Backend, error) {
+	tx, err := store.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
 	states, err := store.GetBackendStates(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
+	tx.Rollback(ctx)
+
 	// Make cluster backend from each state
 	backends := make([]*Backend, 0, len(states))
 	for _, s := range states {
@@ -81,10 +86,9 @@ func GetBackends(
 // GetBackend retrievs a single backend by query criteria
 func GetBackend(
 	ctx context.Context,
-	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) (*Backend, error) {
-	backends, err := GetBackends(ctx, tx, q)
+	backends, err := GetBackends(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +109,7 @@ func (b *Backend) Stress() float64 {
 	return f * (float64(b.state.MeetingsCount) + attendeeLoad)
 }
 
-// loadNodeState will fetch all meetings from the backend.
+// refreshNodeState will fetch all meetings from the backend.
 // The meetings are then processed in two passes:
 // 1st pass: for each meeting from backend
 // If the meeting is in our store there are two cases:
@@ -117,9 +121,8 @@ func (b *Backend) Stress() float64 {
 // 2nd pass: for each meeting assigned to backend in store:
 // If the meeting is not present in the backend, remove meeting,
 // from store
-func (b *Backend) loadNodeState(
+func (b *Backend) refreshNodeState(
 	ctx context.Context,
-	tx pgx.Tx,
 ) error {
 	log.Debug().
 		Str("backend", b.state.Backend.Host).
@@ -131,15 +134,16 @@ func (b *Backend) loadNodeState(
 	rep, err := b.client.Do(ctx, req)
 	if err != nil {
 		// The backend does not even respond, we mark this
-		// as an error
+		// as an error, however our refresh was "successful".
 		errMsg := fmt.Sprintf("%s", err)
 		b.state.NodeState = "error"
 		b.state.LastError = &errMsg
-		if err := b.state.Save(ctx, tx); err != nil {
+
+		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+			return b.state.Save(ctx, tx)
+		}); err != nil {
 			log.Error().Err(err).Msg("save backend state")
 		}
-
-		return err
 	}
 	t1 := time.Now()
 	latency := t1.Sub(t0)
@@ -150,10 +154,12 @@ func (b *Backend) loadNodeState(
 		errMsg := fmt.Sprintf("%s: %s", res.MessageKey, res.Message)
 		b.state.LastError = &errMsg
 		b.state.NodeState = "error"
-		if err := b.state.Save(ctx, tx); err != nil {
+
+		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+			return b.state.Save(ctx, tx)
+		}); err != nil {
 			log.Error().Err(err).Msg("save backend state")
 		}
-		return err
 	}
 
 	// Update state
@@ -163,15 +169,19 @@ func (b *Backend) loadNodeState(
 	if b.state.AdminState == "ready" {
 		b.state.NodeState = "ready"
 	}
-	if err := b.state.Save(ctx, tx); err != nil {
-		return err
+
+	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+		return b.state.Save(ctx, tx)
+	}); err != nil {
+		log.Error().Err(err).Msg("save backend state")
 	}
 
 	// Update meetings: 1st pass
 	backendMeetings := make([]string, 0, len(res.Meetings))
 	for _, meeting := range res.Meetings {
-		log.Debug().Stringer("meeting", meeting).Msg("refreshing meeting")
-		if err := b.state.CreateOrUpdateMeetingState(ctx, tx, meeting); err != nil {
+		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+			return b.state.CreateOrUpdateMeetingState(ctx, tx, meeting)
+		}); err != nil {
 			log.Error().
 				Err(err).
 				Str("meetingID", meeting.MeetingID).
@@ -183,23 +193,27 @@ func (b *Backend) loadNodeState(
 	}
 
 	// Cleanup meetings: 2nd pass
-	count, err := store.DeleteOrphanMeetings(ctx, tx, b.state.ID, backendMeetings)
-	if err != nil {
-		return err
-	}
-	if count > 0 {
-		log.Warn().
-			Int("orphans", int(count)).
-			Str("backend", b.state.Backend.Host).
-			Msg("removed orphan meetings associated with backend")
+	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+		count, err := store.DeleteOrphanMeetings(ctx, tx, b.state.ID, backendMeetings)
+		if err != nil {
+			return err
+		}
+
+		if count > 0 {
+			log.Warn().
+				Int("orphans", int(count)).
+				Str("backend", b.state.Backend.Host).
+				Msg("removed orphan meetings associated with backend")
+		}
+		return nil
+	}); err != nil {
+		log.Error().Err(err).Msg("commit delete orphans")
 	}
 
 	// Update meetings and attendees counter
-	if err := b.state.UpdateStatCounters(ctx, tx); err != nil {
-		return err
-	}
-
-	return nil
+	return store.BeginFunc(ctx, func(tx pgx.Tx) error {
+		return b.state.UpdateStatCounters(ctx, tx)
+	})
 }
 
 // Meeting State Sync: loadMeetingState will make
@@ -210,7 +224,6 @@ func (b *Backend) loadNodeState(
 // backend instance.
 func (b *Backend) refreshMeetingState(
 	ctx context.Context,
-	tx pgx.Tx,
 	state *store.MeetingState,
 ) error {
 	req := bbb.GetMeetingInfoRequest(bbb.Params{
@@ -224,14 +237,23 @@ func (b *Backend) refreshMeetingState(
 	if res.XMLResponse.Returncode != "SUCCESS" {
 		// The meeting could not be found
 		// For now, let's remove the meeting from our state
-		return store.DeleteMeetingStateByInternalID(ctx, tx, state.InternalID)
+		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+			return store.DeleteMeetingStateByInternalID(
+				ctx,
+				tx,
+				state.InternalID)
+		}); err != nil {
+			return err
+		}
 	}
 
 	// Update meeting state
 	state.Meeting = res.Meeting
 	state.MarkSynced()
 
-	return state.Save(ctx, tx)
+	return store.BeginFunc(ctx, func(tx pgx.Tx) error {
+		return state.Save(ctx, tx)
+	})
 }
 
 // BBB API Implementation
@@ -278,6 +300,10 @@ func (b *Backend) Create(
 			Msg("create returned without a meeting")
 		return nil, fmt.Errorf("meeting was not created on server")
 	}
+
+	// TODO: Do we need to switch context here?
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	// Update or save meeeting state:
 	// Begin transaction
@@ -393,13 +419,9 @@ func (b *Backend) IsMeetingRunning(
 	meetingID, _ := req.Params.MeetingID()
 	if isMeetingRunningRes.Returncode == "ERROR" {
 		// Delete meeting
-		tx, err := store.Begin(ctx)
-		if err != nil {
-			return nil, err
-		}
-		defer tx.Rollback(ctx)
-		store.DeleteMeetingStateByID(ctx, tx, meetingID)
-		if err := tx.Commit(ctx); err != nil {
+		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+			return store.DeleteMeetingStateByID(ctx, tx, meetingID)
+		}); err != nil {
 			log.Error().
 				Err(err).
 				Msg("failed to commit delete meeting")
@@ -499,6 +521,9 @@ func (b *Backend) GetMeetings(
 	if err != nil {
 		return nil, err
 	}
+
+	tx.Rollback(ctx)
+
 	meetings := make([]*bbb.Meeting, 0, len(mstates))
 	for _, state := range mstates {
 		meetings = append(meetings, state.Meeting)

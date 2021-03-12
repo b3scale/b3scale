@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -129,23 +128,22 @@ func (c *Controller) StartBackground() {
 // to crash and will be recovered.
 func (c *Controller) handleCommand(
 	ctx context.Context,
-	tx pgx.Tx,
 	cmd *store.Command,
 ) (interface{}, error) {
 	// Invoke command handler
 	switch cmd.Action {
 	case CmdDecommissionBackend:
 		log.Debug().Str("cmd", CmdDecommissionBackend).Msg("EXEC")
-		return c.handleDecommissionBackend(ctx, tx, cmd)
+		return c.handleDecommissionBackend(ctx, cmd)
 	case CmdUpdateNodeState:
 		log.Debug().Str("cmd", CmdUpdateNodeState).Msg("EXEC")
-		return c.handleUpdateNodeState(ctx, tx, cmd)
+		return c.handleUpdateNodeState(ctx, cmd)
 	case CmdUpdateMeetingState:
 		log.Debug().Str("cmd", CmdUpdateMeetingState).Msg("EXEC")
-		return c.handleUpdateMeetingState(ctx, tx, cmd)
+		return c.handleUpdateMeetingState(ctx, cmd)
 	case CmdEndAllMeetings:
 		log.Debug().Str("cmd", CmdEndAllMeetings).Msg("EXEC")
-		return c.handleEndAllMeetings(ctx, tx, cmd)
+		return c.handleEndAllMeetings(ctx, cmd)
 	default:
 		return nil, ErrUnknownCommand
 	}
@@ -155,13 +153,18 @@ func (c *Controller) handleCommand(
 // Removes a backend state identified by id from the state
 func (c *Controller) handleDecommissionBackend(
 	ctx context.Context,
-	tx pgx.Tx,
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &DecommissionBackendRequest{}
-	if err := cmd.FetchParams(ctx, tx, req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
+
+	tx, err := store.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
 
 	// Get backend for decommissioning
 	bstate, err := store.GetBackendState(ctx, tx, store.Q().
@@ -199,22 +202,25 @@ func (c *Controller) handleDecommissionBackend(
 		return false, err
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
 // Command: UpdateNodeState
 func (c *Controller) handleUpdateNodeState(
 	ctx context.Context,
-	tx pgx.Tx,
 	cmd *store.Command,
 ) (interface{}, error) {
 	// Get backend from command
 	req := &UpdateNodeStateRequest{}
-	if err := cmd.FetchParams(ctx, tx, req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
 
-	backend, err := GetBackend(ctx, tx, store.Q().
+	backend, err := GetBackend(ctx, store.Q().
 		Where("id = ?", req.ID))
 	if err != nil {
 		return false, err
@@ -222,10 +228,12 @@ func (c *Controller) handleUpdateNodeState(
 	if backend == nil {
 		return false, fmt.Errorf("backend not found: %s", req.ID)
 	}
-	err = backend.loadNodeState(ctx, tx)
+
+	err = backend.refreshNodeState(ctx)
 	if err != nil {
 		return false, err
 	}
+
 	return true, nil
 }
 
@@ -233,13 +241,18 @@ func (c *Controller) handleUpdateNodeState(
 // from a backend
 func (c *Controller) handleUpdateMeetingState(
 	ctx context.Context,
-	tx pgx.Tx,
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &UpdateMeetingStateRequest{}
-	if err := cmd.FetchParams(ctx, tx, req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
+
+	tx, err := store.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
 
 	// Get meeting from store
 	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
@@ -264,7 +277,7 @@ func (c *Controller) handleUpdateMeetingState(
 	}
 
 	// Get Backend
-	backend, err := GetBackend(ctx, tx, store.Q().
+	backend, err := GetBackend(ctx, store.Q().
 		Where("id = ?", mstate.BackendID))
 	if err != nil {
 		log.Error().Err(err).Msg("GetBackend")
@@ -278,7 +291,7 @@ func (c *Controller) handleUpdateMeetingState(
 	}
 
 	// Refresh state
-	if err := backend.refreshMeetingState(ctx, tx, mstate); err != nil {
+	if err := backend.refreshMeetingState(ctx, mstate); err != nil {
 		return false, err
 	}
 
@@ -289,14 +302,14 @@ func (c *Controller) handleUpdateMeetingState(
 // for all meetings on a backend
 func (c *Controller) handleEndAllMeetings(
 	ctx context.Context,
-	tx pgx.Tx,
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &EndAllMeetingsRequest{}
-	if err := cmd.FetchParams(ctx, tx, req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
-	backend, err := GetBackend(ctx, tx, store.Q().
+
+	backend, err := GetBackend(ctx, store.Q().
 		Where("id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
@@ -307,11 +320,19 @@ func (c *Controller) handleEndAllMeetings(
 
 	// Send end for all *known* meetings. (We however, should *know*
 	// all meetings on the backend after a while.)
+
+	tx, err := store.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	mstates, err := store.GetMeetingStates(ctx, tx, store.Q().
 		Where("backend_id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
 	}
+	tx.Rollback(ctx) // We should not block the connection any longer
 
 	for _, m := range mstates {
 		log.Info().

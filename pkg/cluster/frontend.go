@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v4"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
@@ -46,13 +45,21 @@ func (f *Frontend) String() string {
 // the store matchig a query
 func GetFrontends(
 	ctx context.Context,
-	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) ([]*Frontend, error) {
+	tx, err := store.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	states, err := store.GetFrontendStates(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
+
+	tx.Rollback(ctx)
+
 	// Make cluster backend from each state
 	frontends := make([]*Frontend, 0, len(states))
 	for _, s := range states {
@@ -65,10 +72,9 @@ func GetFrontends(
 // the store
 func GetFrontend(
 	ctx context.Context,
-	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) (*Frontend, error) {
-	frontends, err := GetFrontends(ctx, tx, q)
+	frontends, err := GetFrontends(ctx, q)
 	if err != nil {
 		return nil, err
 	}

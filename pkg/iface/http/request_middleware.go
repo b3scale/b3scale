@@ -2,14 +2,13 @@ package http
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	netHTTP "net/http"
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rs/zerolog/log"
+	//	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -30,13 +29,12 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// We use the request context as our base. The context
-			// will be canceled or time out. While this is okay for
-			// subsequent http client requests, however, this means
-			// we may have to use a dedicated context for persisting
-			// changes.
-			ctx, cancel := context.WithTimeout(c.Request().Context(), RequestTimeout)
-			defer cancel()
+			// We use the request context. However, for some things
+			// we need to make sure they are persisted even though
+			// the context is canceled. This might happen when the
+			// client disconnects after we made our request to the
+			// backend.
+			ctx := c.Request().Context()
 
 			path := c.Path()
 			if !strings.HasPrefix(path, mountPoint) {
@@ -48,20 +46,11 @@ func BBBRequestMiddleware(
 			path = path[len(mountPoint):]
 			frontendKey, resource := decodePath(path)
 
-			// We need to lookup our front and backend
-			tx, err := store.Begin(ctx)
-			if err != nil {
-				return err
-			}
-			frontend, err := cluster.GetFrontend(ctx, tx, store.Q().
+			frontend, err := cluster.GetFrontend(ctx, store.Q().
 				Where("key = ?", frontendKey))
 			if err != nil {
 				return handleAPIError(c, err)
 			}
-			// As a rule: End transactions early whenever possible,
-			// only put as little as possible (e.g. for consistency
-			// requirements) in a transaction.
-			tx.Rollback(ctx)
 
 			// Check if the frontend could be identified
 			if frontend == nil {

@@ -26,7 +26,7 @@ const cmdQueue = "commands_queue"
 // CommandHandler is a callback function for handling
 // commands. The command was successful if no error was
 // returned.
-type CommandHandler func(context.Context, pgx.Tx, *Command) (interface{}, error)
+type CommandHandler func(context.Context, *Command) (interface{}, error)
 
 // A Command is a representation of an operation
 type Command struct {
@@ -43,16 +43,17 @@ type Command struct {
 	StartedAt *time.Time
 	StoppedAt *time.Time
 	CreatedAt time.Time
+
+	tx pgx.Tx
 }
 
 // FetchParams loads the parameters and decodes them
 func (cmd *Command) FetchParams(
 	ctx context.Context,
-	tx pgx.Tx,
 	req interface{},
 ) error {
 	qry := `SELECT params FROM commands WHERE id = $1`
-	return tx.QueryRow(ctx, qry, cmd.ID).Scan(req)
+	return cmd.tx.QueryRow(ctx, qry, cmd.ID).Scan(req)
 }
 
 // The CommandQueue is connected to the database and
@@ -159,6 +160,7 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 		// Start processing in the background, so we can take
 		// care of the next incomming command.
 		go func(q *CommandQueue) {
+
 			err := q.process(handler)
 			if err != nil {
 				log.Error().
@@ -192,7 +194,7 @@ func safeExecHandler(
 	}(errc)
 
 	// Run handler
-	res, err := handler(ctx, tx, cmd)
+	res, err := handler(ctx, cmd)
 	errc <- err
 
 	if err := tx.Commit(ctx); err != nil {
@@ -249,6 +251,8 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	} else if err != nil {
 		return err
 	}
+
+	cmd.tx = tx
 
 	// Check deadline
 	state := "success"

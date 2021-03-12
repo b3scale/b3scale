@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -115,7 +114,6 @@ func (r *Router) Use(middleware RouterMiddleware) {
 // backend for a given meeting.
 func (r *Router) lookupBackendForRequest(
 	ctx context.Context,
-	tx pgx.Tx,
 	req *bbb.Request,
 ) (*Backend, error) {
 	// Get meeting id from params. If none is present,
@@ -132,7 +130,7 @@ func (r *Router) lookupBackendForRequest(
 	// Lookup backend for meeting in cluster, use backend
 	// if there is one associated - otherwise return
 	// all possible backends.
-	backend, err := GetBackend(ctx, tx, store.Q().
+	backend, err := GetBackend(ctx, store.Q().
 		Join("meetings ON meetings.backend_id = backends.id").
 		Where("meetings.id = ?", meetingID))
 	if err != nil {
@@ -152,15 +150,27 @@ func (r *Router) lookupBackendForRequest(
 		return nil, err
 	}
 	if !r.isBackendAvailable(backend, res) {
+
+		// TODO: IF the backend is just temporary unavailable
+		// we should try to stall the request. With a join request
+		// this would be possible to redirect to a waiting page
+		// and then try again.
+
 		// The backend associated with the meeting can not be used for
 		// this request. We need to relocate and will destroy the association
 		// with the backend.
+		tx, err := store.Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback(ctx)
 		if err := store.DeleteMeetingStateByID(ctx, tx, meetingID); err != nil {
 			log.Error().
 				Err(err).
 				Msg("failed removing meeting state")
 		}
-		return nil, nil
+
+		return nil, tx.Commit(ctx)
 	}
 
 	// Okay looks like this backend is a good candidate.
@@ -195,17 +205,11 @@ func (r *Router) Middleware() RequestMiddleware {
 		return func(
 			ctx context.Context, req *bbb.Request,
 		) (bbb.Response, error) {
-			// We are going to hit the database
-			tx, err := store.Begin(ctx)
-			if err != nil {
-				return nil, err
-			}
-			defer tx.Rollback(ctx)
 			// Filter backends and only accept state active,
 			// and where the noded is active on the host.
 			// Also we exclude stopped nodes.
 			deadline := time.Now().UTC().Add(-5 * time.Second)
-			backends, err := GetBackends(ctx, tx, store.Q().
+			backends, err := GetBackends(ctx, store.Q().
 				Where("agent_heartbeat >= ?", deadline).
 				Where("node_state = ?", "ready"))
 			if err != nil {
@@ -216,14 +220,8 @@ func (r *Router) Middleware() RequestMiddleware {
 			}
 
 			// Try to lookup meeting for the incoming request
-			backend, err := r.lookupBackendForRequest(ctx, tx, req)
+			backend, err := r.lookupBackendForRequest(ctx, req)
 			if err != nil {
-				return nil, err
-			}
-
-			// We are done with our lookups and updates, so we can
-			// end this transaction now.
-			if err := tx.Commit(ctx); err != nil {
 				return nil, err
 			}
 
