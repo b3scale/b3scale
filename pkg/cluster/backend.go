@@ -290,6 +290,19 @@ func (b *Backend) Create(
 	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.CreateResponse, error) {
+	// TODO: Do we need to switch context here?
+	txctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// Update or save meeeting state transaction. We acquire this before
+	// doing the backend request so we can make sure it will be commited
+	// and safed.
+	tx, err := store.Begin(txctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(txctx)
+
 	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
@@ -301,24 +314,12 @@ func (b *Backend) Create(
 		return nil, fmt.Errorf("meeting was not created on server")
 	}
 
-	// TODO: Do we need to switch context here?
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// Update or save meeeting state:
-	// Begin transaction
-	tx, err := store.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-
-	meetingState, err := meetingStateFromRequest(ctx, tx, req)
+	meetingState, err := meetingStateFromRequest(txctx, tx, req)
 	if err != nil {
 		return nil, err
 	}
 	if meetingState == nil {
-		_, err = b.state.CreateMeetingState(ctx, tx, req.Frontend, createRes.Meeting)
+		_, err = b.state.CreateMeetingState(txctx, tx, req.Frontend, createRes.Meeting)
 		if err != nil {
 			return nil, err
 		}
@@ -326,12 +327,12 @@ func (b *Backend) Create(
 		// Update state, associate with backend and frontend
 		meetingState.Meeting = createRes.Meeting
 		meetingState.SyncedAt = time.Now().UTC()
-		if err := meetingState.Save(ctx, tx); err != nil {
+		if err := meetingState.Save(txctx, tx); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(txctx); err != nil {
 		return nil, err
 	}
 	return createRes, nil

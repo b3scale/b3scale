@@ -5,8 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v4"
-
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 

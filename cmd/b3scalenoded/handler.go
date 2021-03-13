@@ -77,10 +77,12 @@ func (h *EventHandler) onMeetingCreated(
 		return nil
 	}
 	mstate.Meeting.Running = true
-	if err := mstate.Save(ctx, tx); err != nil {
+
+	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
+		return mstate.Save(ctx, tx)
+	}); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -153,7 +155,7 @@ func (h *EventHandler) onUserJoinedMeeting(
 	defer tx.Rollback(ctx)
 
 	// Insert (preliminar) attendee into the meeting state
-	mstate, err := store.GetMeetingState(ctx, store.Q().
+	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("meetings.internal_id = ?", e.InternalMeetingID))
 	if err != nil {
 		return err
