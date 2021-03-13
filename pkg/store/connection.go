@@ -69,14 +69,6 @@ func Connect(opts *ConnectOpts) error {
 	return nil
 }
 
-// Begin starts a transaction in the database pool.
-func Begin(ctx context.Context) (pgx.Tx, error) {
-	if pool == nil {
-		return nil, ErrNotInitialized
-	}
-	return pool.Begin(ctx)
-}
-
 // Acquire tries to get a database connection
 // from the pool
 func Acquire(ctx context.Context) (*pgxpool.Conn, error) {
@@ -84,6 +76,14 @@ func Acquire(ctx context.Context) (*pgxpool.Conn, error) {
 		return nil, ErrNotInitialized
 	}
 	return pool.Acquire(ctx)
+}
+
+// Begin starts a transaction in the database pool.
+func Begin(ctx context.Context) (pgx.Tx, error) {
+	if pool == nil {
+		return nil, ErrNotInitialized
+	}
+	return pool.Begin(ctx)
 }
 
 // BeginFunc executes a function with a transaction and
