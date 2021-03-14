@@ -5,6 +5,7 @@ package store
 */
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -24,16 +25,17 @@ func backendStateFactory() *BackendState {
 }
 
 func TestGetBackendStateByID(t *testing.T) {
-	ctx, end := beginTest(t)
-	defer end()
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := backendStateFactory()
-	err := state.Save(ctx)
+	err := state.Save(context.Background(), tx)
 	if err != nil {
 		t.Error("save failed:", err)
 	}
 
-	dbState, err := GetBackendState(ctx, Q().
+	dbState, err := GetBackendState(ctx, tx, Q().
 		Where("id = ?", state.ID))
 	if err != nil {
 		t.Error(err)
@@ -48,10 +50,12 @@ func TestGetBackendStateByID(t *testing.T) {
 }
 
 func TestBackendStateinsert(t *testing.T) {
-	ctx, end := beginTest(t)
-	defer end()
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
 	state := backendStateFactory()
-	id, err := state.insert(ctx)
+	id, err := state.insert(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,10 +64,12 @@ func TestBackendStateinsert(t *testing.T) {
 }
 
 func TestBackendStateSave(t *testing.T) {
-	ctx, end := beginTest(t)
-	defer end()
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
 	state := backendStateFactory()
-	err := state.Save(ctx)
+	err := state.Save(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -74,7 +80,7 @@ func TestBackendStateSave(t *testing.T) {
 
 	// Update host
 	state.Backend.Host = "newhost" + uuid.New().String()
-	err = state.Save(ctx)
+	err = state.Save(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -84,21 +90,23 @@ func TestBackendStateSave(t *testing.T) {
 }
 
 func TestCreateMeeting(t *testing.T) {
-	ctx, end := beginTest(t)
-	defer end()
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
 	bstate := backendStateFactory()
-	if err := bstate.Save(ctx); err != nil {
+	if err := bstate.Save(ctx, tx); err != nil {
 		t.Error(err)
 		return
 	}
 	fstate := frontendStateFactory()
-	if err := fstate.Save(ctx); err != nil {
+	if err := fstate.Save(ctx, tx); err != nil {
 		t.Error(err)
 		return
 	}
 
 	// Create meeting state
-	mstate, err := bstate.CreateMeetingState(ctx, fstate.Frontend, &bbb.Meeting{
+	mstate, err := bstate.CreateMeetingState(ctx, tx, fstate.Frontend, &bbb.Meeting{
 		MeetingID:         uuid.New().String(),
 		InternalMeetingID: uuid.New().String(),
 		MeetingName:       "foo",
@@ -111,10 +119,12 @@ func TestCreateMeeting(t *testing.T) {
 }
 
 func TestBackendStateAgentHeartbeat(t *testing.T) {
-	ctx, end := beginTest(t)
-	defer end()
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
 	state := backendStateFactory()
-	err := state.Save(ctx)
+	err := state.Save(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -125,7 +135,7 @@ func TestBackendStateAgentHeartbeat(t *testing.T) {
 	}
 
 	// Make heartbeat
-	if err := state.UpdateAgentHeartbeat(ctx); err != nil {
+	if err := state.UpdateAgentHeartbeat(ctx, tx); err != nil {
 		t.Error(err)
 	}
 

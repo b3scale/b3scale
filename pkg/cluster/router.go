@@ -130,7 +130,7 @@ func (r *Router) lookupBackendForRequest(
 	// Lookup backend for meeting in cluster, use backend
 	// if there is one associated - otherwise return
 	// all possible backends.
-	backend, err := r.ctrl.GetBackend(ctx, store.Q().
+	backend, err := GetBackend(ctx, store.Q().
 		Join("meetings ON meetings.backend_id = backends.id").
 		Where("meetings.id = ?", meetingID))
 	if err != nil {
@@ -150,16 +150,27 @@ func (r *Router) lookupBackendForRequest(
 		return nil, err
 	}
 	if !r.isBackendAvailable(backend, res) {
-		// The backend associated with the meeting
-		// can not be used for this request. We need to
-		// relocate and will destroy the association
+
+		// TODO: IF the backend is just temporary unavailable
+		// we should try to stall the request. With a join request
+		// this would be possible to redirect to a waiting page
+		// and then try again.
+
+		// The backend associated with the meeting can not be used for
+		// this request. We need to relocate and will destroy the association
 		// with the backend.
-		if err := r.ctrl.DeleteMeetingStateByID(ctx, meetingID); err != nil {
+		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback(ctx)
+		if err := store.DeleteMeetingStateByID(ctx, tx, meetingID); err != nil {
 			log.Error().
 				Err(err).
 				Msg("failed removing meeting state")
 		}
-		return nil, nil
+
+		return nil, tx.Commit(ctx)
 	}
 
 	// Okay looks like this backend is a good candidate.
@@ -198,7 +209,7 @@ func (r *Router) Middleware() RequestMiddleware {
 			// and where the noded is active on the host.
 			// Also we exclude stopped nodes.
 			deadline := time.Now().UTC().Add(-5 * time.Second)
-			backends, err := r.ctrl.GetBackends(ctx, store.Q().
+			backends, err := GetBackends(ctx, store.Q().
 				Where("agent_heartbeat >= ?", deadline).
 				Where("node_state = ?", "ready"))
 			if err != nil {
@@ -210,6 +221,10 @@ func (r *Router) Middleware() RequestMiddleware {
 
 			// Try to lookup meeting for the incoming request
 			backend, err := r.lookupBackendForRequest(ctx, req)
+			if err != nil {
+				return nil, err
+			}
+
 			if backend != nil {
 				log.Debug().
 					Str("backendID", backend.ID()).

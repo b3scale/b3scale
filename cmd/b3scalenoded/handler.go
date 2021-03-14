@@ -27,6 +27,13 @@ func NewEventHandler(backend *store.BackendState) *EventHandler {
 
 // Dispatch invokes the handler functions on the BBB event
 func (h *EventHandler) Dispatch(ctx context.Context, e bbb.Event) error {
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	ctx = store.ContextWithConnection(ctx, conn)
+
 	switch e.(type) {
 	case *bbb.MeetingCreatedEvent:
 		return h.onMeetingCreated(ctx, e.(*bbb.MeetingCreatedEvent))
@@ -46,7 +53,6 @@ func (h *EventHandler) Dispatch(ctx context.Context, e bbb.Event) error {
 			Str("event", fmt.Sprintf("%v", e)).
 			Msg("unhandled unknown event")
 	}
-
 	return nil
 }
 
@@ -62,10 +68,12 @@ func (h *EventHandler) onMeetingCreated(
 
 	// TODO this might be handled through the context...
 	deadline := 5 * time.Second
-	mstate, err := awaitInternalMeeting(ctx, e.InternalMeetingID, deadline)
+	mstate, err := awaitInternalMeeting(
+		ctx, e.InternalMeetingID, deadline)
 	if err != nil {
 		return err
 	}
+
 	if mstate == nil {
 		log.Warn().
 			Str("internalMeetingID", e.InternalMeetingID).
@@ -75,11 +83,17 @@ func (h *EventHandler) onMeetingCreated(
 		return nil
 	}
 	mstate.Meeting.Running = true
-	if err := mstate.Save(ctx); err != nil {
+
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err := mstate.Save(ctx, tx); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 // handle event: MeetingEnded
@@ -91,7 +105,8 @@ func (h *EventHandler) onMeetingEnded(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("meeting ended")
 	deadline := 5 * time.Second
-	mstate, err := awaitInternalMeeting(ctx, e.InternalMeetingID, deadline)
+	mstate, err := awaitInternalMeeting(
+		ctx, e.InternalMeetingID, deadline)
 	if err != nil {
 		return err
 	}
@@ -104,10 +119,17 @@ func (h *EventHandler) onMeetingEnded(
 	// Reset meeting state
 	mstate.Meeting.Running = false
 	mstate.Meeting.Attendees = []*bbb.Attendee{}
-	if err := mstate.Save(ctx); err != nil {
+
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
 		return err
 	}
-	return mstate.Save(ctx)
+	defer tx.Rollback(ctx)
+	if err := mstate.Save(ctx, tx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // handle event: MeetingDestroyed
@@ -120,11 +142,16 @@ func (h *EventHandler) onMeetingDestroyed(
 		Msg("meeting destroyed")
 
 	// Delete meeting state
-	err := store.DeleteMeetingStateByInternalID(ctx, e.InternalMeetingID)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
-		return nil
+		return err
 	}
-	return nil
+	defer tx.Rollback(ctx)
+	if err := store.DeleteMeetingStateByInternalID(ctx, tx, e.InternalMeetingID); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // handle event: UserJoinedMeeting
@@ -138,8 +165,14 @@ func (h *EventHandler) onUserJoinedMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user joined meeting")
 
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	// Insert (preliminar) attendee into the meeting state
-	mstate, err := store.GetMeetingState(ctx, store.Q().
+	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("meetings.internal_id = ?", e.InternalMeetingID))
 	if err != nil {
 		return err
@@ -161,11 +194,11 @@ func (h *EventHandler) onUserJoinedMeeting(
 		mstate.Meeting.Attendees,
 		e.Attendee)
 
-	if err := mstate.Save(ctx); err != nil {
+	if err := mstate.Save(ctx, tx); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 // handle event: UserLeftMeeting
@@ -178,8 +211,14 @@ func (h *EventHandler) onUserLeftMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user left meeting")
 
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	// Remove user from attendees list
-	mstate, err := store.GetMeetingState(ctx, store.Q().
+	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("meetings.internal_id = ?", e.InternalMeetingID))
 	if err != nil {
 		return err
@@ -207,9 +246,9 @@ func (h *EventHandler) onUserLeftMeeting(
 		filtered = append(filtered, a)
 	}
 	mstate.Meeting.Attendees = filtered
-	if err := mstate.Save(ctx); err != nil {
+	if err := mstate.Save(ctx, tx); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }

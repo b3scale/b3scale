@@ -2,13 +2,31 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 )
+
+var (
+	// ErrNotInitialized will be returned if the
+	// database pool is accessed before initializing using
+	// Connect.
+	ErrNotInitialized = errors.New("store not initialized, pool not ready")
+
+	// ErrMaxConnsUnconfigured will be returned, if the
+	// the maximum connections are zero.
+	ErrMaxConnsUnconfigured = errors.New("MaxConns not configured")
+)
+
+// Pool is the stores global connection pool and
+// will be initialized during Connect.
+// Database transactions can then be started with store.Begin.
+var pool *pgxpool.Pool
 
 // ConnectOpts database connection options
 type ConnectOpts struct {
@@ -17,35 +35,70 @@ type ConnectOpts struct {
 	MinConns int32
 }
 
-// Connect establishes a database connection and
+// Connect initializes the connection pool and
 // checks the schema version of the database.
-func Connect(opts *ConnectOpts) (*pgxpool.Pool, error) {
+func Connect(opts *ConnectOpts) error {
 	log.Debug().Str("url", opts.URL).Msg("using database")
 
 	// Initialize postgres connection
 	cfg, err := pgxpool.ParseConfig(opts.URL)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cfg.ConnConfig.RuntimeParams["application_name"] = os.Args[0]
 	if opts.MaxConns == 0 {
-		return nil, fmt.Errorf("MaxConns not configured for connection")
+		return ErrMaxConnsUnconfigured
 	}
 
 	// We need some more connections
 	cfg.MaxConns = opts.MaxConns
 	cfg.MinConns = opts.MinConns
 
-	pool, err := pgxpool.ConnectConfig(context.Background(), cfg)
+	p, err := pgxpool.ConnectConfig(context.Background(), cfg)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if err = AssertDatabaseVersion(pool, 1); err != nil {
-		return nil, err
+	if err = AssertDatabaseVersion(p, 1); err != nil {
+		return err
 	}
 
-	return pool, nil
+	// Use pool
+	pool = p
+
+	return nil
+}
+
+// Acquire tries to get a database connection
+// from the pool
+func Acquire(ctx context.Context) (*pgxpool.Conn, error) {
+	if pool == nil {
+		return nil, ErrNotInitialized
+	}
+	return pool.Acquire(ctx)
+}
+
+// begin starts a transaction in the database pool.
+func begin(ctx context.Context) (pgx.Tx, error) {
+	if pool == nil {
+		return nil, ErrNotInitialized
+	}
+	return pool.Begin(ctx)
+}
+
+// beginFunc executes a function with a transaction and
+// will forward the error. Rollbacks and commits will
+// be handled.
+func beginFunc(ctx context.Context, fn func(pgx.Tx) error) error {
+	tx, err := begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err := fn(tx); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // AssertDatabaseVersion tests if the current

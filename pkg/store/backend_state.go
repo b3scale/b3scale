@@ -7,6 +7,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v4"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -66,9 +68,9 @@ func InitBackendState(init *BackendState) *BackendState {
 // GetBackendStates retrievs all backends
 func GetBackendStates(
 	ctx context.Context,
+	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) ([]*BackendState, error) {
-	tx := MustTransactionFromContext(ctx)
 	qry, params, _ := q.From("backends").Columns(
 		"backends.id",
 		"backends.node_state",
@@ -124,9 +126,10 @@ func GetBackendStates(
 // GetBackendState tries to retriev a single backend state
 func GetBackendState(
 	ctx context.Context,
+	tx pgx.Tx,
 	q sq.SelectBuilder,
 ) (*BackendState, error) {
-	states, err := GetBackendStates(ctx, q)
+	states, err := GetBackendStates(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +140,12 @@ func GetBackendState(
 }
 
 // Refresh the backend state from the database
-func (s *BackendState) Refresh(ctx context.Context) error {
+func (s *BackendState) Refresh(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	// Load from database
-	next, err := GetBackendState(ctx, Q().Where(
+	next, err := GetBackendState(ctx, tx, Q().Where(
 		sq.Eq{"id": s.ID},
 	))
 	if err != nil {
@@ -153,27 +159,32 @@ func (s *BackendState) Refresh(ctx context.Context) error {
 }
 
 // Save persists the backend state in the database store
-func (s *BackendState) Save(ctx context.Context) error {
+func (s *BackendState) Save(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	var (
 		err error
 		id  string
 	)
 	if s.CreatedAt.IsZero() {
-		id, err = s.insert(ctx)
+		id, err = s.insert(ctx, tx)
 		s.ID = id
 	} else {
-		err = s.update(ctx)
+		err = s.update(ctx, tx)
 	}
 	if err != nil {
 		return err
 	}
 
-	return s.Refresh(ctx)
+	return s.Refresh(ctx, tx)
 }
 
 // Private insert: adds a new row to the backends table
-func (s *BackendState) insert(ctx context.Context) (string, error) {
-	tx := MustTransactionFromContext(ctx)
+func (s *BackendState) insert(
+	ctx context.Context,
+	tx pgx.Tx,
+) (string, error) {
 	qry := `
 		INSERT INTO backends (
 			host,
@@ -196,14 +207,17 @@ func (s *BackendState) insert(ctx context.Context) (string, error) {
 		s.Backend.Secret,
 		s.NodeState,
 		s.AdminState,
-		s.Tags, s.LoadFactor).Scan(&insertID)
+		s.Tags,
+		s.LoadFactor).Scan(&insertID)
 
 	return insertID, err
 }
 
 // Private update: updates the db row
-func (s *BackendState) update(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *BackendState) update(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	qry := `
 		UPDATE backends
 		   SET node_state   = $2,
@@ -245,8 +259,10 @@ func (s *BackendState) update(ctx context.Context) error {
 }
 
 // Delete will remove the backend from the store
-func (s *BackendState) Delete(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *BackendState) Delete(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	// For now we take all the meetings with us.
 	qry := `
 		DELETE FROM meetings WHERE backend_id = $1
@@ -267,8 +283,10 @@ func (s *BackendState) Delete(ctx context.Context) error {
 
 // UpdateAgentHeartbeat will set the attribute to the
 // current timestamp
-func (s *BackendState) UpdateAgentHeartbeat(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *BackendState) UpdateAgentHeartbeat(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	qry := `
 		UPDATE backends
 		   SET agent_heartbeat = $2
@@ -293,8 +311,10 @@ func (s *BackendState) IsAgentAlive() bool {
 }
 
 // ClearMeetings will remove all meetings in the current state
-func (s *BackendState) ClearMeetings(ctx context.Context) error {
-	tx := MustTransactionFromContext(ctx)
+func (s *BackendState) ClearMeetings(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
 	qry := `
 		DELETE FROM meetings WHERE backend_id = $1
 	`
@@ -310,12 +330,11 @@ func (s *BackendState) ClearMeetings(ctx context.Context) error {
 // and attendees for a given backendID
 func updateBackendStatCounters(
 	ctx context.Context,
+	tx pgx.Tx,
 	backendID string,
 ) error {
-	tx := MustTransactionFromContext(ctx)
-
 	// Get meeting states and refresh counters
-	mstates, err := GetMeetingStates(ctx, Q().
+	mstates, err := GetMeetingStates(ctx, tx, Q().
 		Where("meetings.backend_id = ?", backendID))
 	if err != nil {
 		return err
@@ -342,34 +361,70 @@ func updateBackendStatCounters(
 }
 
 // UpdateStatCounters counts meetings and attendees and updates the properties
-func (s *BackendState) UpdateStatCounters(ctx context.Context) error {
-	return updateBackendStatCounters(ctx, s.ID)
+func (s *BackendState) UpdateStatCounters(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
+	return updateBackendStatCounters(ctx, tx, s.ID)
 }
 
 // CreateMeetingState will create a new state for the
-// current backend state. A frontend is attached.
+// current backend state. A frontend is attached if present.
 func (s *BackendState) CreateMeetingState(
 	ctx context.Context,
+	tx pgx.Tx,
 	frontend *bbb.Frontend,
 	meeting *bbb.Meeting,
 ) (*MeetingState, error) {
-	// Combine frontend and backend state together
-	// with meeting data into a meeting state.
-	fstate, err := GetFrontendState(ctx, Q().
-		Where("key = ?", frontend.Key))
-	if err != nil {
-		return nil, err
-	}
-	if fstate == nil {
-		return nil, ErrFrontendRequired
-	}
 	mstate := InitMeetingState(&MeetingState{
-		BackendID:  &s.ID,
-		FrontendID: &fstate.ID,
-		Meeting:    meeting,
+		BackendID: &s.ID,
+		Meeting:   meeting,
 	})
-	if err := mstate.Save(ctx); err != nil {
+	mstate.MarkSynced()
+
+	// Attach frontend if present
+	if frontend != nil {
+		// Combine frontend and backend state together
+		// with meeting data into a meeting state.
+		fstate, err := GetFrontendState(ctx, tx, Q().
+			Where("key = ?", frontend.Key))
+		if err != nil {
+			return nil, err
+		}
+		mstate.FrontendID = &fstate.ID
+	}
+
+	if err := mstate.Save(ctx, tx); err != nil {
 		return nil, err
 	}
+
 	return mstate, nil
+}
+
+// CreateOrUpdateMeetingState will try to update the meeting
+// or will create a new meeting state if the meeting does
+// not exists. The new meeting will not be associated with
+// a frontend state - however the meeting can later be claimed
+// by a frontend.
+func (s *BackendState) CreateOrUpdateMeetingState(
+	ctx context.Context,
+	tx pgx.Tx,
+	meeting *bbb.Meeting,
+) error {
+	// Try to update the meeting state
+	update, err := UpdateMeetingStateIfExists(ctx, tx, meeting)
+	if err != nil {
+		return err
+	}
+	if update == 0 {
+		// Meeting not found, create the meeting state
+		if _, err := s.CreateMeetingState(ctx, tx, nil, meeting); err != nil {
+			return err
+		}
+		log.Debug().
+			Str("meetingID", meeting.MeetingID).
+			Str("internalMeetingID", meeting.InternalMeetingID).
+			Msg("recovered meeting from backend")
+	}
+	return nil
 }

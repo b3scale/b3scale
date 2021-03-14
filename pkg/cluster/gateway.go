@@ -2,11 +2,29 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
+)
+
+// Errors
+var (
+	// ErrNoBackendInContext will be returned when no backends
+	// could be associated with the request.
+	ErrNoBackendInContext = errors.New("no backend in context")
+
+	// ErrNoFrontendInContext will be returned when no frontend
+	// is associated with the request.
+	ErrNoFrontendInContext = errors.New("no fontend in context")
+
+	// ErrBackendNotReady will only occure when the routing
+	// selected a backend that can not accept any requests
+	ErrBackendNotReady = errors.New("backend not ready")
 )
 
 // GatewayOptions have flags for customizing the gateway behaviour.
@@ -47,24 +65,30 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 		// Get backend and frontend
 		backends := BackendsFromContext(ctx)
 		if len(backends) == 0 {
-			return nil, fmt.Errorf("no backend in context")
+			return nil, ErrNoBackendInContext
 		}
 		backend := backends[0]
 
 		frontend := FrontendFromContext(ctx)
 		if frontend == nil {
-			return nil, fmt.Errorf("no frontend in context")
+			return nil, ErrNoFrontendInContext
 		}
 
 		// Check if the backend is ready to accept requests:
 		if backend.state.NodeState != BackendStateReady {
-			return nil, fmt.Errorf("backend not ready")
-			// This should however not happen!
+			return nil, ErrBackendNotReady
 		}
 
 		// Make sure the meeting is associated with the backend
 		if meetingID, ok := req.Params.MeetingID(); ok {
-			meeting, err := ctrl.GetMeetingStateByID(ctx, meetingID)
+			// Next, we have to access our shared state
+			tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+			if err != nil {
+				return nil, err
+			}
+			defer tx.Rollback(ctx)
+
+			meeting, err := store.GetMeetingStateByID(ctx, tx, meetingID)
 			if err != nil {
 				log.Error().
 					Err(err).
@@ -73,14 +97,19 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 			} else {
 				if meeting != nil {
 					// Assign to backend
-					if err := meeting.SetBackendID(ctx, backend.ID()); err != nil {
+					if err := meeting.SetBackendID(ctx, tx, backend.ID()); err != nil {
 						return nil, err
 					}
 					// Assign frontend if not present
-					if err := meeting.BindFrontendID(ctx, frontend.state.ID); err != nil {
+					if err := meeting.BindFrontendID(ctx, tx, frontend.state.ID); err != nil {
 						return nil, err
 					}
 				}
+			}
+
+			// Persist changes and close transaction
+			if err := tx.Commit(ctx); err != nil {
+				return nil, err
 			}
 		}
 
@@ -136,7 +165,11 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 // chain. We will always return a bbb response.
 // Any error occoring during routing or dispatching will be
 // encoded as an BBB XML Response.
-func (gw *Gateway) Dispatch(ctx context.Context, req *bbb.Request) bbb.Response {
+func (gw *Gateway) Dispatch(
+	ctx context.Context,
+	conn *pgxpool.Conn,
+	req *bbb.Request,
+) bbb.Response {
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()
 

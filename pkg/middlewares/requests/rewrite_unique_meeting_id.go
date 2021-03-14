@@ -71,6 +71,9 @@ func maybeDecodeMeetingID(id string) string {
 // Apply the meetingID rewrite to meetingID fields
 // of a meeting and breakout.
 func maybeRewriteMeeting(m *bbb.Meeting) *bbb.Meeting {
+	if m == nil {
+		return nil
+	}
 	m.MeetingID = maybeDecodeMeetingID(m.MeetingID)
 	if m.Breakout != nil {
 		m.Breakout.ParentMeetingID = maybeDecodeMeetingID(

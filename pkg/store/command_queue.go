@@ -26,7 +26,7 @@ const cmdQueue = "commands_queue"
 // CommandHandler is a callback function for handling
 // commands. The command was successful if no error was
 // returned.
-type CommandHandler func(*Command) (interface{}, error)
+type CommandHandler func(context.Context, *Command) (interface{}, error)
 
 // A Command is a representation of an operation
 type Command struct {
@@ -44,35 +44,28 @@ type Command struct {
 	StoppedAt *time.Time
 	CreatedAt time.Time
 
-	pool *pgxpool.Pool
+	tx pgx.Tx
 }
 
 // FetchParams loads the parameters and decodes them
-func (cmd *Command) FetchParams(req interface{}) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
-	qry := `
-		SELECT params
-		  FROM commands WHERE id = $1
-	`
-	return cmd.pool.QueryRow(ctx, qry, cmd.ID).Scan(req)
+func (cmd *Command) FetchParams(
+	ctx context.Context,
+	req interface{},
+) error {
+	qry := `SELECT params FROM commands WHERE id = $1`
+	return cmd.tx.QueryRow(ctx, qry, cmd.ID).Scan(req)
 }
 
 // The CommandQueue is connected to the database and
 // provides methods for queuing and dequeuing commands.
 type CommandQueue struct {
-	pool         *pgxpool.Pool
 	subscription *pgxpool.Conn
 }
 
 // NewCommandQueue initializes a new command queue
-func NewCommandQueue(pool *pgxpool.Pool) *CommandQueue {
+func NewCommandQueue() *CommandQueue {
 	// Subscribe to notifications
-	return &CommandQueue{
-		pool: pool,
-	}
+	return &CommandQueue{}
 }
 
 // Subscribe will let the queue listen for notifications
@@ -85,7 +78,7 @@ func (q *CommandQueue) subscribe() error {
 		context.Background(), time.Second)
 	defer cancel()
 
-	conn, err := q.pool.Acquire(ctx)
+	conn, err := Acquire(ctx)
 	if err != nil {
 		return err
 	}
@@ -99,12 +92,8 @@ func (q *CommandQueue) subscribe() error {
 	return nil
 }
 
-// Queue adds a new command to the queue
-func (q *CommandQueue) Queue(cmd *Command) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second)
-	defer cancel()
-
+// QueueCommand adds a new command to the queue
+func QueueCommand(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 	// Our command will always expire. For now 2 minutes.
 	deadline := time.Now().UTC().Add(120 * time.Second)
 	// Marshal payload
@@ -120,8 +109,7 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 	  )
 	  RETURNING id`
 	var cmdID string
-	err = q.pool.
-		QueryRow(ctx, qry, cmd.Action, params, deadline).
+	err = tx.QueryRow(ctx, qry, cmd.Action, params, deadline).
 		Scan(&cmdID)
 	if err != nil {
 		return err
@@ -130,7 +118,6 @@ func (q *CommandQueue) Queue(cmd *Command) error {
 	// Update command
 	cmd.ID = cmdID
 	cmd.CreatedAt = time.Now().UTC()
-
 	return nil
 }
 
@@ -150,9 +137,10 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 		// if we got informed that there is a job waiting.
 		ctx, cancel := context.WithTimeout(
 			context.Background(), time.Second)
-		defer cancel()
 		// Await command, after a timeout just try to dequeue
 		_, err := q.subscription.Conn().WaitForNotification(ctx)
+		cancel() // Invalidate context
+
 		if err != nil {
 			q.subscription.Release()
 			q.subscription = nil
@@ -172,6 +160,7 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 		// Start processing in the background, so we can take
 		// care of the next incomming command.
 		go func(q *CommandQueue) {
+
 			err := q.process(handler)
 			if err != nil {
 				log.Error().
@@ -188,6 +177,17 @@ func safeExecHandler(
 	handler CommandHandler,
 	errc chan error,
 ) interface{} {
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 300*time.Second)
+	defer cancel()
+
+	conn, err := Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	ctx = ContextWithConnection(ctx, conn)
+
 	defer func(e chan error) {
 		if r := recover(); r != nil {
 			e <- fmt.Errorf("%v", r)
@@ -195,8 +195,9 @@ func safeExecHandler(
 	}(errc)
 
 	// Run handler
-	res, err := handler(cmd)
+	res, err := handler(ctx, cmd)
 	errc <- err
+
 	return res
 }
 
@@ -204,6 +205,19 @@ func safeExecHandler(
 // handler function to it. If not command was dequeued 'false'
 // will be returned.
 func (q *CommandQueue) process(handler CommandHandler) error {
+	// Begin transaction with a total timelimit
+	// of 300 seconds for the entire command
+	startedAt := time.Now()
+	ctx, cancel := context.WithTimeout(
+		context.Background(), 300*time.Second)
+	defer cancel()
+
+	tx, err := begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	// We dequeue and fetch a command within a transaction.
 	// During handling the command will be locked.
 	qry := `
@@ -219,21 +233,8 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		 LIMIT 1
 		   FOR UPDATE SKIP LOCKED`
 
-	// Begin transaction with a total timelimit
-	// of 60 seconds for the entire command
-	startedAt := time.Now()
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 60*time.Second)
-	defer cancel()
-
-	tx, err := q.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
 	// Select command
-	cmd := &Command{pool: q.pool}
+	cmd := &Command{}
 	err = tx.QueryRow(ctx, qry).Scan(
 		&cmd.ID,
 		&cmd.Seq,
@@ -245,6 +246,8 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	} else if err != nil {
 		return err
 	}
+
+	cmd.tx = tx
 
 	// Check deadline
 	state := "success"

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/uuid"
@@ -20,8 +21,9 @@ func frontendStateFactory() *FrontendState {
 }
 
 func TestFrontendStateSave(t *testing.T) {
-	ctx, end := beginTest(t)
-	defer end()
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
 
 	state := frontendStateFactory()
 
@@ -29,7 +31,7 @@ func TestFrontendStateSave(t *testing.T) {
 	if state.ID != "" {
 		t.Log("Unexcted empty ID for new state:", state.ID)
 	}
-	if err := state.Save(ctx); err != nil {
+	if err := state.Save(ctx, tx); err != nil {
 		t.Error()
 	}
 	if state.ID == "" {
@@ -39,7 +41,7 @@ func TestFrontendStateSave(t *testing.T) {
 
 	// Update
 	state.Active = false
-	if err := state.Save(ctx); err != nil {
+	if err := state.Save(ctx, tx); err != nil {
 		t.Error(err)
 	}
 
@@ -49,13 +51,15 @@ func TestFrontendStateSave(t *testing.T) {
 }
 
 func TestGetFrontendState(t *testing.T) {
-	ctx, end := beginTest(t)
-	defer end()
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
 	state := frontendStateFactory()
-	if err := state.Save(ctx); err != nil {
+	if err := state.Save(ctx, tx); err != nil {
 		t.Error(err)
 	}
-	ret, err := GetFrontendState(ctx, Q().
+	ret, err := GetFrontendState(ctx, tx, Q().
 		Where("key = ?", state.Frontend.Key))
 	if err != nil {
 		t.Error(err)

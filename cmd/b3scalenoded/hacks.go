@@ -27,9 +27,15 @@ func awaitInternalMeeting(
 	deadlineAfter time.Duration,
 ) (*store.MeetingState, error) {
 	t0 := time.Now()
-
 	for {
-		mstate, err := store.GetMeetingState(ctx, store.Q().
+		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+		if err != nil {
+			time.Sleep(150 * time.Millisecond)
+			continue
+		}
+		defer tx.Rollback(ctx)
+
+		mstate, err := store.GetMeetingState(ctx, tx, store.Q().
 			Where("meetings.internal_id = ?", internalID))
 		if err != nil {
 			return nil, err
@@ -37,6 +43,8 @@ func awaitInternalMeeting(
 		if mstate != nil {
 			return mstate, nil
 		}
+
+		tx.Rollback(ctx) // Close transaction
 
 		dt := time.Now().Sub(t0)
 		if dt > deadlineAfter {

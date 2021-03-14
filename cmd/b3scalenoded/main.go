@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -30,45 +29,38 @@ func init() {
 		&autoregister, "a", false, usage+" (shorthand)")
 }
 
-type txFunc func(context.Context) error
-
-func withTransactionContext(
-	pool *pgxpool.Pool,
-	timeout time.Duration,
-	txFunc txFunc,
-) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-	ctx = store.ContextWithTransaction(ctx, tx)
-
-	if err := txFunc(ctx); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
-}
-
-func heartbeat(pool *pgxpool.Pool, backend *store.BackendState) {
-	timeout := 10 * time.Second
+func heartbeat(backend *store.BackendState) {
+	ctx := context.Background()
 	for {
-		if err := withTransactionContext(pool, timeout, func(ctx context.Context) error {
-			return backend.UpdateAgentHeartbeat(ctx)
-		}); err != nil {
+		conn, err := store.Acquire(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("could not get heartbeat connection")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("could not start heartbeat tx")
+		}
+
+		if err := backend.UpdateAgentHeartbeat(ctx, tx); err != nil {
 			log.Error().
 				Err(err).
 				Msg("update heartbeat failed")
+			tx.Rollback(ctx)
+		} else {
+			tx.Commit(ctx)
 		}
+
+		conn.Release()
+
 		time.Sleep(1 * time.Second)
 	}
 }
 
 func main() {
+	ctx := context.Background()
+
 	fmt.Printf("b3scale node agent		v.%s\n", config.Version)
 
 	// Check if the enviroment was configured, when not try to
@@ -105,17 +97,16 @@ func main() {
 
 	log.Info().Msg("booting b3scalenoded")
 	// Initialize postgres connection
-	pool, err := store.Connect(&store.ConnectOpts{
+	if err := store.Connect(&store.ConnectOpts{
 		URL:      dbConnStr,
 		MaxConns: 16,
 		MinConns: 1,
-	})
-	if err != nil {
+	}); err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}
 
 	// Get backend state, register backend if missing
-	backend, err := configToBackendState(pool, bbbConf)
+	backend, err := configToBackendState(ctx, bbbConf)
 	if err != nil {
 		log.Fatal().Err(err).Msg("load backend state")
 	}
@@ -126,7 +117,7 @@ func main() {
 					"consider using the autoregister option " +
 					" -register (or -a)")
 		}
-		backend, err = configRegisterBackendState(pool, bbbConf)
+		backend, err = configRegisterBackendState(ctx, bbbConf)
 		if err != nil {
 			log.Fatal().
 				Err(err).
@@ -136,9 +127,20 @@ func main() {
 
 	// Set backend load factor
 	backend.LoadFactor = loadFactor
-	if err := withTransactionContext(pool, 10*time.Second, func(ctx context.Context) error {
-		return backend.Save(ctx)
-	}); err != nil {
+
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("could not get connection")
+	}
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("could not get transaction")
+	}
+	if err := backend.Save(ctx, tx); err != nil {
 		log.Fatal().
 			Err(err).
 			Msg("could not set backend load factor")
@@ -146,6 +148,12 @@ func main() {
 	log.Info().
 		Float64("loadFactor", loadFactor).
 		Msg("setting load_factor")
+	if err := tx.Commit(ctx); err != nil {
+		log.Error().
+			Err(err).
+			Msg("setting load_factor")
+	}
+	conn.Release()
 
 	// Make redis client
 	redisOpts, err := redis.ParseURL(configRedisURL(bbbConf))
@@ -154,7 +162,7 @@ func main() {
 	}
 
 	// Mark the presence of the noded
-	go heartbeat(pool, backend)
+	go heartbeat(backend)
 
 	rdb := redis.NewClient(redisOpts)
 	monitor := events.NewMonitor(rdb)
@@ -163,10 +171,11 @@ func main() {
 		// We are handling an event in it's own goroutine
 		go func(ev bbb.Event) {
 			handler := NewEventHandler(backend)
-			err := withTransactionContext(
-				pool, 10*time.Second, func(ctx context.Context) error {
-					return handler.Dispatch(ctx, ev)
-				})
+			ctx, cancel := context.WithTimeout(
+				context.Background(), 15*time.Second)
+			defer cancel()
+
+			err := handler.Dispatch(ctx, ev)
 			if err != nil {
 				log.Error().
 					Err(err).

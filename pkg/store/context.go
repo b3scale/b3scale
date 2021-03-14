@@ -2,28 +2,42 @@ package store
 
 import (
 	"context"
+	"errors"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 type storeContextKey int
 
-// Context keys
+// ContextKeys for a store context
 var (
-	txContextKey = storeContextKey(1)
+	connectionContextKey = storeContextKey(1)
 )
 
-// ContextWithTransaction adds a transaction to a context
-func ContextWithTransaction(ctx context.Context, tx pgx.Tx) context.Context {
-	return context.WithValue(ctx, txContextKey, tx)
+// Errors
+var (
+	// ErrNoConnectionInConfig will occure when the connection
+	// is not available in the context.
+	ErrNoConnectionInConfig = errors.New("connection missing in context")
+)
+
+// ContextWithConnection will return a child context
+// with a value for connection.
+func ContextWithConnection(
+	ctx context.Context,
+	conn *pgxpool.Conn,
+) context.Context {
+	return context.WithValue(ctx, connectionContextKey, conn)
 }
 
-// MustTransactionFromContext retrievs a transaction.
-// If the transaction is missing we panic.
-func MustTransactionFromContext(ctx context.Context) pgx.Tx {
-	tx, ok := ctx.Value(txContextKey).(pgx.Tx)
+// ConnectionFromContext will retrieve the connection.
+func ConnectionFromContext(ctx context.Context) *pgxpool.Conn {
+	conn, ok := ctx.Value(connectionContextKey).(*pgxpool.Conn)
 	if !ok {
-		panic("context requires a transaction")
+		panic(ErrNoConnectionInConfig)
 	}
-	return tx
+	if conn == nil {
+		panic(ErrNoConnectionInConfig)
+	}
+	return conn
 }

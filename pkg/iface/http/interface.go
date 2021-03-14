@@ -17,6 +17,11 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
+const (
+	// RequestTimeout until the request has to be finished
+	RequestTimeout = 60 * time.Second
+)
+
 // Interface provides the http server for the
 // application.
 type Interface struct {
@@ -43,7 +48,7 @@ func NewInterface(
 	// in order of Use.
 	e.Use(middleware.Recover())
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		Timeout: 45 * time.Second,
+		Timeout: RequestTimeout,
 	}))
 	e.Use(lecho.Middleware(lecho.Config{
 		Logger: logger,
@@ -71,8 +76,15 @@ func NewInterface(
 // Start the HTTP interface
 func (iface *Interface) Start(listen string) {
 	log.Info().Msg("starting interface: HTTP")
+	s := &http.Server{
+		Addr:              listen,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
 	log.Fatal().
-		Err(iface.echo.Start(listen)).
+		Err(iface.echo.StartServer(s)).
 		Msg("starting http server")
 }
 

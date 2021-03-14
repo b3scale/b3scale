@@ -11,19 +11,19 @@ import (
 func TestSortBackendByLoad(t *testing.T) {
 
 	b := []*cluster.Backend{
-		cluster.NewBackend(nil, &store.BackendState{
+		cluster.NewBackend(&store.BackendState{
 			ID:             "A",
 			MeetingsCount:  20,
 			LoadFactor:     1,
 			AttendeesCount: 12,
 		}),
-		cluster.NewBackend(nil, &store.BackendState{
+		cluster.NewBackend(&store.BackendState{
 			ID:             "B",
 			MeetingsCount:  10,
 			LoadFactor:     1,
 			AttendeesCount: 12,
 		}),
-		cluster.NewBackend(nil, &store.BackendState{
+		cluster.NewBackend(&store.BackendState{
 			ID:             "C",
 			MeetingsCount:  0,
 			LoadFactor:     1,

@@ -7,13 +7,20 @@ import (
 	"sync"
 	"time"
 
-	sq "github.com/Masterminds/squirrel"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
+)
+
+const (
+	// MeetingSyncInterval is the amount of time after a
+	// meeting state is considered stale and should be refreshed.
+	MeetingSyncInterval = 15 * time.Second
+
+	// NodeSyncInterval is the amount of time after a backend
+	// node is considered stale and should be refreshed.
+	NodeSyncInterval = 20 * time.Second
 )
 
 // The Controller interfaces with the state of the cluster
@@ -23,7 +30,6 @@ import (
 // The controller subscribes to commands.
 type Controller struct {
 	cmds *store.CommandQueue
-	pool *pgxpool.Pool
 
 	lastStartBackground time.Time
 	mtx                 sync.Mutex
@@ -32,10 +38,9 @@ type Controller struct {
 // NewController will initialize the cluster controller
 // with a database connection. A BBB client will be created
 // which will be used by the backend instances.
-func NewController(pool *pgxpool.Pool) *Controller {
+func NewController() *Controller {
 	return &Controller{
-		cmds: store.NewCommandQueue(pool),
-		pool: pool,
+		cmds: store.NewCommandQueue(),
 	}
 }
 
@@ -71,44 +76,56 @@ func (c *Controller) Start() {
 }
 
 // StartBackground will be run periodically triggered by
-// requests and should only add tasks to the command queue
+// requests and should only add tasks to the command queue.
+// These tasks will take care of syncing the backends with
+// our state by refreshing nodes and meetings.
 func (c *Controller) StartBackground() {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
 	// Debounce calls to this function
-	if time.Now().Sub(c.lastStartBackground) < 1*time.Second {
+	if time.Now().Sub(c.lastStartBackground) < 10*time.Second {
 		return
 	}
 
-	// Add some jitter
 	c.lastStartBackground = time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	timeout := 10 * time.Second
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("could not acquire connection")
+		return
+	}
+	defer conn.Release()
+	ctx = store.ContextWithConnection(ctx, conn)
 
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
-	err := c.WithTransactionContext(timeout, func(ctx context.Context) error {
-		return c.requestSyncStale(ctx)
-	})
-	if err != nil {
+	if err := c.requestSyncStaleNodes(ctx); err != nil {
 		log.Error().Err(err).Msg("requestSyncStale")
 	}
 
+	// Dispatch refreshing stale meetings if the last
+	// sync was a while ago.
+	/*
+		CAVEAT:
+		This puts a high pressure on the system and might
+		not be necessary. For now this is disabled.
+
+		if err := c.requestSyncStaleMeetings(ctx); err != nil {
+			log.Error().Err(err).Msg("requestSyncStaleMeetings")
+		}
+	*/
+
 	// Dispatch decommissioning of marked backends
-	err = c.WithTransactionContext(timeout, func(ctx context.Context) error {
-		return c.requestBackendDecommissions(ctx)
-	})
-	if err != nil {
+	if err := c.requestBackendDecommissions(ctx); err != nil {
 		log.Error().Err(err).Msg("requestBackendDecommissions")
 	}
 
 	// Check if there are backends where the noded is
 	// not present.
-	err = c.WithTransactionContext(timeout, func(ctx context.Context) error {
-		return c.warnOfflineBackends(ctx)
-	})
-	if err != nil {
+	if err := c.warnOfflineBackends(ctx); err != nil {
 		log.Error().Err(err).Msg("warnOfflineBackends")
 	}
 }
@@ -117,45 +134,27 @@ func (c *Controller) StartBackground() {
 // run the command specific handler. As this is invoked
 // by the CommandQueue, these functions are allowed
 // to crash and will be recovered.
-func (c *Controller) handleCommand(cmd *store.Command) (interface{}, error) {
-	// Begin transaction context
-	timeout := 60 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	tx, err := c.BeginTx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-	ctx = store.ContextWithTransaction(ctx, tx)
-
+func (c *Controller) handleCommand(
+	ctx context.Context,
+	cmd *store.Command,
+) (interface{}, error) {
 	// Invoke command handler
-	var ret interface{}
 	switch cmd.Action {
 	case CmdDecommissionBackend:
 		log.Debug().Str("cmd", CmdDecommissionBackend).Msg("EXEC")
-		ret, err = c.handleDecommissionBackend(ctx, cmd)
+		return c.handleDecommissionBackend(ctx, cmd)
 	case CmdUpdateNodeState:
 		log.Debug().Str("cmd", CmdUpdateNodeState).Msg("EXEC")
-		ret, err = c.handleUpdateNodeState(ctx, cmd)
+		return c.handleUpdateNodeState(ctx, cmd)
 	case CmdUpdateMeetingState:
 		log.Debug().Str("cmd", CmdUpdateMeetingState).Msg("EXEC")
-		ret, err = c.handleUpdateMeetingState(ctx, cmd)
+		return c.handleUpdateMeetingState(ctx, cmd)
 	case CmdEndAllMeetings:
 		log.Debug().Str("cmd", CmdEndAllMeetings).Msg("EXEC")
-		ret, err = c.handleEndAllMeetings(ctx, cmd)
+		return c.handleEndAllMeetings(ctx, cmd)
 	default:
-		ret, err = nil, ErrUnknownCommand
+		return nil, ErrUnknownCommand
 	}
-	// We need to commit now, even in an error case
-	// to persist the logged error in the database
-	if commitErr := tx.Commit(ctx); commitErr != nil {
-		return nil, commitErr
-	}
-	if err != nil {
-		return ret, err
-	}
-	return ret, nil
 }
 
 // Command: DecommissionBackend
@@ -165,12 +164,18 @@ func (c *Controller) handleDecommissionBackend(
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &DecommissionBackendRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
 
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	// Get backend for decommissioning
-	bstate, err := store.GetBackendState(ctx, store.Q().
+	bstate, err := store.GetBackendState(ctx, tx, store.Q().
 		Where("id = ?", req.ID))
 	if err != nil {
 		return nil, err
@@ -184,7 +189,7 @@ func (c *Controller) handleDecommissionBackend(
 	// However, as the admin state indicates a non ready state
 	// the router will not longer select this backend
 	// for new meetings - so we are good to go here.
-	mstates, err := store.GetMeetingStates(ctx, store.Q().
+	mstates, err := store.GetMeetingStates(ctx, tx, store.Q().
 		Where("meetings.backend_id = ?", req.ID).
 		Where("meetings.state->'Running' = ?", true))
 	if err != nil {
@@ -201,7 +206,11 @@ func (c *Controller) handleDecommissionBackend(
 
 	// Decommission backend by deleting the state
 	// and related meetings
-	if err := bstate.Delete(ctx); err != nil {
+	if err := bstate.Delete(ctx, tx); err != nil {
+		return false, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return false, err
 	}
 
@@ -215,10 +224,11 @@ func (c *Controller) handleUpdateNodeState(
 ) (interface{}, error) {
 	// Get backend from command
 	req := &UpdateNodeStateRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
-	backend, err := c.GetBackend(ctx, store.Q().
+
+	backend, err := GetBackend(ctx, store.Q().
 		Where("id = ?", req.ID))
 	if err != nil {
 		return false, err
@@ -226,10 +236,12 @@ func (c *Controller) handleUpdateNodeState(
 	if backend == nil {
 		return false, fmt.Errorf("backend not found: %s", req.ID)
 	}
-	err = backend.loadNodeState(ctx)
+
+	err = backend.refreshNodeState(ctx)
 	if err != nil {
 		return false, err
 	}
+
 	return true, nil
 }
 
@@ -240,12 +252,18 @@ func (c *Controller) handleUpdateMeetingState(
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &UpdateMeetingStateRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
 
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
 	// Get meeting from store
-	mstate, err := store.GetMeetingState(ctx, store.Q().
+	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("id = ?", req.ID))
 	if err != nil {
 		log.Error().
@@ -254,14 +272,20 @@ func (c *Controller) handleUpdateMeetingState(
 		return nil, err
 	}
 	if mstate == nil {
-		log.Info().
+		log.Debug().
 			Str("meetingID", req.ID).
 			Msg("meeting is already gone; refesh canceled")
-		return false, fmt.Errorf("meeting not found: %s", req.ID)
+		return false, nil
+	}
+
+	// Debounce: Do not refresh the meeting state more than
+	// once in 15 seconds (MeetingSyncInterval)
+	if !mstate.IsStale(MeetingSyncInterval) {
+		return false, nil
 	}
 
 	// Get Backend
-	backend, err := c.GetBackend(ctx, store.Q().
+	backend, err := GetBackend(ctx, store.Q().
 		Where("id = ?", mstate.BackendID))
 	if err != nil {
 		log.Error().Err(err).Msg("GetBackend")
@@ -289,10 +313,11 @@ func (c *Controller) handleEndAllMeetings(
 	cmd *store.Command,
 ) (interface{}, error) {
 	req := &EndAllMeetingsRequest{}
-	if err := cmd.FetchParams(req); err != nil {
+	if err := cmd.FetchParams(ctx, req); err != nil {
 		return nil, err
 	}
-	backend, err := c.GetBackend(ctx, store.Q().
+
+	backend, err := GetBackend(ctx, store.Q().
 		Where("id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
@@ -303,11 +328,19 @@ func (c *Controller) handleEndAllMeetings(
 
 	// Send end for all *known* meetings. (We however, should *know*
 	// all meetings on the backend after a while.)
-	mstates, err := store.GetMeetingStates(ctx, store.Q().
+
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	mstates, err := store.GetMeetingStates(ctx, tx, store.Q().
 		Where("backend_id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
 	}
+	tx.Rollback(ctx) // We should not block the connection any longer
 
 	for _, m := range mstates {
 		log.Info().
@@ -339,15 +372,21 @@ func (c *Controller) handleEndAllMeetings(
 
 // Internal command generators
 
-// requestSyncStale triggers a background sync of the
+// requestSyncStaleNodes triggers a background sync of the
 // entire node state
-func (c *Controller) requestSyncStale(ctx context.Context) error {
+func (c *Controller) requestSyncStaleNodes(ctx context.Context) error {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	log.Debug().Msg("starting stale node refresh")
-	stale, err := c.GetBackends(ctx, store.Q().
+	stale, err := store.GetBackendStates(ctx, tx, store.Q().
 		Where(`now() - COALESCE(
 				synced_at,
 				TIMESTAMP '0001-01-01 00:00:00') > ?`,
-			time.Duration(10*time.Second)).
+			NodeSyncInterval).
 		Where("admin_state <> ?", "init"))
 	if err != nil {
 		return err
@@ -357,15 +396,60 @@ func (c *Controller) requestSyncStale(ctx context.Context) error {
 	for _, b := range stale {
 		log.Debug().
 			Str("cmd", "UpdateNodeState").
-			Str("id", b.state.ID).
+			Str("id", b.ID).
 			Msg("DISPATCH")
-		if err := c.cmds.Queue(
+		if err := store.QueueCommand(ctx, tx,
 			UpdateNodeState(&UpdateNodeStateRequest{
-				ID: b.state.ID,
+				ID: b.ID,
 			})); err != nil {
 			return err
 		}
 	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// requestSyncStaleMeetings triggers a background sync
+// for meetings that have not been synced in a while.
+func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	log.Debug().Msg("starting stale meeting refresh")
+	stale, err := store.GetMeetingStates(ctx, tx, store.Q().
+		Where(`now() - COALESCE(
+				synced_at,
+				TIMESTAMP '0001-01-01 00:00:00') > ?`,
+			MeetingSyncInterval))
+	if err != nil {
+		return err
+	}
+
+	// For each stale meeting create a refresh request.
+	for _, meeting := range stale {
+		log.Debug().
+			Str("cmd", "UpdateMeetingState").
+			Str("id", meeting.ID).
+			Msg("DISPATCH")
+		if err := store.QueueCommand(ctx, tx,
+			UpdateMeetingState(&UpdateMeetingStateRequest{
+				ID: meeting.ID,
+			})); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -373,8 +457,14 @@ func (c *Controller) requestSyncStale(ctx context.Context) error {
 // of a backend for all backends, which admin state is marked
 // as decommissioned.
 func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	// Get backend states to decommission
-	states, err := store.GetBackendStates(ctx, store.Q().
+	states, err := store.GetBackendStates(ctx, tx, store.Q().
 		Where("admin_state = ?", "decommissioned"))
 	if err != nil {
 		log.Error().Err(err).Msg("decommissioning GetBackendStates")
@@ -392,12 +482,21 @@ func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
 			Str("backendID", s.ID).
 			Msg("requesting backend decommissioning")
 
-		if err := c.cmds.Queue(
+		if err := store.QueueCommand(ctx, tx,
 			DecommissionBackend(&DecommissionBackendRequest{
 				ID: s.ID,
 			})); err != nil {
-
+			log.Error().
+				Err(err).
+				Msg("could not queue decommission backend request")
 		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error().
+			Err(err).
+			Msg("could not commit requestBackendDecommissions")
+		return err
 	}
 
 	return nil
@@ -406,9 +505,15 @@ func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
 // warnOfflineBackends iterates through all unlocked
 // backends and warns the user that there are backends offline
 func (c *Controller) warnOfflineBackends(ctx context.Context) error {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	// Get offline backends
 	deadline := time.Now().UTC().Add(-5 * time.Second)
-	states, err := store.GetBackendStates(ctx, store.Q().
+	states, err := store.GetBackendStates(ctx, tx, store.Q().
 		Where("backends.agent_heartbeat < ?", deadline))
 	if err != nil {
 		return err
@@ -422,120 +527,4 @@ func (c *Controller) warnOfflineBackends(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// GetBackends retrives backends with a store query
-func (c *Controller) GetBackends(
-	ctx context.Context,
-	q sq.SelectBuilder,
-) ([]*Backend, error) {
-	states, err := store.GetBackendStates(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	// Make cluster backend from each state
-	backends := make([]*Backend, 0, len(states))
-	for _, s := range states {
-		backends = append(backends, NewBackend(c.pool, s))
-	}
-
-	return backends, nil
-}
-
-// GetBackend retrievs a single backend by query criteria
-func (c *Controller) GetBackend(
-	ctx context.Context,
-	q sq.SelectBuilder,
-) (*Backend, error) {
-	backends, err := c.GetBackends(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	if len(backends) == 0 {
-		return nil, nil
-	}
-	return backends[0], nil
-}
-
-// GetFrontends retrieves all frontends from
-// the store matchig a query
-func (c *Controller) GetFrontends(
-	ctx context.Context,
-	q sq.SelectBuilder,
-) ([]*Frontend, error) {
-	states, err := store.GetFrontendStates(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	// Make cluster backend from each state
-	frontends := make([]*Frontend, 0, len(states))
-	for _, s := range states {
-		frontends = append(frontends, NewFrontend(s))
-	}
-
-	return frontends, nil
-}
-
-// GetFrontend fetches a frontend with a state from
-// the store
-func (c *Controller) GetFrontend(ctx context.Context, q sq.SelectBuilder) (*Frontend, error) {
-	frontends, err := c.GetFrontends(ctx, q)
-	if err != nil {
-		return nil, err
-	}
-	if len(frontends) == 0 {
-		return nil, nil
-	}
-	return frontends[0], nil
-}
-
-// GetMeetingStateByID fetches a meeting state from the store
-func (c *Controller) GetMeetingStateByID(ctx context.Context, id string) (*store.MeetingState, error) {
-	state, err := store.GetMeetingState(ctx, store.Q().
-		Where("id = ?", id))
-	if err != nil {
-		return nil, err
-	}
-
-	return state, nil
-}
-
-// DeleteMeetingStateByID purges all knowelege of a meeting
-// identified by its ID. If the meeting is unknown, no error
-// is raised.
-func (c *Controller) DeleteMeetingStateByID(ctx context.Context, id string) error {
-	return store.DeleteMeetingStateByInternalID(ctx, id)
-}
-
-// BeginTx starts a new transaction in the pool
-func (c *Controller) BeginTx(ctx context.Context) (pgx.Tx, error) {
-	return c.pool.Begin(ctx)
-}
-
-// TxFunc is a function to be wrapped with
-// a transaction context
-type TxFunc func(ctx context.Context) error
-
-// WithTransactionContext is a decorator function
-// to wrap units of operations in a context with
-// a transaction.
-func (c *Controller) WithTransactionContext(
-	timeout time.Duration,
-	txFunc TxFunc,
-) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	tx, err := c.BeginTx(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-	ctx = store.ContextWithTransaction(ctx, tx)
-
-	if err := txFunc(ctx); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
 }

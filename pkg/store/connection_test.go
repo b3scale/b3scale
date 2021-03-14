@@ -5,24 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v4"
 )
-
-var (
-	pool *pgxpool.Pool
-)
-
-func init() {
-	var err error
-	pool, err = connectTest()
-	if err != nil {
-		panic(err)
-	}
-}
 
 // connectTest to pgx db pool. Use b3scale defaults if
 // environment variable is not set.
-func connectTest() (*pgxpool.Pool, error) {
+func connectTest() error {
 	url := os.Getenv("B3SCALE_TEST_DB_URL")
 	if url == "" {
 		url = "postgres://postgres:postgres@localhost:5432/b3scale_test"
@@ -33,17 +21,17 @@ func connectTest() (*pgxpool.Pool, error) {
 		MaxConns: 16})
 }
 
-type endTestFunc func() error
+func beginTest(ctx context.Context, t *testing.T) pgx.Tx {
+	if pool == nil {
+		if err := connectTest(); err != nil {
+			panic(err)
+		}
+	}
 
-func beginTest(t *testing.T) (context.Context, endTestFunc) {
-	ctx := context.Background()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Error(err)
+		return nil
 	}
-	ctx = ContextWithTransaction(ctx, tx)
-	end := func() error {
-		return tx.Rollback(ctx)
-	}
-	return ctx, end
+	return tx
 }

@@ -2,13 +2,15 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	netHTTP "net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rs/zerolog/log"
+	//	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -29,27 +31,43 @@ func BBBRequestMiddleware(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			ctx := c.Request().Context()
-			tx, err := ctrl.BeginTx(ctx)
-			if err != nil {
-				return err
-			}
-			defer tx.Rollback(ctx)
-			ctx = store.ContextWithTransaction(ctx, tx)
+			// We use the request context. However, for some things
+			// we need to make sure they are persisted even though
+			// the context is canceled. This might happen when the
+			// client disconnects after we made our request to the
+			// backend.
+			// ctx := c.Request().Context()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
 
 			path := c.Path()
 			if !strings.HasPrefix(path, mountPoint) {
 				return next(c) // nothing to do here.
 			}
+
+			// We acquire a connection to the database here,
+			// if this fails it does not really make sense to move on.
+			// TODO: See if we actually can use this context.
+			conn, err := store.Acquire(ctx)
+			if err != nil {
+				return err
+			}
+			defer conn.Release()
+			ctx = store.ContextWithConnection(ctx, conn)
+
 			// Decode HTTP request into a BBB request
 			// and verify it.
 			path = path[len(mountPoint):]
 			frontendKey, resource := decodePath(path)
-			frontend, err := ctrl.GetFrontend(ctx, store.Q().
+
+			frontend, err := cluster.GetFrontend(ctx, store.Q().
 				Where("key = ?", frontendKey))
 			if err != nil {
 				return handleAPIError(c, err)
 			}
+
+			// Check if the frontend could be identified
 			if frontend == nil {
 				return handleAPIError(c, fmt.Errorf(
 					"no such frontend for key: %s", frontendKey))
@@ -76,13 +94,13 @@ func BBBRequestMiddleware(
 				return handleAPIError(c, err)
 			}
 
-			res := gateway.Dispatch(ctx, bbbReq)
-
-			if err := tx.Commit(ctx); err != nil {
-				log.Error().
-					Err(err).
-					Msg("tx commit failed after request")
+			// Before we dispatch, let's check if the original
+			// request context is still valid
+			if err := c.Request().Context().Err(); err != nil {
+				return err
 			}
+
+			res := gateway.Dispatch(ctx, conn, bbbReq)
 
 			return writeBBBResponse(c, res)
 		}
@@ -92,6 +110,11 @@ func BBBRequestMiddleware(
 // writeBBBResponse takes a response from the cluster
 // and writes it as a response to the request.
 func writeBBBResponse(c echo.Context, res bbb.Response) error {
+	// Check if the context is still valid
+	if err := c.Request().Context().Err(); err != nil {
+		return err
+	}
+
 	// When the status is not set assume something went wrong
 	status := res.Status()
 	if status == 0 {

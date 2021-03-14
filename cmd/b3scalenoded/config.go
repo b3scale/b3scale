@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -50,19 +48,20 @@ func configRedisURL(conf config.Properties) string {
 // serverURL und secret we have in the config.
 // Update the secret if it was changed.
 func configToBackendState(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	conf config.Properties,
 ) (*store.BackendState, error) {
-	timeout := 10 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
 
-	tx, err := pool.Begin(ctx)
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	ctx = store.ContextWithTransaction(ctx, tx)
 
 	serverURL, ok := conf.Get(CfgWebServerURL)
 	if !ok {
@@ -74,7 +73,7 @@ func configToBackendState(
 	}
 
 	// Try to get backend
-	state, err := store.GetBackendState(ctx, store.Q().
+	state, err := store.GetBackendState(ctx, tx, store.Q().
 		Where("host ILIKE ?", serverURL+"%"))
 	if err != nil {
 		return nil, err
@@ -92,7 +91,7 @@ func configToBackendState(
 			Msg("updating changed secret for backend")
 
 		state.Backend.Secret = secret
-		if err := state.Save(ctx); err != nil {
+		if err := state.Save(ctx, tx); err != nil {
 			return nil, err
 		}
 	}
@@ -107,19 +106,19 @@ func configToBackendState(
 // Register a new backend at the cluster with
 // data derived from the config
 func configRegisterBackendState(
-	pool *pgxpool.Pool,
+	ctx context.Context,
 	conf config.Properties,
 ) (*store.BackendState, error) {
-	timeout := 10 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	tx, err := pool.Begin(ctx)
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	ctx = store.ContextWithTransaction(ctx, tx)
 
 	serverURL, ok := conf.Get(CfgWebServerURL)
 	if !ok {
@@ -145,7 +144,7 @@ func configRegisterBackendState(
 		},
 		AdminState: "init",
 	})
-	if err := state.Save(ctx); err != nil {
+	if err := state.Save(ctx, tx); err != nil {
 		return nil, err
 	}
 
