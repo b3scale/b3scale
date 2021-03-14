@@ -23,7 +23,7 @@ const (
 
 // Defaults
 const (
-	EnvDbPoolSizeDefault   = 128
+	EnvDbPoolSizeDefault   = "128"
 	EnvDbURLDefault        = "postgres://postgres:postgres@localhost:5432/b3scale"
 	EnvLogLevelDefault     = "info"
 	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S

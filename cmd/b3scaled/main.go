@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -28,9 +30,12 @@ func main() {
 	// Config
 	listenHTTP := config.EnvOpt(config.EnvListenHTTP, config.EnvListenHTTPDefault)
 	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
+	dbPoolSizeStr := config.EnvOpt(config.EnvDbPoolSize, config.EnvDbPoolSizeDefault)
 	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
 	revProxyEnabled := config.IsEnabled(config.EnvOpt(
 		config.EnvReverseProxy, config.EnvReverseProxyDefault))
+
+	dbPoolSize, err := strconv.Atoi(dbPoolSizeStr)
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{
@@ -47,14 +52,18 @@ func main() {
 	}
 
 	// Initialize postgres connection
-	err := store.Connect(&store.ConnectOpts{
+	err = store.Connect(&store.ConnectOpts{
 		URL:      dbConnStr,
-		MaxConns: 64,
+		MaxConns: int32(dbPoolSize),
 		MinConns: 8,
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}
+
+	log.Info().
+		Int("maxConnections", dbPoolSize).
+		Msg("database pool")
 
 	// Initialize cluster
 	ctrl := cluster.NewController()
