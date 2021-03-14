@@ -186,7 +186,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 	secret := ctx.String("secret")
 
 	// Begin TX
-	tx, err := store.Begin(ctx.Context)
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -253,7 +253,7 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	dry := ctx.Bool("dry")
 
 	// Begin TX
-	tx, err := store.Begin(ctx.Context)
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -289,7 +289,7 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 // show a list of all frontends
 func (c *Cli) showFrontends(ctx *cli.Context) error {
 	// Begin TX
-	tx, err := store.Begin(ctx.Context)
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -308,7 +308,7 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 // setBackend manages the backends in the cluster
 func (c *Cli) setBackend(ctx *cli.Context) error {
 	// Begin TX
-	tx, err := store.Begin(ctx.Context)
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -414,7 +414,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 // showBackends displays a list of our backends
 func (c *Cli) showBackends(ctx *cli.Context) error {
 	// Begin TX
-	tx, err := store.Begin(ctx.Context)
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -491,7 +491,7 @@ func (c *Cli) setBackendAdminState(
 	}
 
 	// Begin TX
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -549,7 +549,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	}
 
 	// Begin TX
-	tx, err := store.Begin(ctx.Context)
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -608,7 +608,7 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 	host := ctx.Args().Get(0)
 
 	// Begin TX
-	tx, err := store.Begin(ctx.Context)
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
@@ -643,5 +643,11 @@ func (c *Cli) showVersion(ctx *cli.Context) error {
 
 // Run starts the CLI
 func (c *Cli) Run(ctx context.Context, args []string) error {
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	ctx = store.ContextWithConnection(ctx, conn)
+
 	return c.app.RunContext(ctx, args)
 }

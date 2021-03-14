@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -28,6 +27,13 @@ func NewEventHandler(backend *store.BackendState) *EventHandler {
 
 // Dispatch invokes the handler functions on the BBB event
 func (h *EventHandler) Dispatch(ctx context.Context, e bbb.Event) error {
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+	ctx = store.ContextWithConnection(ctx, conn)
+
 	switch e.(type) {
 	case *bbb.MeetingCreatedEvent:
 		return h.onMeetingCreated(ctx, e.(*bbb.MeetingCreatedEvent))
@@ -78,12 +84,16 @@ func (h *EventHandler) onMeetingCreated(
 	}
 	mstate.Meeting.Running = true
 
-	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-		return mstate.Save(ctx, tx)
-	}); err != nil {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
 		return err
 	}
-	return nil
+	defer tx.Rollback(ctx)
+	if err := mstate.Save(ctx, tx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // handle event: MeetingEnded
@@ -110,12 +120,16 @@ func (h *EventHandler) onMeetingEnded(
 	mstate.Meeting.Running = false
 	mstate.Meeting.Attendees = []*bbb.Attendee{}
 
-	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-		return mstate.Save(ctx, tx)
-	}); err != nil {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
 		return err
 	}
-	return nil
+	defer tx.Rollback(ctx)
+	if err := mstate.Save(ctx, tx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // handle event: MeetingDestroyed
@@ -128,13 +142,16 @@ func (h *EventHandler) onMeetingDestroyed(
 		Msg("meeting destroyed")
 
 	// Delete meeting state
-	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-		return store.DeleteMeetingStateByInternalID(ctx, tx, e.InternalMeetingID)
-	}); err != nil {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if err := store.DeleteMeetingStateByInternalID(ctx, tx, e.InternalMeetingID); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 // handle event: UserJoinedMeeting
@@ -148,7 +165,7 @@ func (h *EventHandler) onUserJoinedMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user joined meeting")
 
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -194,7 +211,7 @@ func (h *EventHandler) onUserLeftMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user left meeting")
 
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return err
 	}

@@ -84,13 +84,21 @@ func (c *Controller) StartBackground() {
 	defer c.mtx.Unlock()
 
 	// Debounce calls to this function
-	if time.Now().Sub(c.lastStartBackground) < 5*time.Second {
+	if time.Now().Sub(c.lastStartBackground) < 10*time.Second {
 		return
 	}
 
 	c.lastStartBackground = time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("could not acquire connection")
+		return
+	}
+	defer conn.Release()
+	ctx = store.ContextWithConnection(ctx, conn)
 
 	// Dispatch loading of the backend state if the
 	// last sync was verly long.
@@ -160,7 +168,7 @@ func (c *Controller) handleDecommissionBackend(
 		return nil, err
 	}
 
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +256,7 @@ func (c *Controller) handleUpdateMeetingState(
 		return nil, err
 	}
 
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +329,7 @@ func (c *Controller) handleEndAllMeetings(
 	// Send end for all *known* meetings. (We however, should *know*
 	// all meetings on the backend after a while.)
 
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +375,7 @@ func (c *Controller) handleEndAllMeetings(
 // requestSyncStaleNodes triggers a background sync of the
 // entire node state
 func (c *Controller) requestSyncStaleNodes(ctx context.Context) error {
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -408,7 +416,7 @@ func (c *Controller) requestSyncStaleNodes(ctx context.Context) error {
 // requestSyncStaleMeetings triggers a background sync
 // for meetings that have not been synced in a while.
 func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -449,7 +457,7 @@ func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
 // of a backend for all backends, which admin state is marked
 // as decommissioned.
 func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -497,7 +505,7 @@ func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
 // warnOfflineBackends iterates through all unlocked
 // backends and warns the user that there are backends offline
 func (c *Controller) warnOfflineBackends(ctx context.Context) error {
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return err
 	}

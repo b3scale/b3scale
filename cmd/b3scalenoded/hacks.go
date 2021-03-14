@@ -28,7 +28,7 @@ func awaitInternalMeeting(
 ) (*store.MeetingState, error) {
 	t0 := time.Now()
 	for {
-		tx, err := store.Begin(ctx)
+		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 		if err != nil {
 			time.Sleep(150 * time.Millisecond)
 			continue

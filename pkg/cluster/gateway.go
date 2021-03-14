@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -81,7 +82,7 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 		// Make sure the meeting is associated with the backend
 		if meetingID, ok := req.Params.MeetingID(); ok {
 			// Next, we have to access our shared state
-			tx, err := store.Begin(ctx)
+			tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -164,7 +165,11 @@ func (gw *Gateway) Use(middleware RequestMiddleware) {
 // chain. We will always return a bbb response.
 // Any error occoring during routing or dispatching will be
 // encoded as an BBB XML Response.
-func (gw *Gateway) Dispatch(ctx context.Context, req *bbb.Request) bbb.Response {
+func (gw *Gateway) Dispatch(
+	ctx context.Context,
+	conn *pgxpool.Conn,
+	req *bbb.Request,
+) bbb.Response {
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()
 

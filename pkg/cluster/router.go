@@ -159,7 +159,7 @@ func (r *Router) lookupBackendForRequest(
 		// The backend associated with the meeting can not be used for
 		// this request. We need to relocate and will destroy the association
 		// with the backend.
-		tx, err := store.Begin(ctx)
+		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 		if err != nil {
 			return nil, err
 		}

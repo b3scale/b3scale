@@ -64,7 +64,9 @@ func GetBackends(
 	ctx context.Context,
 	q sq.SelectBuilder,
 ) ([]*Backend, error) {
-	tx, err := store.Begin(ctx)
+	conn := store.ConnectionFromContext(ctx)
+
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -128,6 +130,14 @@ func (b *Backend) refreshNodeState(
 		Str("backend", b.state.Backend.Host).
 		Msg("processing backend meetings")
 
+	conn := store.ConnectionFromContext(ctx)
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	// Measure latency
 	t0 := time.Now()
 	req := bbb.GetMeetingsRequest(bbb.Params{}).WithBackend(b.state.Backend)
@@ -139,11 +149,10 @@ func (b *Backend) refreshNodeState(
 		b.state.NodeState = "error"
 		b.state.LastError = &errMsg
 
-		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-			return b.state.Save(ctx, tx)
-		}); err != nil {
-			log.Error().Err(err).Msg("save backend state")
+		if err := b.state.Save(ctx, tx); err != nil {
+			return err
 		}
+		return tx.Commit(ctx)
 	}
 	t1 := time.Now()
 	latency := t1.Sub(t0)
@@ -155,11 +164,11 @@ func (b *Backend) refreshNodeState(
 		b.state.LastError = &errMsg
 		b.state.NodeState = "error"
 
-		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-			return b.state.Save(ctx, tx)
-		}); err != nil {
-			log.Error().Err(err).Msg("save backend state")
+		if err := b.state.Save(ctx, tx); err != nil {
+			return err
 		}
+
+		return tx.Commit(ctx)
 	}
 
 	// Update state
@@ -170,18 +179,27 @@ func (b *Backend) refreshNodeState(
 		b.state.NodeState = "ready"
 	}
 
-	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-		return b.state.Save(ctx, tx)
-	}); err != nil {
-		log.Error().Err(err).Msg("save backend state")
+	if err := b.state.Save(ctx, tx); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error().
+			Err(err).
+			Msg("could not save node state - commit error")
 	}
 
 	// Update meetings: 1st pass
 	backendMeetings := make([]string, 0, len(res.Meetings))
 	for _, meeting := range res.Meetings {
-		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-			return b.state.CreateOrUpdateMeetingState(ctx, tx, meeting)
-		}); err != nil {
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			continue
+		}
+		defer tx.Rollback(ctx)
+
+		if err := b.state.CreateOrUpdateMeetingState(ctx, tx, meeting); err != nil {
+			tx.Rollback(ctx)
 			log.Error().
 				Err(err).
 				Str("meetingID", meeting.MeetingID).
@@ -189,31 +207,49 @@ func (b *Backend) refreshNodeState(
 				Msg("could not save meeting state during node refresh")
 			continue
 		}
+
+		if err := tx.Commit(ctx); err != nil {
+			log.Error().Err(err).Msg("commit error")
+			continue
+		}
+
 		backendMeetings = append(backendMeetings, meeting.InternalMeetingID)
 	}
 
 	// Cleanup meetings: 2nd pass
-	if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-		count, err := store.DeleteOrphanMeetings(ctx, tx, b.state.ID, backendMeetings)
-		if err != nil {
-			return err
-		}
+	tx, err = conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
 
-		if count > 0 {
-			log.Warn().
-				Int("orphans", int(count)).
-				Str("backend", b.state.Backend.Host).
-				Msg("removed orphan meetings associated with backend")
-		}
-		return nil
-	}); err != nil {
-		log.Error().Err(err).Msg("commit delete orphans")
+	count, err := store.DeleteOrphanMeetings(ctx, tx, b.state.ID, backendMeetings)
+	if err != nil {
+		return err
 	}
 
-	// Update meetings and attendees counter
-	return store.BeginFunc(ctx, func(tx pgx.Tx) error {
-		return b.state.UpdateStatCounters(ctx, tx)
-	})
+	if count > 0 {
+		log.Warn().
+			Int("orphans", int(count)).
+			Str("backend", b.state.Backend.Host).
+			Msg("removed orphan meetings associated with backend")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	tx, err = conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if err := b.state.UpdateStatCounters(ctx, tx); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // Meeting State Sync: loadMeetingState will make
@@ -226,34 +262,43 @@ func (b *Backend) refreshMeetingState(
 	ctx context.Context,
 	state *store.MeetingState,
 ) error {
+	conn := store.ConnectionFromContext(ctx)
+
 	req := bbb.GetMeetingInfoRequest(bbb.Params{
 		"meetingID": state.ID,
 	}).WithBackend(b.state.Backend)
+
 	rep, err := b.client.Do(ctx, req)
 	if err != nil {
 		return err
 	}
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
 	res := rep.(*bbb.GetMeetingInfoResponse)
 	if res.XMLResponse.Returncode != "SUCCESS" {
 		// The meeting could not be found
 		// For now, let's remove the meeting from our state
-		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-			return store.DeleteMeetingStateByInternalID(
-				ctx,
-				tx,
-				state.InternalID)
-		}); err != nil {
+		if err := store.DeleteMeetingStateByInternalID(
+			ctx, tx, state.InternalID); err != nil {
 			return err
 		}
+
+		return tx.Commit(ctx)
 	}
 
 	// Update meeting state
 	state.Meeting = res.Meeting
 	state.MarkSynced()
 
-	return store.BeginFunc(ctx, func(tx pgx.Tx) error {
-		return state.Save(ctx, tx)
-	})
+	if err := state.Save(ctx, tx); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 // BBB API Implementation
@@ -267,9 +312,10 @@ func meetingStateFromRequest(
 	if !ok {
 		return nil, fmt.Errorf("meetingID required")
 	}
-	// Check if meeting does exist
+
 	meetingState, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("id = ?", meetingID))
+
 	return meetingState, err
 }
 
@@ -290,18 +336,6 @@ func (b *Backend) Create(
 	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.CreateResponse, error) {
-	// TODO: Do we need to switch context here?
-	txctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	// Update or save meeeting state transaction. We acquire this before
-	// doing the backend request so we can make sure it will be commited
-	// and safed.
-	tx, err := store.Begin(txctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(txctx)
 
 	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
@@ -314,12 +348,18 @@ func (b *Backend) Create(
 		return nil, fmt.Errorf("meeting was not created on server")
 	}
 
-	meetingState, err := meetingStateFromRequest(txctx, tx, req)
+	conn := store.ConnectionFromContext(ctx)
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	meetingState, err := meetingStateFromRequest(ctx, tx, req)
 	if err != nil {
 		return nil, err
 	}
 	if meetingState == nil {
-		_, err = b.state.CreateMeetingState(txctx, tx, req.Frontend, createRes.Meeting)
+		_, err = b.state.CreateMeetingState(ctx, tx, req.Frontend, createRes.Meeting)
 		if err != nil {
 			return nil, err
 		}
@@ -327,14 +367,15 @@ func (b *Backend) Create(
 		// Update state, associate with backend and frontend
 		meetingState.Meeting = createRes.Meeting
 		meetingState.SyncedAt = time.Now().UTC()
-		if err := meetingState.Save(txctx, tx); err != nil {
+		if err := meetingState.Save(ctx, tx); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := tx.Commit(txctx); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+
 	return createRes, nil
 }
 
@@ -420,12 +461,16 @@ func (b *Backend) IsMeetingRunning(
 	meetingID, _ := req.Params.MeetingID()
 	if isMeetingRunningRes.Returncode == "ERROR" {
 		// Delete meeting
-		if err := store.BeginFunc(ctx, func(tx pgx.Tx) error {
-			return store.DeleteMeetingStateByID(ctx, tx, meetingID)
-		}); err != nil {
-			log.Error().
-				Err(err).
-				Msg("failed to commit delete meeting")
+		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to start tx")
+		}
+		defer tx.Rollback(ctx)
+		if err := store.DeleteMeetingStateByID(ctx, tx, meetingID); err != nil {
+			log.Error().Err(err).Msg("failed to delete meeting")
+		}
+		if err := tx.Commit(ctx); err != nil {
+			log.Error().Err(err).Msg("failed to commit")
 		}
 	}
 	return isMeetingRunningRes, err
@@ -456,7 +501,7 @@ func (b *Backend) GetMeetingInfo(
 
 	// Update our meeting in the store
 	if res.XMLResponse.Returncode == "SUCCESS" {
-		tx, err := store.Begin(ctx)
+		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -507,7 +552,7 @@ func (b *Backend) GetMeetings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.GetMeetingsResponse, error) {
-	tx, err := store.Begin(ctx)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return nil, err
 	}

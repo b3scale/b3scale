@@ -32,7 +32,13 @@ func init() {
 func heartbeat(backend *store.BackendState) {
 	ctx := context.Background()
 	for {
-		tx, err := store.Begin(ctx)
+		conn, err := store.Acquire(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("could not get heartbeat connection")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		tx, err := conn.Begin(ctx)
 		if err != nil {
 			log.Error().Err(err).Msg("could not start heartbeat tx")
 		}
@@ -45,6 +51,8 @@ func heartbeat(backend *store.BackendState) {
 		} else {
 			tx.Commit(ctx)
 		}
+
+		conn.Release()
 
 		time.Sleep(1 * time.Second)
 	}
@@ -120,13 +128,18 @@ func main() {
 	// Set backend load factor
 	backend.LoadFactor = loadFactor
 
-	tx, err := store.Begin(ctx)
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Msg("could not get connection")
+	}
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		log.Fatal().
 			Err(err).
 			Msg("could not get transaction")
 	}
-
 	if err := backend.Save(ctx, tx); err != nil {
 		log.Fatal().
 			Err(err).
@@ -140,6 +153,7 @@ func main() {
 			Err(err).
 			Msg("setting load_factor")
 	}
+	conn.Release()
 
 	// Make redis client
 	redisOpts, err := redis.ParseURL(configRedisURL(bbbConf))

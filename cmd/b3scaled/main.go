@@ -49,7 +49,7 @@ func main() {
 	// Initialize postgres connection
 	err := store.Connect(&store.ConnectOpts{
 		URL:      dbConnStr,
-		MaxConns: 1024,
+		MaxConns: 64,
 		MinConns: 8,
 	})
 	if err != nil {

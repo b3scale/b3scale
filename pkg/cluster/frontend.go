@@ -47,7 +47,9 @@ func GetFrontends(
 	ctx context.Context,
 	q sq.SelectBuilder,
 ) ([]*Frontend, error) {
-	tx, err := store.Begin(ctx)
+	conn := store.ConnectionFromContext(ctx)
+
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +59,6 @@ func GetFrontends(
 	if err != nil {
 		return nil, err
 	}
-
 	tx.Rollback(ctx)
 
 	// Make cluster backend from each state

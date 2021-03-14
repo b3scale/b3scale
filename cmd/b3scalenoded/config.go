@@ -51,7 +51,13 @@ func configToBackendState(
 	ctx context.Context,
 	conf config.Properties,
 ) (*store.BackendState, error) {
-	tx, err := store.Begin(ctx)
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +109,12 @@ func configRegisterBackendState(
 	ctx context.Context,
 	conf config.Properties,
 ) (*store.BackendState, error) {
-	tx, err := store.Begin(ctx)
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}

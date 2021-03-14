@@ -181,11 +181,12 @@ func safeExecHandler(
 		context.Background(), 300*time.Second)
 	defer cancel()
 
-	tx, err := Begin(ctx)
+	conn, err := Acquire(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer conn.Release()
+	ctx = ContextWithConnection(ctx, conn)
 
 	defer func(e chan error) {
 		if r := recover(); r != nil {
@@ -196,12 +197,6 @@ func safeExecHandler(
 	// Run handler
 	res, err := handler(ctx, cmd)
 	errc <- err
-
-	if err := tx.Commit(ctx); err != nil {
-		log.Error().
-			Err(err).
-			Msg("could not commit background job result")
-	}
 
 	return res
 }
@@ -217,7 +212,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		context.Background(), 300*time.Second)
 	defer cancel()
 
-	tx, err := Begin(ctx)
+	tx, err := begin(ctx)
 	if err != nil {
 		return err
 	}

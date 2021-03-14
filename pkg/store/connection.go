@@ -78,19 +78,19 @@ func Acquire(ctx context.Context) (*pgxpool.Conn, error) {
 	return pool.Acquire(ctx)
 }
 
-// Begin starts a transaction in the database pool.
-func Begin(ctx context.Context) (pgx.Tx, error) {
+// begin starts a transaction in the database pool.
+func begin(ctx context.Context) (pgx.Tx, error) {
 	if pool == nil {
 		return nil, ErrNotInitialized
 	}
 	return pool.Begin(ctx)
 }
 
-// BeginFunc executes a function with a transaction and
+// beginFunc executes a function with a transaction and
 // will forward the error. Rollbacks and commits will
 // be handled.
-func BeginFunc(ctx context.Context, fn func(pgx.Tx) error) error {
-	tx, err := Begin(ctx)
+func beginFunc(ctx context.Context, fn func(pgx.Tx) error) error {
+	tx, err := begin(ctx)
 	if err != nil {
 		return err
 	}
