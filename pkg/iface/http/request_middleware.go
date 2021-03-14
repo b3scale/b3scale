@@ -110,6 +110,11 @@ func BBBRequestMiddleware(
 // writeBBBResponse takes a response from the cluster
 // and writes it as a response to the request.
 func writeBBBResponse(c echo.Context, res bbb.Response) error {
+	// Check if the context is still valid
+	if err := c.Request().Context().Err(); err != nil {
+		return err
+	}
+
 	// When the status is not set assume something went wrong
 	status := res.Status()
 	if status == 0 {
