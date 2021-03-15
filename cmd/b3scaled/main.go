@@ -85,9 +85,8 @@ func main() {
 	go ctrl.Start()
 
 	// Start HTTP interface
-	ifaceHTTP := http.NewInterface("http", ctrl, gateway)
-
-	go ifaceHTTP.Start(listenHTTP)
+	httpServer := http.NewServer("http", ctrl, gateway)
+	go httpServer.Start(listenHTTP)
 
 	<-quit
 }
