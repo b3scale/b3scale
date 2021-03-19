@@ -22,22 +22,21 @@ const (
 	RequestTimeout = 60 * time.Second
 )
 
-// Interface provides the http server for the
-// application.
-type Interface struct {
+// Server provides the http server for the application.
+type Server struct {
 	serviceID  string
 	echo       *echo.Echo
 	gateway    *cluster.Gateway
 	controller *cluster.Controller
 }
 
-// NewInterface configures and creates a new
-// http interface to our cluster gateway.
-func NewInterface(
+// NewServer configures and creates a new http interface
+// to our cluster gateway.
+func NewServer(
 	serviceID string,
 	ctrl *cluster.Controller,
 	gateway *cluster.Gateway,
-) *Interface {
+) *Server {
 	logger := lecho.From(log.Logger)
 
 	// Setup and configure echo framework
@@ -61,22 +60,22 @@ func NewInterface(
 	// We handle BBB requests in a custom middleware
 	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
 
-	iface := &Interface{
+	s := &Server{
 		echo:       e,
 		gateway:    gateway,
 		controller: ctrl,
 	}
 
 	// Register index route
-	e.GET("/", iface.httpIndex)
+	e.GET("/", s.httpIndex)
 
-	return iface
+	return s
 }
 
 // Start the HTTP interface
-func (iface *Interface) Start(listen string) {
+func (s *Server) Start(listen string) {
 	log.Info().Msg("starting interface: HTTP")
-	s := &http.Server{
+	httpServer := &http.Server{
 		Addr:              listen,
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      60 * time.Second,
@@ -84,27 +83,27 @@ func (iface *Interface) Start(listen string) {
 	}
 
 	log.Fatal().
-		Err(iface.echo.StartServer(s)).
+		Err(s.echo.StartServer(httpServer)).
 		Msg("starting http server")
 }
 
 // StartCleartextHTTP2 starts a HTTP2 interface without
 // any TLS encryption.
-func (iface *Interface) StartCleartextHTTP2(listen string) {
-	log.Info().Msg("starting interface: PlaintextHTTP2")
-	s := &http2.Server{
+func (s *Server) StartCleartextHTTP2(listen string) {
+	log.Info().Msg("starting interface: CleartextHTTP2")
+	httpServer := &http2.Server{
 		MaxConcurrentStreams: 200,
 		MaxReadFrameSize:     1048576,
 		IdleTimeout:          10 * time.Second,
 	}
 	log.Fatal().
-		Err(iface.echo.StartH2CServer(listen, s)).
+		Err(s.echo.StartH2CServer(listen, httpServer)).
 		Msg("starting plaintext http2 server")
 
 }
 
 // Index / Root Handler
-func (iface *Interface) httpIndex(c echo.Context) error {
+func (s *Server) httpIndex(c echo.Context) error {
 	return c.HTML(
 		http.StatusOK,
 		fmt.Sprintf(
