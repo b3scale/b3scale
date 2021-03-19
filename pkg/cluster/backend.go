@@ -392,15 +392,13 @@ func (b *Backend) Join(
 	// the backend domain and thus the sessionToken is not accepted
 	// as valid.
 	req = req.WithBackend(b.state.Backend)
+	url := req.URL()
+	body := TmplRedirect(url)
 
 	// Create custom join response
 	res := &bbb.JoinResponse{
 		XMLResponse: new(bbb.XMLResponse),
 	}
-
-	url := req.URL()
-	body := TmplRedirect(url)
-
 	res.SetStatus(http.StatusFound)
 	res.SetRaw(body)
 	res.SetHeader(http.Header{
@@ -582,6 +580,7 @@ func (b *Backend) GetMeetings(
 		},
 		Meetings: meetings,
 	}
+	res.SetStatus(200)
 
 	return res, nil
 }
