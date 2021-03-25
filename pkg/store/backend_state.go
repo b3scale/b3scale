@@ -41,6 +41,8 @@ type BackendState struct {
 
 	Tags []string
 
+	Settings Settings
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	SyncedAt  time.Time
@@ -50,6 +52,9 @@ type BackendState struct {
 // an initial state.
 func InitBackendState(init *BackendState) *BackendState {
 	// Add default values
+	if init.Settings == nil {
+		init.Settings = make(Settings)
+	}
 	if init.NodeState == "" {
 		init.NodeState = "init"
 	}
@@ -84,6 +89,7 @@ func GetBackendStates(
 		"backends.host",
 		"backends.secret",
 		"backends.tags",
+		"backends.settings",
 		"backends.created_at",
 		"backends.updated_at",
 		"backends.synced_at").
@@ -111,6 +117,7 @@ func GetBackendStates(
 			&state.Backend.Host,
 			&state.Backend.Secret,
 			&state.Tags,
+			&state.Settings,
 			&state.CreatedAt,
 			&state.UpdatedAt,
 			&state.SyncedAt)
@@ -194,10 +201,11 @@ func (s *BackendState) insert(
 			admin_state,
 
 			tags,
+			settings,
 
 			load_factor
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
 	insertID := ""
@@ -208,6 +216,7 @@ func (s *BackendState) insert(
 		s.NodeState,
 		s.AdminState,
 		s.Tags,
+		s.Settings,
 		s.LoadFactor).Scan(&insertID)
 
 	return insertID, err
@@ -231,11 +240,12 @@ func (s *BackendState) update(
 			   secret       = $7,
 
 			   tags         = $8,
+			   settings     = $9,
 
-			   load_factor  = $9,
+			   load_factor  = $10,
 
-			   synced_at    = $10,
-			   updated_at   = $11
+			   synced_at    = $11,
+			   updated_at   = $12
 
 		 WHERE id = $1
 	`
@@ -251,6 +261,7 @@ func (s *BackendState) update(
 		s.Backend.Host,
 		s.Backend.Secret,
 		s.Tags,
+		s.Settings,
 		s.LoadFactor,
 		s.SyncedAt,
 		time.Now().UTC())

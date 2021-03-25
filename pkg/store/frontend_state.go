@@ -18,6 +18,8 @@ type FrontendState struct {
 	Active   bool
 	Frontend *bbb.Frontend
 
+	Settings Settings
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -27,6 +29,7 @@ type FrontendState struct {
 func InitFrontendState(init *FrontendState) *FrontendState {
 	if init.Frontend == nil {
 		init.Frontend = &bbb.Frontend{}
+		init.Settings = make(Settings)
 	}
 	return init
 }
@@ -43,6 +46,7 @@ func GetFrontendStates(
 		"key",
 		"secret",
 		"active",
+		"settings",
 		"created_at",
 		"updated_at").
 		From("frontends").
@@ -61,6 +65,7 @@ func GetFrontendStates(
 			&state.ID,
 			&state.Frontend.Key, &state.Frontend.Secret,
 			&state.Active,
+			&state.Settings,
 			&state.CreatedAt, &state.UpdatedAt)
 		if err != nil {
 			return nil, err
@@ -103,9 +108,9 @@ func (s *FrontendState) Save(
 func (s *FrontendState) insert(ctx context.Context, tx pgx.Tx) error {
 	qry := `
 		INSERT INTO frontends (
-			key, secret, active
+			key, secret, active, settings
 		) VALUES (
-			$1, $2, $3
+			$1, $2, $3, $4
 		)
 		RETURNING id, created_at`
 
@@ -116,7 +121,8 @@ func (s *FrontendState) insert(ctx context.Context, tx pgx.Tx) error {
 	if err := tx.QueryRow(ctx, qry,
 		s.Frontend.Key,
 		s.Frontend.Secret,
-		s.Active).Scan(&id, &createdAt); err != nil {
+		s.Active,
+		s.Settings).Scan(&id, &createdAt); err != nil {
 		return err
 	}
 	// Update local state
@@ -133,7 +139,8 @@ func (s *FrontendState) update(ctx context.Context, tx pgx.Tx) error {
 		   SET key        = $2,
 		       secret     = $3,
 			   active     = $4,
-			   updated_at = $5
+			   settings   = $5,
+			   updated_at = $6
 		 WHERE id = $1`
 	if _, err := tx.Exec(ctx, qry,
 		s.ID,
@@ -141,6 +148,7 @@ func (s *FrontendState) update(ctx context.Context, tx pgx.Tx) error {
 		s.Frontend.Key,
 		s.Frontend.Secret,
 		s.Active,
+		s.Settings,
 		s.UpdatedAt); err != nil {
 		return err
 	}
