@@ -44,9 +44,19 @@ func NewCli(
 						Action: c.showBackends,
 					},
 					{
+						Name:   "backend",
+						Usage:  "show a specific cluster backend",
+						Action: c.showBackend,
+					},
+					{
 						Name:   "frontends",
 						Usage:  "show all frontends",
 						Action: c.showFrontends,
+					},
+					{
+						Name:   "frontend",
+						Usage:  "show frontend settings",
+						Action: c.showFrontend,
 					},
 				},
 			},
@@ -75,6 +85,11 @@ func NewCli(
 								Aliases: []string{"s"},
 								Usage:   "the bbb secret",
 							},
+							&cli.StringFlag{
+								Name:    "prop",
+								Aliases: []string{"p"},
+								Usage:   "a generic settings property",
+							},
 						},
 						Action: c.setBackend,
 					},
@@ -83,9 +98,13 @@ func NewCli(
 						Usage: "set frontend params",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:     "secret",
-								Required: true,
-								Usage:    "the frontend specific bbb secret",
+								Name:  "secret",
+								Usage: "the frontend specific bbb secret",
+							},
+							&cli.StringFlag{
+								Name:    "prop",
+								Aliases: []string{"p"},
+								Usage:   "a generic settings property",
 							},
 						},
 						Action: c.setFrontend,
@@ -210,6 +229,10 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 				Secret: secret,
 			},
 		})
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			state.Settings.Set(propKey, propValue)
+		}
 		if !dry {
 			if err := state.Save(ctx.Context, tx); err != nil {
 				return err
@@ -227,6 +250,14 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			}
 			changes = true
 			state.Frontend.Secret = secret
+		}
+
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			if state.Settings.Get(propKey, nil) != propValue {
+				changes = true
+			}
+			state.Settings.Set(propKey, propValue)
 		}
 
 		if !changes {
@@ -284,6 +315,39 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	}
 
 	return tx.Commit(ctx.Context)
+}
+
+// showFrontend displays information about a frontend
+func (c *Cli) showFrontend(ctx *cli.Context) error {
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need frontend key for showing info")
+	}
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
+	frontend, err := store.GetFrontendState(ctx.Context, tx, store.Q().
+		Where("key = ?", key))
+	if err != nil {
+		return err
+	}
+	if frontend == nil {
+		return fmt.Errorf("frontend not found")
+	}
+
+	fmt.Println("Frontend:", frontend.Frontend.Key)
+
+	fmt.Println("Settings:")
+	for k, v := range frontend.Settings {
+		fmt.Printf("\t %s = %s\n", k, v)
+	}
+
+	return nil
 }
 
 // show a list of all frontends
@@ -350,6 +414,10 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			AdminState: adminState,
 			Tags:       tags,
 		})
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			state.Settings.Set(propKey, propValue)
+		}
 		if !dry {
 			if err := state.Save(ctx.Context, tx); err != nil {
 				return err
@@ -383,6 +451,13 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			}
 			changes = true
 		}
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			if state.Settings.Get(propKey, nil) != propValue {
+				changes = true
+			}
+			state.Settings.Set(propKey, propValue)
+		}
 		if changes {
 			if !dry {
 				if err := state.Save(ctx.Context, tx); err != nil {
@@ -409,6 +484,39 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	}
 
 	return tx.Commit(ctx.Context)
+}
+
+// showBackends displays information about our backend
+func (c *Cli) showBackend(ctx *cli.Context) error {
+	host := ctx.Args().Get(0)
+	if host == "" {
+		return fmt.Errorf("need host for showing backend info")
+	}
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
+	backend, err := store.GetBackendState(ctx.Context, tx, store.Q().
+		Where("backends.host = ?", host))
+	if err != nil {
+		return err
+	}
+	if backend == nil {
+		return fmt.Errorf("backend not found")
+	}
+
+	fmt.Println("Backend:", backend.Backend.Host)
+
+	fmt.Println("Settings:")
+	for k, v := range backend.Settings {
+		fmt.Printf("\t %s = %s\n", k, v)
+	}
+
+	return nil
 }
 
 // showBackends displays a list of our backends
@@ -650,4 +758,20 @@ func (c *Cli) Run(ctx context.Context, args []string) error {
 	ctx = store.ContextWithConnection(ctx, conn)
 
 	return c.app.RunContext(ctx, args)
+}
+
+// Helper: parseSetProp will decode a property
+// set request of the form my.key=value.
+// The value is decoded into
+func parseSetProp(prop string) (string, interface{}) {
+	t := strings.Split(prop, "=")
+	if len(t) != 2 {
+		panic("syntax error in prop: must be of format '<key> = <value>'")
+	}
+	key := strings.TrimSpace(t[0])
+	value := strings.TrimSpace(t[1])
+	if value == "" {
+		return key, nil
+	}
+	return key, value
 }

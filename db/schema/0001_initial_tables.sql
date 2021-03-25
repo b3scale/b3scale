@@ -58,6 +58,10 @@ CREATE TABLE backends (
 
     tags    text ARRAY,
 
+    -- Runtime configuration can be added for each backend
+    -- and can then be accessed from within middlewares
+    settings  jsonb NOT NULL DEFAULT '{}'::jsonb,
+
     -- Timestamps
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -72,7 +76,13 @@ CREATE TABLE frontends (
     key     text NOT NULL UNIQUE,
     secret  text NOT NULL,
 
-    active  BOOLEAN NOT NULL DEFAULT true,
+    -- Runtime configuration can be added for each
+    -- frontend. This should be used to save middleware
+    -- settings like for example overriding a default
+    -- presentation with a custom slide on create.
+    settings  jsonb NOT NULL DEFAULT '{}'::jsonb,
+
+    active    BOOLEAN NOT NULL DEFAULT true,
 
     -- Timestamps
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
