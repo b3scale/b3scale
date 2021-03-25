@@ -36,8 +36,15 @@ func maybeUpdateDefaultPresentation(req *bbb.Request, fe *cluster.Frontend) {
 		presentationURL string = fe.Settings().GetString("default_presentation.url", "")
 		force           string = fe.Settings().GetString("default_presentation.force", "")
 	)
+
+	// Are we active?
 	if presentationURL == "" {
 		return // nothing to do here
+	}
+
+	// Is this a create request?
+	if req.Resource != bbb.ResourceCreate {
+		return // Nothing to do here
 	}
 
 	// We have a presentation URL, let's check if there is already
