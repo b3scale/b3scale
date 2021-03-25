@@ -29,6 +29,11 @@ func (f *Frontend) Frontend() *bbb.Frontend {
 	return f.state.Frontend
 }
 
+// Settings gets the state settings
+func (f *Frontend) Settings() store.Settings {
+	return f.state.Settings
+}
+
 // String stringifies the frontend
 func (f *Frontend) String() string {
 	if f.state != nil {

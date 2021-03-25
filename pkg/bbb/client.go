@@ -93,6 +93,9 @@ func (c *Client) Do(ctx context.Context, req *Request) (Response, error) {
 		Str("url", req.URL()).
 		Msg("client request")
 
+	httpReqHeader := req.Request.Header.Clone()
+	httpReqHeader.Del("content-length")
+
 	var bodyReader io.Reader
 	if req.Body != nil {
 		bodyReader = bytes.NewReader(req.Body)
@@ -107,7 +110,7 @@ func (c *Client) Do(ctx context.Context, req *Request) (Response, error) {
 	}
 
 	// Set content type and other request headers
-	httpReq.Header = req.Request.Header.Clone()
+	httpReq.Header = httpReqHeader
 
 	// Perform request
 	httpRes, err := c.conn.Do(httpReq)

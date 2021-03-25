@@ -79,6 +79,7 @@ func main() {
 	})
 
 	gateway.Use(router.Middleware())
+	gateway.Use(requests.DefaultPresentation())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 
 	// Start cluster controller
