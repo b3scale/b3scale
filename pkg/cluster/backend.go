@@ -336,6 +336,12 @@ func (b *Backend) Create(
 	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.CreateResponse, error) {
+	// Ensure content-type is application/xml, because some
+	// frontends do not set this at all and so no presentations
+	// are uploaded.
+	if req.Body != nil {
+		req.Request.Header.Set("content-type", "application/xml")
+	}
 
 	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
