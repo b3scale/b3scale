@@ -75,6 +75,11 @@ func NewCli(
 								Aliases: []string{"s"},
 								Usage:   "the bbb secret",
 							},
+							&cli.StringFlag{
+								Name:    "prop",
+								Aliases: []string{"p"},
+								Usage:   "a generic settings property",
+							},
 						},
 						Action: c.setBackend,
 					},
@@ -83,9 +88,13 @@ func NewCli(
 						Usage: "set frontend params",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:     "secret",
-								Required: true,
-								Usage:    "the frontend specific bbb secret",
+								Name:  "secret",
+								Usage: "the frontend specific bbb secret",
+							},
+							&cli.StringFlag{
+								Name:    "prop",
+								Aliases: []string{"p"},
+								Usage:   "a generic settings property",
 							},
 						},
 						Action: c.setFrontend,
@@ -210,6 +219,10 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 				Secret: secret,
 			},
 		})
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			state.Settings.Set(propKey, propValue)
+		}
 		if !dry {
 			if err := state.Save(ctx.Context, tx); err != nil {
 				return err
@@ -227,6 +240,14 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			}
 			changes = true
 			state.Frontend.Secret = secret
+		}
+
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			if state.Settings.Get(propKey, nil) != propValue {
+				changes = true
+			}
+			state.Settings.Set(propKey, propValue)
 		}
 
 		if !changes {
@@ -350,6 +371,10 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			AdminState: adminState,
 			Tags:       tags,
 		})
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			state.Settings.Set(propKey, propValue)
+		}
 		if !dry {
 			if err := state.Save(ctx.Context, tx); err != nil {
 				return err
@@ -382,6 +407,13 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 				state.AdminState = adminState
 			}
 			changes = true
+		}
+		if ctx.IsSet("prop") {
+			propKey, propValue := parseSetProp(ctx.String("prop"))
+			if state.Settings.Get(propKey, nil) != propValue {
+				changes = true
+			}
+			state.Settings.Set(propKey, propValue)
 		}
 		if changes {
 			if !dry {
@@ -650,4 +682,20 @@ func (c *Cli) Run(ctx context.Context, args []string) error {
 	ctx = store.ContextWithConnection(ctx, conn)
 
 	return c.app.RunContext(ctx, args)
+}
+
+// Helper: parseSetProp will decode a property
+// set request of the form my.key=value.
+// The value is decoded into
+func parseSetProp(prop string) (string, interface{}) {
+	t := strings.Split(prop, "=")
+	if len(t) != 2 {
+		panic("syntax error in prop: must be of format '<key> = <value>'")
+	}
+	key := strings.TrimSpace(t[0])
+	value := strings.TrimSpace(t[1])
+	if value == "" {
+		return key, nil
+	}
+	return key, value
 }
