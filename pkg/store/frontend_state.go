@@ -29,6 +29,8 @@ type FrontendState struct {
 func InitFrontendState(init *FrontendState) *FrontendState {
 	if init.Frontend == nil {
 		init.Frontend = &bbb.Frontend{}
+	}
+	if init.Settings == nil {
 		init.Settings = make(Settings)
 	}
 	return init

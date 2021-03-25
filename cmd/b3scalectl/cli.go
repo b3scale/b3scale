@@ -44,9 +44,19 @@ func NewCli(
 						Action: c.showBackends,
 					},
 					{
+						Name:   "backend",
+						Usage:  "show a specific cluster backend",
+						Action: c.showBackend,
+					},
+					{
 						Name:   "frontends",
 						Usage:  "show all frontends",
 						Action: c.showFrontends,
+					},
+					{
+						Name:   "frontend",
+						Usage:  "show frontend settings",
+						Action: c.showFrontend,
 					},
 				},
 			},
@@ -307,6 +317,39 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	return tx.Commit(ctx.Context)
 }
 
+// showFrontend displays information about a frontend
+func (c *Cli) showFrontend(ctx *cli.Context) error {
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need frontend key for showing info")
+	}
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
+	frontend, err := store.GetFrontendState(ctx.Context, tx, store.Q().
+		Where("key = ?", key))
+	if err != nil {
+		return err
+	}
+	if frontend == nil {
+		return fmt.Errorf("frontend not found")
+	}
+
+	fmt.Println("Frontend:", frontend.Frontend.Key)
+
+	fmt.Println("Settings:")
+	for k, v := range frontend.Settings {
+		fmt.Printf("\t %s = %s\n", k, v)
+	}
+
+	return nil
+}
+
 // show a list of all frontends
 func (c *Cli) showFrontends(ctx *cli.Context) error {
 	// Begin TX
@@ -441,6 +484,39 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	}
 
 	return tx.Commit(ctx.Context)
+}
+
+// showBackends displays information about our backend
+func (c *Cli) showBackend(ctx *cli.Context) error {
+	host := ctx.Args().Get(0)
+	if host == "" {
+		return fmt.Errorf("need host for showing backend info")
+	}
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(ctx.Context)
+
+	backend, err := store.GetBackendState(ctx.Context, tx, store.Q().
+		Where("backends.host = ?", host))
+	if err != nil {
+		return err
+	}
+	if backend == nil {
+		return fmt.Errorf("backend not found")
+	}
+
+	fmt.Println("Backend:", backend.Backend.Host)
+
+	fmt.Println("Settings:")
+	for k, v := range backend.Settings {
+		fmt.Printf("\t %s = %s\n", k, v)
+	}
+
+	return nil
 }
 
 // showBackends displays a list of our backends

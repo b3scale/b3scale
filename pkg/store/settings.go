@@ -46,10 +46,9 @@ func (s Settings) GetBool(key string, fallback bool) bool {
 
 // Set a value for a key in settings
 func (s Settings) Set(key string, value SettingsValue) {
+	if value == nil {
+		delete(s, key)
+		return
+	}
 	s[key] = value
-}
-
-// Delete removes a value
-func (s Settings) Delete(key string) {
-	delete(s, key)
 }
