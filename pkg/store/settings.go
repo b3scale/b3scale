@@ -3,7 +3,7 @@ package store
 // Settings hold per front or backend runtime configuration.
 // Variables can be accessed during request routing and
 // handling in middlewares.
-type Settings map[string]interface{}
+type Settings map[string]SettingsValue
 
 // SettingsValue is a generic settings value
 type SettingsValue interface{}

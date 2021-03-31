@@ -71,6 +71,7 @@ func main() {
 	// Start router
 	router := cluster.NewRouter(ctrl)
 	router.Use(routing.SortLoad)
+	router.Use(routing.RequireTags)
 
 	// Start cluster request handler, and apply middlewares.
 	// The middlewares are executes in reverse order.
