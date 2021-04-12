@@ -105,6 +105,21 @@ be used for creating new sessions.
 It will be permanently deleted after the last session was closed.
 
 
+## Middleware Configuration
+
+The middlewares can be configured using b3scalectl:
+A property value will be interpreted as JSON or string.
+
+    b3scalectl set frontend --prop 'my_middleware.subkey={"a": [23, 42]}' $FRONTEND
+
+    b3scalectl set frontend --prop 'my_middleware=test123' $FRONTEND
+
+Unset / delete a property:
+
+    b3scalectl set frontend --prop 'my_middleware=' $FRONTEND
+
+
+
 ### Issues
 
 At the moment a running node agent might prevent the backend from being deleted.
