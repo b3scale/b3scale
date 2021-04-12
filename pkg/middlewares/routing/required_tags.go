@@ -5,14 +5,15 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-// RequireTags filters backends that match required
+// RequiredTags filters backends that match required
 // tags defined in the frontend settings by the variables
 //
-//   require_tags = ["sip", "foo"]
+//   required_tags = ["sip", "foo"]
 //
-func RequireTags(next cluster.RouterHandler) cluster.RouterHandler {
+func RequiredTags(next cluster.RouterHandler) cluster.RouterHandler {
 	return func(
 		ctx context.Context,
 		backends []*cluster.Backend,
@@ -23,6 +24,41 @@ func RequireTags(next cluster.RouterHandler) cluster.RouterHandler {
 			return next(ctx, backends, req) // pass
 		}
 
+		// Get tags from settings and filter backends
+		tags := requiredTagsFromSettings(frontend.Settings())
+		backends = filterRequiredTags(backends, tags)
+
 		return next(ctx, backends, req)
 	}
+}
+
+// requiredTagsFromSettings will try to get a list
+// of required tags from the settings or will fall
+// back to nil
+func requiredTagsFromSettings(settings store.Settings) []string {
+	values := settings.Get("required_tags", nil)
+	if values == nil {
+		return nil
+	}
+	tags, ok := values.([]string)
+	if !ok {
+		return nil
+	}
+	return tags
+}
+
+// filterRequiredTags retrievs the required tags
+// for a frontend from the configuration state and
+// removes backends not providing all of the tags
+func filterRequiredTags(
+	backends []*cluster.Backend,
+	required []string,
+) []*cluster.Backend {
+	filtered := make([]*cluster.Backend, 0, len(backends))
+	for _, be := range backends {
+		if be.HasTags(required) {
+			filtered = append(filtered, be)
+		}
+	}
+	return filtered
 }
