@@ -4,19 +4,7 @@ import (
 	"testing"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
-
-func TestRequiredTagsFromSettings(t *testing.T) {
-	s := store.Settings{
-		"required_tags": []interface{}{"foo", "bar"},
-	}
-
-	tags := s.GetStringList("required_tags", nil)
-	if tags[0] != "foo" {
-		t.Error("unexpected tags", tags)
-	}
-}
 
 func TestFilterRequiredTags(t *testing.T) {
 	b1 := &cluster.Backend{}
