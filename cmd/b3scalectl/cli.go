@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -88,7 +89,7 @@ func NewCli(
 							&cli.StringFlag{
 								Name:    "prop",
 								Aliases: []string{"p"},
-								Usage:   "a generic settings property",
+								Usage:   "a generic settings property (as json)",
 							},
 						},
 						Action: c.setBackend,
@@ -762,7 +763,9 @@ func (c *Cli) Run(ctx context.Context, args []string) error {
 
 // Helper: parseSetProp will decode a property
 // set request of the form my.key=value.
-// The value is decoded into
+// The value is decoded as JSON or as string.
+//   key="value"  ==  key=value
+//
 func parseSetProp(prop string) (string, interface{}) {
 	t := strings.Split(prop, "=")
 	if len(t) != 2 {
@@ -770,8 +773,21 @@ func parseSetProp(prop string) (string, interface{}) {
 	}
 	key := strings.TrimSpace(t[0])
 	value := strings.TrimSpace(t[1])
+	// Assume empty value as nil
 	if value == "" {
 		return key, nil
 	}
-	return key, value
+
+	if strings.HasPrefix(value, "\"") {
+		return key, value[1 : len(value)-1]
+	}
+
+	// Try to decode as JSON, or use as string
+	// if unmarshal fails.
+	var propValue interface{}
+	if err := json.Unmarshal([]byte(value), &propValue); err != nil {
+		propValue = value
+	}
+
+	return key, propValue
 }
