@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"context"
 	"sort"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -24,9 +25,11 @@ func (b BackendsByLoad) Less(i, j int) bool {
 // SortLoad sorts Backends by load
 func SortLoad(next cluster.RouterHandler) cluster.RouterHandler {
 	return func(
-		backends []*cluster.Backend, req *bbb.Request,
+		ctx context.Context,
+		backends []*cluster.Backend,
+		req *bbb.Request,
 	) ([]*cluster.Backend, error) {
 		sort.Sort(BackendsByLoad(backends))
-		return next(backends, req)
+		return next(ctx, backends, req)
 	}
 }

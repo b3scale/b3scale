@@ -58,6 +58,31 @@ func (b *Backend) Host() string {
 	return b.state.Backend.Host
 }
 
+// Tags retrievs the backend's tags from it's state
+func (b *Backend) Tags() []string {
+	return b.state.Tags
+}
+
+// HasTag checks for the presence of a tag
+func (b *Backend) HasTag(tag string) bool {
+	for _, t := range b.Tags() {
+		if t == tag {
+			return true
+		}
+	}
+	return false
+}
+
+// HasTags checks for the presence of all tags
+func (b *Backend) HasTags(tags []string) bool {
+	for _, required := range tags {
+		if !b.HasTag(required) {
+			return false
+		}
+	}
+	return true
+}
+
 // GetBackends retrievs all backends from the store,
 // filterable with a query.
 func GetBackends(

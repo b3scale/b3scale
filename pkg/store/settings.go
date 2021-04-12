@@ -3,7 +3,7 @@ package store
 // Settings hold per front or backend runtime configuration.
 // Variables can be accessed during request routing and
 // handling in middlewares.
-type Settings map[string]interface{}
+type Settings map[string]SettingsValue
 
 // SettingsValue is a generic settings value
 type SettingsValue interface{}
@@ -26,6 +26,26 @@ func (s Settings) GetString(key, fallback string) string {
 	return val
 }
 
+// GetStringList returns a settings value where
+// all members of the list are assumed a string.
+func (s Settings) GetStringList(key string, fallback []string) []string {
+	values := s.Get(key, nil)
+	list, ok := values.([]interface{})
+	if !ok {
+		return fallback
+	}
+
+	strList := make([]string, 0, len(list))
+	for _, v := range list {
+		s, ok := v.(string)
+		if !ok {
+			continue
+		}
+		strList = append(strList, s)
+	}
+	return strList
+}
+
 // GetInt returns the settings value as integer
 func (s Settings) GetInt(key string, fallback int) int {
 	val, ok := s.Get(key, fallback).(int)
@@ -44,7 +64,8 @@ func (s Settings) GetBool(key string, fallback bool) bool {
 	return val
 }
 
-// Set a value for a key in settings
+// Set a value for a key in settings. We interpret
+// the nil value as unset / delete
 func (s Settings) Set(key string, value SettingsValue) {
 	if value == nil {
 		delete(s, key)
