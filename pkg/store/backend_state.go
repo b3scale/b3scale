@@ -41,7 +41,7 @@ type BackendState struct {
 
 	Tags []string
 
-	Settings Settings
+	Settings *Settings
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -53,7 +53,7 @@ type BackendState struct {
 func InitBackendState(init *BackendState) *BackendState {
 	// Add default values
 	if init.Settings == nil {
-		init.Settings = make(Settings)
+		init.Settings = &Settings{}
 	}
 	if init.NodeState == "" {
 		init.NodeState = "init"
