@@ -77,18 +77,13 @@ func NewCli(
 						Usage: "set backend params",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:    "tags",
-								Aliases: []string{"t"},
-								Usage:   "a csv list of tags for the backend",
-							},
-							&cli.StringFlag{
 								Name:    "secret",
 								Aliases: []string{"s"},
 								Usage:   "the bbb secret",
 							},
 							&cli.StringFlag{
-								Name:    "prop",
-								Aliases: []string{"p"},
+								Name:    "opts",
+								Aliases: []string{"j"},
 								Usage:   "a generic settings property (as json)",
 							},
 						},
@@ -103,9 +98,9 @@ func NewCli(
 								Usage: "the frontend specific bbb secret",
 							},
 							&cli.StringFlag{
-								Name:    "prop",
-								Aliases: []string{"p"},
-								Usage:   "a generic settings property",
+								Name:    "opts",
+								Aliases: []string{"j"},
+								Usage:   "a generic settings property (as json)",
 							},
 						},
 						Action: c.setFrontend,
@@ -401,7 +396,6 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	tags := strings.Split(ctx.String("tags"), ",")
 	if state == nil {
 		if !ctx.IsSet("secret") {
 			return fmt.Errorf("need secret to create host")
@@ -413,11 +407,10 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 				Secret: ctx.String("secret"),
 			},
 			AdminState: adminState,
-			Tags:       tags,
 		})
 		if ctx.IsSet("prop") {
 			propKey, propValue := parseSetProp(ctx.String("prop"))
-			state.Settings.Set(propKey, propValue)
+			state.Settings.(propKey, propValue)
 		}
 		if !dry {
 			if err := state.Save(ctx.Context, tx); err != nil {
@@ -766,7 +759,7 @@ func (c *Cli) Run(ctx context.Context, args []string) error {
 // The value is decoded as JSON or as string.
 //   key="value"  ==  key=value
 //
-func parseSetProp(prop string) (string, interface{}) {
+func parseSetProp(prop string) map[string]interface{} {
 	t := strings.Split(prop, "=")
 	if len(t) != 2 {
 		panic("syntax error in prop: must be of format '<key> = <value>'")

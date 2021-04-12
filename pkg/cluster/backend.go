@@ -60,7 +60,7 @@ func (b *Backend) Host() string {
 
 // Tags retrievs the backend's tags from it's state
 func (b *Backend) Tags() []string {
-	return b.state.Tags
+	return b.state.Settings.Tags
 }
 
 // HasTag checks for the presence of a tag

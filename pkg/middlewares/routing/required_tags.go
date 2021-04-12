@@ -30,7 +30,7 @@ func RequiredTags(next cluster.RouterHandler) cluster.RouterHandler {
 			return next(ctx, backends, req) // pass
 		}
 
-		tags := frontend.Settings().Tags.Required
+		tags := frontend.Settings().RequiredTags
 		backends = filterRequiredTags(backends, tags)
 
 		return next(ctx, backends, req)
