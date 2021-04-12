@@ -44,7 +44,8 @@ func (s Settings) GetBool(key string, fallback bool) bool {
 	return val
 }
 
-// Set a value for a key in settings
+// Set a value for a key in settings. We interpret
+// the nil value as unset / delete
 func (s Settings) Set(key string, value SettingsValue) {
 	if value == nil {
 		delete(s, key)
