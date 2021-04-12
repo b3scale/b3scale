@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // RequiredTags filters backends that match required
@@ -31,26 +30,11 @@ func RequiredTags(next cluster.RouterHandler) cluster.RouterHandler {
 			return next(ctx, backends, req) // pass
 		}
 
-		tags := requiredTagsFromSettings(frontend.Settings())
+		tags := frontend.Settings().GetStringList("required_tags", nil)
 		backends = filterRequiredTags(backends, tags)
 
 		return next(ctx, backends, req)
 	}
-}
-
-// requiredTagsFromSettings will try to get a list
-// of required tags from the settings or will fall
-// back to nil
-func requiredTagsFromSettings(settings store.Settings) []string {
-	values := settings.Get("required_tags", nil)
-	if values == nil {
-		return nil
-	}
-	tags, ok := values.([]string)
-	if !ok {
-		return nil
-	}
-	return tags
 }
 
 // filterRequiredTags retrievs the required tags

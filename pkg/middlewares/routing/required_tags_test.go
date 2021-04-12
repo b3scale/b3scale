@@ -9,10 +9,10 @@ import (
 
 func TestRequiredTagsFromSettings(t *testing.T) {
 	s := store.Settings{
-		"required_tags": []string{"foo", "bar"},
+		"required_tags": []interface{}{"foo", "bar"},
 	}
 
-	tags := requiredTagsFromSettings(s)
+	tags := s.GetStringList("required_tags", nil)
 	if tags[0] != "foo" {
 		t.Error("unexpected tags", tags)
 	}
