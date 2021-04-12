@@ -19,12 +19,18 @@ func RequiredTags(next cluster.RouterHandler) cluster.RouterHandler {
 		backends []*cluster.Backend,
 		req *bbb.Request,
 	) ([]*cluster.Backend, error) {
+
+		// This middleware only applies to create meeting requests
+		if req.Resource != bbb.ResourceCreate {
+			return next(ctx, backends, req) // pass
+		}
+
+		// Get tags from frontend settings and filter backends
 		frontend := cluster.FrontendFromContext(ctx)
 		if frontend == nil {
 			return next(ctx, backends, req) // pass
 		}
 
-		// Get tags from settings and filter backends
 		tags := requiredTagsFromSettings(frontend.Settings())
 		backends = filterRequiredTags(backends, tags)
 
