@@ -17,4 +17,12 @@ func TestTagsEq(t *testing.T) {
 	if t1.Eq(t2) {
 		t.Error("exptected t1 != t2")
 	}
+
+	if t1.Eq(nil) {
+		t.Error("exptected t1 != t2")
+	}
+
+	if !(Tags{}).Eq(nil) {
+		t.Error("exptected t1 == t2")
+	}
 }

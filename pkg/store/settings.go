@@ -12,9 +12,6 @@ type Tags []string
 // Eq checks if a list of tags is equal. Warning
 // this mutates the list.
 func (t Tags) Eq(other Tags) bool {
-	if t == nil || other == nil {
-		return false
-	}
 	sort.Strings(t)
 	sort.Strings(other)
 	return strings.Join(t, " ") == strings.Join(other, " ")
@@ -22,7 +19,7 @@ func (t Tags) Eq(other Tags) bool {
 
 // BackendSettings hold per backend runtime configuration.
 type BackendSettings struct {
-	Tags []string `json:"tags"`
+	Tags Tags `json:"tags"`
 }
 
 // Merge with a partial update. Nil fields are ignored.
@@ -39,7 +36,7 @@ func (s *BackendSettings) Merge(update *BackendSettings) bool {
 // FrontendSettings hold all well known settings for a
 // frontend.
 type FrontendSettings struct {
-	RequiredTags        []string                     `json:"required_tags"`
+	RequiredTags        Tags                         `json:"required_tags"`
 	DefaultPresentation *DefaultPresentationSettings `json:"default_presentation"`
 }
 
