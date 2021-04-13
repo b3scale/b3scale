@@ -47,8 +47,7 @@ func Connect(opts *ConnectOpts) error {
 		return err
 	}
 
-	name := filepath.Base(os.Args[0])
-	cfg.ConnConfig.RuntimeParams["application_name"] = name
+	cfg.ConnConfig.RuntimeParams["application_name"] = filepath.Base(os.Args[0])
 	if opts.MaxConns == 0 {
 		return ErrMaxConnsUnconfigured
 	}
