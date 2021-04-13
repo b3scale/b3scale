@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -46,7 +47,8 @@ func Connect(opts *ConnectOpts) error {
 		return err
 	}
 
-	cfg.ConnConfig.RuntimeParams["application_name"] = os.Args[0]
+	name := filepath.Base(os.Args[0])
+	cfg.ConnConfig.RuntimeParams["application_name"] = name
 	if opts.MaxConns == 0 {
 		return ErrMaxConnsUnconfigured
 	}
