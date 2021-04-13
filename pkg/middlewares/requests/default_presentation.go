@@ -34,7 +34,7 @@ func maybeUpdateDefaultPresentation(req *bbb.Request, fe *cluster.Frontend) {
 	opts := fe.Settings().DefaultPresentation
 
 	// Are we active?
-	if opts.URL == "" {
+	if opts == nil || opts.URL == "" {
 		return // nothing to do here
 	}
 
