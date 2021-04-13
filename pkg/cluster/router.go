@@ -43,7 +43,9 @@ func NewRouter(ctrl *Controller) *Router {
 // We use the selectDiscardHandler as the end of our
 // middleware chain.
 func selectDiscardHandler(
-	backends []*Backend, req *bbb.Request,
+	ctx context.Context,
+	backends []*Backend,
+	req *bbb.Request,
 ) ([]*Backend, error) {
 	res := req.Resource
 	switch res {
@@ -145,7 +147,7 @@ func (r *Router) lookupBackendForRequest(
 	// the backend can be used for accepting the request.
 	// To do so, we apply the routing middleware chain
 	// to the backend and see if it is included in the result set.
-	res, err := r.middleware([]*Backend{backend}, req)
+	res, err := r.middleware(ctx, []*Backend{backend}, req)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +247,7 @@ func (r *Router) Middleware() RequestMiddleware {
 			}
 
 			// Apply routing middleware to backends for a BBB request
-			backends, err = r.middleware(backends, req)
+			backends, err = r.middleware(ctx, backends, req)
 			if err != nil {
 				return nil, err
 			}

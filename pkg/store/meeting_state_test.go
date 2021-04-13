@@ -65,13 +65,11 @@ func TestGetMeetingStates(t *testing.T) {
 		}})
 	t.Log(m1)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	err = m1.Save(ctx, tx)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	// Get running meetings
@@ -94,8 +92,7 @@ func TestMeetingStateSave(t *testing.T) {
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	t.Log("meeting state after factory:", state)
 	t.Log(
@@ -105,8 +102,7 @@ func TestMeetingStateSave(t *testing.T) {
 
 	err = state.Save(ctx, tx)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	t.Log("New meeting state id:", state.ID)
 }
@@ -118,12 +114,10 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := state.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	state.Meeting = &bbb.Meeting{
@@ -134,50 +128,6 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 		t.Error(err)
 		return
 	}
-}
-
-func TestMeetingStateUpdateIfExists(t *testing.T) {
-	ctx := context.Background()
-	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
-
-	state, err := meetingStateFactory(ctx, tx, nil)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if err := state.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
-	}
-
-	m := &bbb.Meeting{
-		MeetingName:       "new-meeting-name",
-		InternalMeetingID: state.InternalID,
-		MeetingID:         state.ID,
-	}
-
-	c, err := UpdateMeetingStateIfExists(ctx, tx, m)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if c != 1 {
-		t.Error("there should have been 1 update")
-	}
-
-	state, err = GetMeetingState(ctx, tx, Q().
-		Where("id = ?", state.ID))
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	if state.Meeting.MeetingName != "new-meeting-name" {
-		t.Error("unexpected meeting name:", state.Meeting.MeetingName)
-	}
-
 }
 
 func TestMeetingStateQueryUpdate(t *testing.T) {
@@ -187,19 +137,16 @@ func TestMeetingStateQueryUpdate(t *testing.T) {
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := state.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	state, err = GetMeetingState(ctx, tx, Q().
 		Where("id = ?", state.ID))
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	state.Meeting = &bbb.Meeting{
@@ -207,8 +154,7 @@ func TestMeetingStateQueryUpdate(t *testing.T) {
 		InternalMeetingID: uuid.New().String(),
 	}
 	if err := state.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 }
 
@@ -219,13 +165,11 @@ func TestMeetingStateIsStale(t *testing.T) {
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	t.Log("before Save()")
 	if err := state.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	t.Log("after Save()")
 
@@ -257,8 +201,7 @@ func TestDeleteMeetingStateByInternalID(t *testing.T) {
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := state.Save(ctx, tx); err != nil {
 		t.Error(err)
@@ -277,8 +220,7 @@ func TestDeleteMeetingStateByID(t *testing.T) {
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := state.Save(ctx, tx); err != nil {
 		t.Error(err)
@@ -297,15 +239,13 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 
 	m1, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	backend := m1.backend // this is lost because of the refresh at save...
 	t.Log(backend.ID)
 
 	if err := m1.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	m2, err := meetingStateFactory(ctx, tx, &MeetingState{
 		ID:         uuid.New().String(),
@@ -314,12 +254,10 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 		BackendID:  &backend.ID,
 	})
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := m2.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	m3, err := meetingStateFactory(ctx, tx, &MeetingState{
 		ID:         uuid.New().String(),
@@ -328,31 +266,26 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 		BackendID:  &backend.ID,
 	})
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := m2.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	// Create an unrelated meeting at a different backend
 	mUnrel, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	if err := mUnrel.Save(ctx, tx); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	// Delete meeting
 	keep := []string{m1.InternalID, m3.InternalID}
 	count, err := DeleteOrphanMeetings(ctx, tx, *m1.BackendID, keep)
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 	t.Log("deleted", count, "orphans")
 	if count != 1 {
@@ -369,4 +302,63 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 		t.Error("unrelated meeting was deleted")
 	}
 
+}
+
+func TestMeetingStateUpsert(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
+	m0, err := meetingStateFactory(ctx, tx, nil) // unrelated
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m0.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+
+	m1, err := meetingStateFactory(ctx, tx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	id, err := m1.Upsert(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !m1.UpdatedAt.IsZero() {
+		t.Error("unexpected updated_at:", m1.UpdatedAt)
+	}
+	if m1.Meeting.Running {
+		t.Error("unexpected running state in meeting:", m1.Meeting)
+	}
+
+	now := time.Now().UTC()
+
+	// Make update
+	m1.Meeting.Running = true
+	m1.UpdatedAt = now
+	id, err = m1.Upsert(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(id)
+	t.Log(m1.UpdatedAt)
+
+	// Read state
+	m2, err := GetMeetingState(ctx, tx, Q().Where("meetings.id = ?", id))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m2.Meeting.Running != true {
+		t.Error("meeting should have an updated state")
+	}
+
+	// m0 should not be affected
+	if err := m0.Refresh(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+	if m0.Meeting.Running {
+		t.Error("unexpected meeting running:", m0.Meeting)
+	}
 }

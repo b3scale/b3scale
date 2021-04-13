@@ -105,6 +105,23 @@ be used for creating new sessions.
 It will be permanently deleted after the last session was closed.
 
 
+## Middleware Configuration
+
+The middlewares can be configured using b3scalectl:
+A property value will be interpreted as JSON.
+
+    b3scalectl set backend -j '{"tags": ["asdf", "foo", "bar"]}' https://backend23/
+    b3scalectl set frontend -j '{"required_tags": ["asdf"]}' frontend1
+
+Unset a value with explicit null:
+
+    b3scalectl set frontend -j '{"required_tags": null}' frontend1
+
+Configure a default presentation:
+
+    b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
+
+
 ### Issues
 
 At the moment a running node agent might prevent the backend from being deleted.

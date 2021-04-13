@@ -8,7 +8,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
-	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -39,9 +38,7 @@ type BackendState struct {
 
 	Backend *bbb.Backend
 
-	Tags []string
-
-	Settings Settings
+	Settings BackendSettings
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -52,9 +49,6 @@ type BackendState struct {
 // an initial state.
 func InitBackendState(init *BackendState) *BackendState {
 	// Add default values
-	if init.Settings == nil {
-		init.Settings = make(Settings)
-	}
 	if init.NodeState == "" {
 		init.NodeState = "init"
 	}
@@ -63,9 +57,6 @@ func InitBackendState(init *BackendState) *BackendState {
 	}
 	if init.Backend == nil {
 		init.Backend = &bbb.Backend{}
-	}
-	if init.Tags == nil {
-		init.Tags = []string{}
 	}
 	return init
 }
@@ -88,7 +79,6 @@ func GetBackendStates(
 		"backends.load_factor",
 		"backends.host",
 		"backends.secret",
-		"backends.tags",
 		"backends.settings",
 		"backends.created_at",
 		"backends.updated_at",
@@ -116,7 +106,6 @@ func GetBackendStates(
 			&state.LoadFactor,
 			&state.Backend.Host,
 			&state.Backend.Secret,
-			&state.Tags,
 			&state.Settings,
 			&state.CreatedAt,
 			&state.UpdatedAt,
@@ -200,12 +189,11 @@ func (s *BackendState) insert(
 			node_state,
 			admin_state,
 
-			tags,
 			settings,
 
 			load_factor
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
 	insertID := ""
@@ -215,7 +203,6 @@ func (s *BackendState) insert(
 		s.Backend.Secret,
 		s.NodeState,
 		s.AdminState,
-		s.Tags,
 		s.Settings,
 		s.LoadFactor).Scan(&insertID)
 
@@ -239,13 +226,12 @@ func (s *BackendState) update(
 			   host         = $6,
 			   secret       = $7,
 
-			   tags         = $8,
-			   settings     = $9,
+			   settings     = $8,
 
-			   load_factor  = $10,
+			   load_factor  = $9,
 
-			   synced_at    = $11,
-			   updated_at   = $12
+			   synced_at    = $10,
+			   updated_at   = $11
 
 		 WHERE id = $1
 	`
@@ -260,7 +246,6 @@ func (s *BackendState) update(
 		s.Latency,
 		s.Backend.Host,
 		s.Backend.Secret,
-		s.Tags,
 		s.Settings,
 		s.LoadFactor,
 		s.SyncedAt,
@@ -422,20 +407,13 @@ func (s *BackendState) CreateOrUpdateMeetingState(
 	tx pgx.Tx,
 	meeting *bbb.Meeting,
 ) error {
-	// Try to update the meeting state
-	update, err := UpdateMeetingStateIfExists(ctx, tx, meeting)
-	if err != nil {
+	mstate := InitMeetingState(&MeetingState{
+		BackendID: &s.ID,
+		Meeting:   meeting,
+	})
+	mstate.MarkSynced()
+	if _, err := mstate.Upsert(ctx, tx); err != nil {
 		return err
-	}
-	if update == 0 {
-		// Meeting not found, create the meeting state
-		if _, err := s.CreateMeetingState(ctx, tx, nil, meeting); err != nil {
-			return err
-		}
-		log.Debug().
-			Str("meetingID", meeting.MeetingID).
-			Str("internalMeetingID", meeting.InternalMeetingID).
-			Msg("recovered meeting from backend")
 	}
 	return nil
 }

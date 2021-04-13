@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -76,19 +77,14 @@ func NewCli(
 						Usage: "set backend params",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
-								Name:    "tags",
-								Aliases: []string{"t"},
-								Usage:   "a csv list of tags for the backend",
-							},
-							&cli.StringFlag{
 								Name:    "secret",
 								Aliases: []string{"s"},
 								Usage:   "the bbb secret",
 							},
 							&cli.StringFlag{
-								Name:    "prop",
-								Aliases: []string{"p"},
-								Usage:   "a generic settings property",
+								Name:    "opts",
+								Aliases: []string{"j"},
+								Usage:   "a generic settings property (as json)",
 							},
 						},
 						Action: c.setBackend,
@@ -102,9 +98,9 @@ func NewCli(
 								Usage: "the frontend specific bbb secret",
 							},
 							&cli.StringFlag{
-								Name:    "prop",
-								Aliases: []string{"p"},
-								Usage:   "a generic settings property",
+								Name:    "opts",
+								Aliases: []string{"j"},
+								Usage:   "a generic settings property (as json)",
 							},
 						},
 						Action: c.setFrontend,
@@ -229,9 +225,11 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 				Secret: secret,
 			},
 		})
-		if ctx.IsSet("prop") {
-			propKey, propValue := parseSetProp(ctx.String("prop"))
-			state.Settings.Set(propKey, propValue)
+		if ctx.IsSet("opts") {
+			if err := json.Unmarshal(
+				[]byte(ctx.String("opts")), &state.Settings); err != nil {
+				return err
+			}
 		}
 		if !dry {
 			if err := state.Save(ctx.Context, tx); err != nil {
@@ -252,12 +250,13 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			state.Frontend.Secret = secret
 		}
 
-		if ctx.IsSet("prop") {
-			propKey, propValue := parseSetProp(ctx.String("prop"))
-			if state.Settings.Get(propKey, nil) != propValue {
-				changes = true
+		if ctx.IsSet("opts") {
+			// Frontend settings
+			if err := json.Unmarshal(
+				[]byte(ctx.String("opts")), &state.Settings); err != nil {
+				return err
 			}
-			state.Settings.Set(propKey, propValue)
+			changes = true
 		}
 
 		if !changes {
@@ -341,11 +340,9 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("Frontend:", frontend.Frontend.Key)
-
 	fmt.Println("Settings:")
-	for k, v := range frontend.Settings {
-		fmt.Printf("\t %s = %s\n", k, v)
-	}
+	s, _ := json.MarshalIndent(frontend.Settings, "   ", " ")
+	fmt.Println(string(s))
 
 	return nil
 }
@@ -364,7 +361,8 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 		return err
 	}
 	for _, f := range states {
-		fmt.Printf("%s\t%s\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret)
+		settings, _ := json.Marshal(f.Settings)
+		fmt.Printf("%s\t%s\t%s\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret, settings)
 	}
 	return nil
 }
@@ -400,7 +398,6 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	tags := strings.Split(ctx.String("tags"), ",")
 	if state == nil {
 		if !ctx.IsSet("secret") {
 			return fmt.Errorf("need secret to create host")
@@ -412,11 +409,12 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 				Secret: ctx.String("secret"),
 			},
 			AdminState: adminState,
-			Tags:       tags,
 		})
-		if ctx.IsSet("prop") {
-			propKey, propValue := parseSetProp(ctx.String("prop"))
-			state.Settings.Set(propKey, propValue)
+		if ctx.IsSet("opts") {
+			if err := json.Unmarshal(
+				[]byte(ctx.String("opts")), &state.Settings); err != nil {
+				return err
+			}
 		}
 		if !dry {
 			if err := state.Save(ctx.Context, tx); err != nil {
@@ -439,24 +437,18 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 				changes = true
 			}
 		}
-		if ctx.IsSet("tags") {
-			if !tagsEq(state.Tags, tags) {
-				state.Tags = tags
-				changes = true
-			}
-		}
 		if ctx.IsSet("state") {
 			if state.AdminState != adminState {
 				state.AdminState = adminState
 			}
 			changes = true
 		}
-		if ctx.IsSet("prop") {
-			propKey, propValue := parseSetProp(ctx.String("prop"))
-			if state.Settings.Get(propKey, nil) != propValue {
-				changes = true
+		if ctx.IsSet("opts") {
+			if err := json.Unmarshal(
+				[]byte(ctx.String("opts")), &state.Settings); err != nil {
+				return err
 			}
-			state.Settings.Set(propKey, propValue)
+			changes = true
 		}
 		if changes {
 			if !dry {
@@ -510,11 +502,9 @@ func (c *Cli) showBackend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("Backend:", backend.Backend.Host)
-
 	fmt.Println("Settings:")
-	for k, v := range backend.Settings {
-		fmt.Printf("\t %s = %s\n", k, v)
-	}
+	s, _ := json.MarshalIndent(backend.Settings, "  ", "  ")
+	fmt.Println(string(s))
 
 	return nil
 }
@@ -543,9 +533,9 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 		if b.MeetingsCount > 0 {
 			ratio = float64(b.AttendeesCount) / float64(b.MeetingsCount)
 		}
-
+		settings, _ := json.Marshal(b.Settings)
 		fmt.Printf("%s\n  Host:\t %s\n", b.ID, b.Backend.Host)
-		fmt.Printf("  Tags:\t %v\n", b.Tags)
+		fmt.Printf("  Settings:\t %v\n", string(settings))
 		fmt.Printf("  NodeState:\t %s\t", b.NodeState)
 		fmt.Printf("  AdminState:\t %s\n", b.AdminState)
 		fmt.Printf("  MC/AC/R:\t %d/%d/%.02f\n",
@@ -758,20 +748,4 @@ func (c *Cli) Run(ctx context.Context, args []string) error {
 	ctx = store.ContextWithConnection(ctx, conn)
 
 	return c.app.RunContext(ctx, args)
-}
-
-// Helper: parseSetProp will decode a property
-// set request of the form my.key=value.
-// The value is decoded into
-func parseSetProp(prop string) (string, interface{}) {
-	t := strings.Split(prop, "=")
-	if len(t) != 2 {
-		panic("syntax error in prop: must be of format '<key> = <value>'")
-	}
-	key := strings.TrimSpace(t[0])
-	value := strings.TrimSpace(t[1])
-	if value == "" {
-		return key, nil
-	}
-	return key, value
 }

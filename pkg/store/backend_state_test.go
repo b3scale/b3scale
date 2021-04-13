@@ -19,7 +19,9 @@ func backendStateFactory() *BackendState {
 			Host:   "testhost-" + uuid.New().String(),
 			Secret: "testsecret",
 		},
-		Tags: []string{"2.0.0", "sip", "testing"},
+		Settings: BackendSettings{
+			Tags: []string{"2.0.0", "sip", "testing"},
+		},
 	})
 	return state
 }

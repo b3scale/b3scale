@@ -56,8 +56,6 @@ CREATE TABLE backends (
     host    text NOT NULL      UNIQUE,
     secret  text NOT NULL,
 
-    tags    text ARRAY,
-
     -- Runtime configuration can be added for each backend
     -- and can then be accessed from within middlewares
     settings  jsonb NOT NULL DEFAULT '{}'::jsonb,

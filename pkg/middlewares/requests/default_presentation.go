@@ -31,14 +31,10 @@ func DefaultPresentation() cluster.RequestMiddleware {
 }
 
 func maybeUpdateDefaultPresentation(req *bbb.Request, fe *cluster.Frontend) {
-	// Get settings
-	var (
-		presentationURL string = fe.Settings().GetString("default_presentation.url", "")
-		force           string = fe.Settings().GetString("default_presentation.force", "")
-	)
+	opts := fe.Settings().DefaultPresentation
 
 	// Are we active?
-	if presentationURL == "" {
+	if opts == nil || opts.URL == "" {
 		return // nothing to do here
 	}
 
@@ -49,13 +45,13 @@ func maybeUpdateDefaultPresentation(req *bbb.Request, fe *cluster.Frontend) {
 
 	// We have a presentation URL, let's check if there is already
 	// a request body present
-	if req.HasBody() && force != "true" {
+	if req.HasBody() && !opts.Force {
 		return // presentation present, nothing to do here
 	}
 
 	// Set or override presentation
 	req.Header.Set("content-type", "application/xml")
-	req.Body = makePresentationRequestBody(presentationURL)
+	req.Body = makePresentationRequestBody(opts.URL)
 }
 
 // create the XML document

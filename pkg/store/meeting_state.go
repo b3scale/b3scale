@@ -370,32 +370,44 @@ func (s *MeetingState) update(ctx context.Context, tx pgx.Tx) error {
 	return err
 }
 
-// UpdateMeetingStateIfExists updates the meeting attribute of a meeting
-// The meeting state need to have an internal meeting id.
-func UpdateMeetingStateIfExists(
-	ctx context.Context,
-	tx pgx.Tx,
-	m *bbb.Meeting,
-) (int64, error) {
-	internalID := m.InternalMeetingID
-	if internalID == "" {
-		return 0, fmt.Errorf(
-			"can not use meeting for update without InternalMeetingID")
-	}
-
-	now := time.Now().UTC()
+// Upsert meeting state will create the meeting state
+// or will fall back to a state update.
+func (s *MeetingState) Upsert(ctx context.Context, tx pgx.Tx) (string, error) {
 	qry := `
-		UPDATE meetings
-		   SET state		= $2,
-			   updated_at   = $3,
-			   synced_at    = $4
-	 	 WHERE internal_id = $1`
-	cmd, err := tx.Exec(ctx, qry, internalID, m, now, now)
+		INSERT INTO meetings (
+			id,
+			internal_id,
+
+			state,
+
+			frontend_id,
+			backend_id,
+
+			updated_at,
+			synced_at
+
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7
+		)
+		ON CONFLICT ON CONSTRAINT meetings_pkey DO UPDATE
+		   SET state		= EXCLUDED.state,
+		  	   synced_at    = EXCLUDED.synced_at,
+			   updated_at   = EXCLUDED.updated_at
+		RETURNING id`
+
+	err := tx.QueryRow(ctx, qry,
+		s.Meeting.MeetingID,
+		s.Meeting.InternalMeetingID,
+		s.Meeting,
+		s.FrontendID,
+		s.BackendID,
+		s.UpdatedAt,
+		s.SyncedAt).Scan(&s.ID)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
-	return cmd.RowsAffected(), nil
+	return s.ID, nil
 }
 
 // SetBackendID associates a meeting with a backend
