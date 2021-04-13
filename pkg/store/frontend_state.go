@@ -18,7 +18,7 @@ type FrontendState struct {
 	Active   bool
 	Frontend *bbb.Frontend
 
-	Settings Settings
+	Settings FrontendSettings
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -29,9 +29,6 @@ type FrontendState struct {
 func InitFrontendState(init *FrontendState) *FrontendState {
 	if init.Frontend == nil {
 		init.Frontend = &bbb.Frontend{}
-	}
-	if init.Settings == nil {
-		init.Settings = make(Settings)
 	}
 	return init
 }

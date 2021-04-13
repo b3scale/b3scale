@@ -25,7 +25,9 @@ func TestBackendStress(t *testing.T) {
 func TestBackendHasTag(t *testing.T) {
 	be := &Backend{
 		state: &store.BackendState{
-			Tags: []string{"foo", "bar"},
+			Settings: store.BackendSettings{
+				Tags: []string{"foo", "bar"},
+			},
 		},
 	}
 
@@ -39,7 +41,9 @@ func TestBackendHasTag(t *testing.T) {
 
 	be = &Backend{
 		state: &store.BackendState{
-			Tags: nil,
+			Settings: store.BackendSettings{
+				Tags: nil,
+			},
 		},
 	}
 
@@ -51,7 +55,9 @@ func TestBackendHasTag(t *testing.T) {
 func TestBackendHasTags(t *testing.T) {
 	be := &Backend{
 		state: &store.BackendState{
-			Tags: []string{"foo", "bar", "baz"},
+			Settings: store.BackendSettings{
+				Tags: []string{"foo", "bar", "baz"},
+			},
 		},
 	}
 
@@ -69,7 +75,9 @@ func TestBackendHasTags(t *testing.T) {
 
 	be = &Backend{
 		state: &store.BackendState{
-			Tags: nil,
+			Settings: store.BackendSettings{
+				Tags: nil,
+			},
 		},
 	}
 

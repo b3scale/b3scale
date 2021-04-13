@@ -30,8 +30,8 @@ func (f *Frontend) Frontend() *bbb.Frontend {
 }
 
 // Settings gets the state settings
-func (f *Frontend) Settings() store.Settings {
-	return f.state.Settings
+func (f *Frontend) Settings() *store.FrontendSettings {
+	return &f.state.Settings
 }
 
 // String stringifies the frontend

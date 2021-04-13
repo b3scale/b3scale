@@ -1,75 +1,24 @@
 package store
 
-// Settings hold per front or backend runtime configuration.
-// Variables can be accessed during request routing and
-// handling in middlewares.
-type Settings map[string]SettingsValue
+// Tags are a list of strings with labels to declare
+// for example backend capabilities
+type Tags []string
 
-// SettingsValue is a generic settings value
-type SettingsValue interface{}
-
-// Get retrievs a value with a fallback
-func (s Settings) Get(key string, fallback SettingsValue) SettingsValue {
-	val, ok := s[key]
-	if !ok {
-		return fallback
-	}
-	return val
+// BackendSettings hold per backend runtime configuration.
+type BackendSettings struct {
+	Tags Tags `json:"tags,omitempty"`
 }
 
-// GetString returns the settings value as string
-func (s Settings) GetString(key, fallback string) string {
-	val, ok := s.Get(key, fallback).(string)
-	if !ok {
-		return fallback
-	}
-	return val
+// FrontendSettings hold all well known settings for a
+// frontend.
+type FrontendSettings struct {
+	RequiredTags        Tags                         `json:"required_tags,omitempty"`
+	DefaultPresentation *DefaultPresentationSettings `json:"default_presentation,omitempty"`
 }
 
-// GetStringList returns a settings value where
-// all members of the list are assumed a string.
-func (s Settings) GetStringList(key string, fallback []string) []string {
-	values := s.Get(key, nil)
-	list, ok := values.([]interface{})
-	if !ok {
-		return fallback
-	}
-
-	strList := make([]string, 0, len(list))
-	for _, v := range list {
-		s, ok := v.(string)
-		if !ok {
-			continue
-		}
-		strList = append(strList, s)
-	}
-	return strList
-}
-
-// GetInt returns the settings value as integer
-func (s Settings) GetInt(key string, fallback int) int {
-	val, ok := s.Get(key, fallback).(int)
-	if !ok {
-		return fallback
-	}
-	return val
-}
-
-// GetBool returns the settings value as boolean
-func (s Settings) GetBool(key string, fallback bool) bool {
-	val, ok := s.Get(key, fallback).(bool)
-	if !ok {
-		return fallback
-	}
-	return val
-}
-
-// Set a value for a key in settings. We interpret
-// the nil value as unset / delete
-func (s Settings) Set(key string, value SettingsValue) {
-	if value == nil {
-		delete(s, key)
-		return
-	}
-	s[key] = value
+// DefaultPresentationSettings configure a per frontend
+// default presentation.
+type DefaultPresentationSettings struct {
+	URL   string `json:"url"`
+	Force bool   `json:"force"`
 }
