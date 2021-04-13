@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	pclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	"github.com/ziflex/lecho/v2"
 
@@ -15,6 +16,7 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/metrics"
 )
 
 const (
@@ -56,6 +58,8 @@ func NewServer(
 	// Prometheus Middleware - Find it under /metrics
 	p := prometheus.NewPrometheus(serviceID, nil)
 	p.Use(e)
+
+	pclient.MustRegister(metrics.Collector{})
 
 	// We handle BBB requests in a custom middleware
 	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
