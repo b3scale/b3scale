@@ -108,16 +108,18 @@ It will be permanently deleted after the last session was closed.
 ## Middleware Configuration
 
 The middlewares can be configured using b3scalectl:
-A property value will be interpreted as JSON or string.
+A property value will be interpreted as JSON.
 
-    b3scalectl set frontend --prop 'my_middleware.subkey={"a": [23, 42]}' $FRONTEND
+    b3scalectl set backend -j '{"tags": ["asdf", "foo", "bar"]}' https://backend23/
+    b3scalectl set frontend -j '{"required_tags": ["asdf"]}' frontend1
 
-    b3scalectl set frontend --prop 'my_middleware=test123' $FRONTEND
+Unset a value with explicit null:
 
-Unset / delete a property:
+    b3scalectl set frontend -j '{"required_tags": null}' frontend1
 
-    b3scalectl set frontend --prop 'my_middleware=' $FRONTEND
+Configure a default presentation:
 
+    b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
 
 
 ### Issues
