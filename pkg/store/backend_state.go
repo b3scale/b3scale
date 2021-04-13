@@ -8,7 +8,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
-	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -408,20 +407,13 @@ func (s *BackendState) CreateOrUpdateMeetingState(
 	tx pgx.Tx,
 	meeting *bbb.Meeting,
 ) error {
-	// Try to update the meeting state
-	update, err := UpdateMeetingStateIfExists(ctx, tx, meeting)
-	if err != nil {
+	mstate := InitMeetingState(&MeetingState{
+		BackendID: &s.ID,
+		Meeting:   meeting,
+	})
+	mstate.MarkSynced()
+	if _, err := mstate.Upsert(ctx, tx); err != nil {
 		return err
-	}
-	if update == 0 {
-		// Meeting not found, create the meeting state
-		if _, err := s.CreateMeetingState(ctx, tx, nil, meeting); err != nil {
-			return err
-		}
-		log.Debug().
-			Str("meetingID", meeting.MeetingID).
-			Str("internalMeetingID", meeting.InternalMeetingID).
-			Msg("recovered meeting from backend")
 	}
 	return nil
 }
