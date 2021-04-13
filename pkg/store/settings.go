@@ -1,5 +1,25 @@
 package store
 
+import (
+	"sort"
+	"strings"
+)
+
+// Tags are a list of strings with labels to declare
+// for example backend capabilities
+type Tags []string
+
+// Eq checks if a list of tags is equal. Warning
+// this mutates the list.
+func (t Tags) Eq(other Tags) bool {
+	if t == nil || other == nil {
+		return false
+	}
+	sort.Strings(t)
+	sort.Strings(other)
+	return strings.Join(t, " ") == strings.Join(other, " ")
+}
+
 // BackendSettings hold per backend runtime configuration.
 type BackendSettings struct {
 	Tags []string `json:"tags"`
@@ -9,11 +29,10 @@ type BackendSettings struct {
 // If a field was updated this will return true
 func (s *BackendSettings) Merge(update *BackendSettings) bool {
 	updated := false
-	if update.Tags != nil {
+	if update.Tags != nil && !s.Tags.Eq(update.Tags) {
 		s.Tags = update.Tags
 		updated = true
 	}
-
 	return updated
 }
 
@@ -28,7 +47,7 @@ type FrontendSettings struct {
 // will be ignored.
 func (s *FrontendSettings) Merge(update *FrontendSettings) bool {
 	updated := false
-	if update.RequiredTags != nil {
+	if update.RequiredTags != nil && !s.RequiredTags.Eq(update.RequiredTags) {
 		s.RequiredTags = update.RequiredTags
 		updated = true
 	}
