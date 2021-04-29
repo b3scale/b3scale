@@ -119,8 +119,7 @@ func (req *Request) MarshalURLSafe() []byte {
 	repr := map[string]interface{}{
 		"mth": req.Request.Method,
 		"hdr": req.Request.Header,
-		"res": req.Resource,
-		"prm": req.Params,
+		"url": req.Request.URL.String(),
 	}
 	data, err := json.Marshal(repr)
 	if err != nil {
@@ -176,13 +175,23 @@ func decodeURLSafeRequest(enc interface{}) *Request {
 			header[k] = values
 		}
 	}
+	var (
+		reqURL *url.URL
+		err    error
+	)
+	if repr["url"] != nil {
+		reqURL, err = url.Parse(repr["url"].(string))
+	}
+	if err != nil {
+		panic(err)
+	}
 
 	return &Request{
-		Resource: repr["res"].(string),
-		Params:   params,
+		Params: params,
 		Request: &http.Request{
 			Method: repr["mth"].(string),
 			Header: header,
+			URL:    reqURL,
 		},
 	}
 }

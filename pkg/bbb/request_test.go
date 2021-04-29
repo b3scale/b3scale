@@ -170,6 +170,8 @@ func TestUnAndMarshalURLSafe(t *testing.T) {
 		"userID":    "optional",
 		"checksum":  "12342",
 	})
+	reqURL, _ := url.Parse("/bbb/frontend/join?foo")
+	req.Request.URL = reqURL
 
 	enc := req.MarshalURLSafe()
 	req1, err := UnmarshalURLSafeRequest(enc)
@@ -190,9 +192,11 @@ func TestDecodeURLSafeRequest(t *testing.T) {
 		"checksum":  "12342",
 	})
 
+	reqURL, _ := url.Parse("/bbb/frontend/join?foo=42")
 	hdr := http.Header{}
 	hdr.Set("content-type", "application/test")
 	req.Request.Header = hdr
+	req.Request.URL = reqURL
 
 	data := req.MarshalURLSafe()
 	payload := make([]byte, base64.RawURLEncoding.DecodedLen(len(data)))
@@ -211,5 +215,11 @@ func TestDecodeURLSafeRequest(t *testing.T) {
 	}
 	if req1.Request.Header.Get("content-type") != "application/test" {
 		t.Error("unexpected http header", req1.Request.Header)
+	}
+	if req1.Request.URL.Path != "/bbb/frontend/join" {
+		t.Error("unexpected path", req1.Request.URL.Path)
+	}
+	if req1.Request.URL.Query().Get("foo") != "42" {
+		t.Error("unexpected query")
 	}
 }
