@@ -1,4 +1,4 @@
-package cluster
+package templates
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 
 func TestTmplRedirect(t *testing.T) {
 	url := "http://foo-bar-test"
-	res := TmplRedirect(url)
+	res := Redirect(url)
 	t.Log(string(res))
 
 	if !bytes.Contains(res, []byte(url)) {
@@ -20,7 +20,7 @@ func TestTmplRedirect(t *testing.T) {
 func TestTmplRenderConcurrent(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		go func() {
-			res := TmplRedirect("foooo")
+			res := Redirect("foooo")
 			if res == nil {
 				t.Error("unexepted result")
 			}
@@ -30,7 +30,7 @@ func TestTmplRenderConcurrent(t *testing.T) {
 
 func TestTmplRetryJoin(t *testing.T) {
 	url := "http://foo-bar-test"
-	res := TmplRetryJoin(url)
+	res := RetryJoin(url)
 	t.Log(string(res))
 
 	if !bytes.Contains(res, []byte(url)) {

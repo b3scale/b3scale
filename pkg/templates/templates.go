@@ -1,4 +1,4 @@
-package cluster
+package templates
 
 import (
 	"bytes"
@@ -18,8 +18,8 @@ var (
 	tmplRetryJoin *template.Template
 )
 
-// TmplRedirect applies the redirect template
-func TmplRedirect(url string) []byte {
+// Redirect applies the redirect template
+func Redirect(url string) []byte {
 	if tmplRedirect == nil {
 		tmplRedirect, _ = template.New("redirect").Parse(tmplRedirectHTML)
 	}
@@ -30,8 +30,8 @@ func TmplRedirect(url string) []byte {
 	return res.Bytes()
 }
 
-// TmplRetryJoin applies the redirect template
-func TmplRetryJoin(url string) []byte {
+// RetryJoin applies the retry join template
+func RetryJoin(url string) []byte {
 	if tmplRedirect == nil {
 		tmplRedirect, _ = template.New("retry_join").Parse(tmplRetryJoinHTML)
 	}

@@ -18,6 +18,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"gitlab.com/infra.run/public/b3scale/pkg/templates"
 )
 
 // JoinMeetingHandlerOptions has configuration options for
@@ -112,9 +113,8 @@ func handleJoinMeeting(
 // a redirect to a waiting page. The original request will be
 // encoded and passed to the page as a parameter.
 func retryJoinResponse(req *bbb.Request) *bbb.JoinResponse {
-	url := "/_b3scale/retry-join/" + string(req.MarshalURLSafe())
-
-	body := cluster.TmplRedirect(url)
+	retryURL := "/_b3scale/retry-join/" + string(req.MarshalURLSafe())
+	body := templates.Redirect(retryURL)
 
 	// Create custom join response
 	res := &bbb.JoinResponse{

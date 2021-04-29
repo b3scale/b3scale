@@ -14,6 +14,7 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"gitlab.com/infra.run/public/b3scale/pkg/templates"
 )
 
 // BackendStates: The state of the cluster backend node.
@@ -424,7 +425,7 @@ func (b *Backend) Join(
 	// as valid.
 	req = req.WithBackend(b.state.Backend)
 	url := req.URL()
-	body := TmplRedirect(url)
+	body := templates.Redirect(url)
 
 	// Create custom join response
 	res := &bbb.JoinResponse{
