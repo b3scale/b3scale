@@ -70,8 +70,10 @@ func NewServer(
 		controller: ctrl,
 	}
 
-	// Register index route
+	// Register routes
 	e.GET("/", s.httpIndex)
+
+	e.GET("/_b3scale/retry-join/:req", handleRetryJoin)
 
 	return s
 }

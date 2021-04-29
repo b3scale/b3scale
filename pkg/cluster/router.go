@@ -122,7 +122,7 @@ func (r *Router) lookupBackendForRequest(
 	// there is nothing to do for us here.
 	meetingID, ok := req.Params.MeetingID()
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("meetingID missing from request")
 	}
 
 	log.Debug().

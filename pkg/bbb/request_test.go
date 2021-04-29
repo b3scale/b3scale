@@ -171,11 +171,7 @@ func TestUnAndMarshalURLSafe(t *testing.T) {
 		"checksum":  "12342",
 	})
 
-	enc, err := req.MarshalURLSafe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	enc := req.MarshalURLSafe()
 	req1, err := UnmarshalURLSafeRequest(enc)
 	if err != nil {
 		t.Fatal(err)
@@ -198,11 +194,7 @@ func TestDecodeURLSafeRequest(t *testing.T) {
 	hdr.Set("content-type", "application/test")
 	req.Request.Header = hdr
 
-	data, err := req.MarshalURLSafe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	data := req.MarshalURLSafe()
 	payload := make([]byte, base64.RawURLEncoding.DecodedLen(len(data)))
 	if _, err := base64.RawURLEncoding.Decode(payload, data); err != nil {
 		t.Fatal(err)

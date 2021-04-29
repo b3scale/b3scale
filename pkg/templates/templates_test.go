@@ -27,3 +27,13 @@ func TestTmplRenderConcurrent(t *testing.T) {
 		}()
 	}
 }
+
+func TestTmplRetryJoin(t *testing.T) {
+	url := "http://foo-bar-test"
+	res := TmplRetryJoin(url)
+	t.Log(string(res))
+
+	if !bytes.Contains(res, []byte(url)) {
+		t.Error("result should contain the URL")
+	}
+}
