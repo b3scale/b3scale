@@ -81,6 +81,7 @@ func main() {
 	})
 
 	gateway.Use(router.Middleware())
+	gateway.Use(requests.JoinMeetingHandler())
 	gateway.Use(requests.DefaultPresentation())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 

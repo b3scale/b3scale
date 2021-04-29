@@ -62,7 +62,8 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 	return func(
 		ctx context.Context, req *bbb.Request,
 	) (bbb.Response, error) {
-		// Get backend and frontend
+		// Get backend and frontend and dispatch to the first
+		// backend in the set.
 		backends := BackendsFromContext(ctx)
 		if len(backends) == 0 {
 			return nil, ErrNoBackendInContext
@@ -74,7 +75,7 @@ func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
 			return nil, ErrNoFrontendInContext
 		}
 
-		// Check if the backend is ready to accept requests:
+		// Check if the backend is ready to accept requests
 		if backend.state.NodeState != BackendStateReady {
 			return nil, ErrBackendNotReady
 		}
@@ -173,7 +174,7 @@ func (gw *Gateway) Dispatch(
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()
 
-	// Make cluster request and initialize context
+	// Let the middleware chain handle the request
 	res, err := gw.middleware(ctx, req)
 	if err != nil {
 		be := BackendFromContext(ctx)
