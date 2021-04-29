@@ -114,12 +114,18 @@ func (req *Request) WithFrontend(f *Frontend) *Request {
 // MarshalURLSafe will encode the request in an urlsafe way
 // using json+base64.
 func (req *Request) MarshalURLSafe() []byte {
+	// We redact our url a bit
+	reqURL := &url.URL{
+		RawQuery: req.Request.URL.RawQuery,
+		Path:     req.Request.URL.Path,
+	}
+
 	// We can not directly mashal the http.Request, so we create
 	// a temporary map with all relevant data
 	repr := map[string]interface{}{
 		"mth": req.Request.Method,
 		"hdr": req.Request.Header,
-		"url": req.Request.URL.String(),
+		"url": reqURL.String(),
 	}
 	data, err := json.Marshal(repr)
 	if err != nil {
