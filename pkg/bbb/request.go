@@ -124,7 +124,6 @@ func (req *Request) MarshalURLSafe() []byte {
 	// a temporary map with all relevant data
 	repr := map[string]interface{}{
 		"mth": req.Request.Method,
-		"hdr": req.Request.Header,
 		"url": reqURL.String(),
 	}
 	data, err := json.Marshal(repr)
@@ -165,22 +164,24 @@ func UnmarshalURLSafeRequest(data []byte) (req *Request, err error) {
 func decodeURLSafeRequest(enc interface{}) *Request {
 	repr := enc.(map[string]interface{})
 	params := Params{}
-	if repr["prm"] != nil {
-		for k, v := range repr["prm"].(map[string]interface{}) {
-			params[k] = v.(string)
-		}
-	}
-
 	header := http.Header{}
-	if repr["hdr"] != nil {
-		for k, v := range repr["hdr"].(map[string]interface{}) {
-			values := make([]string, len(v.([]interface{})))
-			for j, hv := range v.([]interface{}) {
-				values[j] = hv.(string)
+	/*
+		if repr["prm"] != nil {
+			for k, v := range repr["prm"].(map[string]interface{}) {
+				params[k] = v.(string)
 			}
-			header[k] = values
 		}
-	}
+
+		if repr["hdr"] != nil {
+			for k, v := range repr["hdr"].(map[string]interface{}) {
+				values := make([]string, len(v.([]interface{})))
+				for j, hv := range v.([]interface{}) {
+					values[j] = hv.(string)
+				}
+				header[k] = values
+			}
+		}
+	*/
 	var (
 		reqURL *url.URL
 		err    error
