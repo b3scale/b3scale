@@ -78,11 +78,12 @@ func main() {
 	// The middlewares are executes in reverse order.
 	gateway := cluster.NewGateway(ctrl, &cluster.GatewayOptions{})
 
-	gateway.Use(router.Middleware())
-	gateway.Use(requests.JoinMeetingHandler(&requests.JoinMeetingHandlerOptions{
+	// gateway.Use(requests.RecordingsRequestHandler())
+	gateway.Use(requests.MeetingsRequestHandler(router, &requests.MeetingsHandlerOptions{
 		UseReverseProxy: revProxyEnabled,
 	}))
-	gateway.Use(requests.DefaultPresentation())
+	gateway.Use(requests.SetDefaultPresentation())
+	gateway.Use(requests.BindMeetingFrontend())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 
 	// Start cluster controller

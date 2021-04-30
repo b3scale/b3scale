@@ -345,18 +345,6 @@ func meetingStateFromRequest(
 	return meetingState, err
 }
 
-// Version responds with the current version. This request
-// will not hit a real backend and is not part of the
-// API interface.
-func (b *Backend) Version(req *bbb.Request) (*bbb.XMLResponse, error) {
-	res := &bbb.XMLResponse{
-		Returncode: "SUCCESS",
-		Version:    "2.0",
-	}
-	res.SetStatus(200)
-	return res, nil
-}
-
 // Create a new Meeting
 func (b *Backend) Create(
 	ctx context.Context,
@@ -486,7 +474,6 @@ func (b *Backend) IsMeetingRunning(
 	if err != nil {
 		return nil, err
 	}
-
 	isMeetingRunningRes := res.(*bbb.IsMeetingRunningResponse)
 	meetingID, _ := req.Params.MeetingID()
 	if isMeetingRunningRes.Returncode == "ERROR" {
@@ -528,50 +515,51 @@ func (b *Backend) GetMeetingInfo(
 		return nil, err
 	}
 	res := rep.(*bbb.GetMeetingInfoResponse)
+	if res.XMLResponse.Returncode != "SUCCESS" {
+		return res, nil
+	}
 
-	// Update our meeting in the store
-	if res.XMLResponse.Returncode == "SUCCESS" {
-		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
-		if err != nil {
-			return nil, err
-		}
-		defer tx.Rollback(ctx)
+	// We have successuflly retrieved an update from
+	// the server, so we should update our local state
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
 
-		meetingID, _ := req.Params.MeetingID()
-		mstate, err := store.GetMeetingState(ctx, tx, store.Q().
-			Where("id = ?", meetingID))
-		if err != nil {
-			// We only log the error, as this might fail
-			// without impacting the service
-			log.Error().
-				Err(err).
+	meetingID, _ := req.Params.MeetingID()
+	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
+		Where("id = ?", meetingID))
+	if err != nil {
+		// We only log the error, as this might fail
+		// without impacting the service
+		log.Error().
+			Err(err).
+			Str("backend", b.state.Backend.Host).
+			Msg("GetMeetingState")
+	} else {
+		if mstate == nil {
+			log.Warn().
 				Str("backend", b.state.Backend.Host).
-				Msg("GetMeetingState")
+				Str("meetingID", meetingID).
+				Msg("GetMeetingInfo for unknown meeting")
 		} else {
-			if mstate == nil {
-				log.Warn().
+			// Update meeting state
+			mstate.Meeting = res.Meeting
+			mstate.SyncedAt = time.Now().UTC()
+			if err := mstate.Save(ctx, tx); err != nil {
+				log.Error().
+					Err(err).
 					Str("backend", b.state.Backend.Host).
-					Str("meetingID", meetingID).
-					Msg("GetMeetingInfo for unknown meeting")
-			} else {
-				// Update meeting state
-				mstate.Meeting = res.Meeting
-				mstate.SyncedAt = time.Now().UTC()
-				if err := mstate.Save(ctx, tx); err != nil {
-					log.Error().
-						Err(err).
-						Str("backend", b.state.Backend.Host).
-						Msg("Save")
-				}
+					Msg("Save")
 			}
 		}
-
-		// Persist changes
-		if err := tx.Commit(ctx); err != nil {
-			log.Error().
-				Err(err).
-				Msg("failed to commit meeting info")
-		}
+	}
+	// Persist changes
+	if err := tx.Commit(ctx); err != nil {
+		log.Error().
+			Err(err).
+			Msg("failed to commit meeting info")
 	}
 
 	return res, nil
@@ -582,39 +570,11 @@ func (b *Backend) GetMeetings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (*bbb.GetMeetingsResponse, error) {
-	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
-
-	// Get all meetings from our store associated
-	// with the requesting frontend.
-	mstates, err := store.GetMeetingStates(ctx, tx, store.Q().
-		Join("frontends ON frontends.id = meetings.frontend_id").
-		Where("meetings.backend_id IS NOT NULL").
-		Where("frontends.key = ?", req.Frontend.Key))
-	if err != nil {
-		return nil, err
-	}
-
-	tx.Rollback(ctx)
-
-	meetings := make([]*bbb.Meeting, 0, len(mstates))
-	for _, state := range mstates {
-		meetings = append(meetings, state.Meeting)
-	}
-
-	// Create response with all meetings
-	res := &bbb.GetMeetingsResponse{
-		XMLResponse: &bbb.XMLResponse{
-			Returncode: "SUCCESS",
-		},
-		Meetings: meetings,
-	}
-	res.SetStatus(200)
-
-	return res, nil
+	return res.(*bbb.GetMeetingsResponse), nil
 }
 
 // GetRecordings retrieves a list of recordings
