@@ -1,5 +1,5 @@
 <modules>
    <module name="presentation">
-       <document url="{{index . "url"}}" filename="{{index . "filename"}}"/>
+       <document url="{{ .URL }}" filename="{{ .Filename }}"/>
    </module>
 </modules>

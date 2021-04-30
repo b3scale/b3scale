@@ -48,7 +48,7 @@ func RetryJoin(url string) []byte {
 
 // DefaultPresentationBody renders the xml body for
 // a default presentation.
-func DefaultPresentationBody(url, filename string) []byte {
+func DefaultPresentationBody(u, filename string) []byte {
 	if tmplDefaultPresentationBody == nil {
 		tmplDefaultPresentationBody, _ = template.New("default_presentation").
 			Parse(tmplDefaultPresentationBodyXML)
@@ -56,9 +56,10 @@ func DefaultPresentationBody(url, filename string) []byte {
 
 	// Render template
 	res := new(bytes.Buffer)
-	tmplDefaultPresentationBody.Execute(res, map[string]string{
-		"url":      url,
-		"filename": filename,
+	tmplDefaultPresentationBody.Execute(res, struct{ URL, Filename string }{
+		URL:      u,
+		Filename: filename,
 	})
+
 	return res.Bytes()
 }
