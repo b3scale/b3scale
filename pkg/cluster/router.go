@@ -18,6 +18,10 @@ var (
 	// is unknown to the cluster.
 	ErrNoBackendForMeeting = errors.New("no backends associated with meeting")
 
+	// ErrNoBackendAvailable indicates that there is no backend
+	// available for creating a meeting.
+	ErrNoBackendAvailable = errors.New("no free backend availble for meeting")
+
 	// ErrMeetingIDMissing indicates that there is a meetingID
 	// expected to be in the requests params, but it is missing.
 	ErrMeetingIDMissing = errors.New("meetingID missing from request")
@@ -82,7 +86,7 @@ func (r *Router) SelectBackend(
 		return nil, err
 	}
 	if len(backends) == 0 {
-		return nil, ErrNoBackendForMeeting
+		return nil, ErrNoBackendAvailable
 	}
 
 	// Use first backend

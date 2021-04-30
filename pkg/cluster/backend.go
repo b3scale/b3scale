@@ -66,6 +66,9 @@ func (b *Backend) Tags() []string {
 
 // HasTag checks for the presence of a tag
 func (b *Backend) HasTag(tag string) bool {
+	if tag == "" {
+		return true // no tag is always present
+	}
 	for _, t := range b.Tags() {
 		if t == tag {
 			return true
