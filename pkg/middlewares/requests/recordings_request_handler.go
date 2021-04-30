@@ -72,6 +72,7 @@ func (h *RecordingsHandler) GetRecordings(
 			},
 		}
 		res.SetStatus(http.StatusOK)
+		return res, nil
 	}
 	if err != nil {
 		return nil, err
