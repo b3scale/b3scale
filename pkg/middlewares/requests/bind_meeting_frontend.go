@@ -3,8 +3,6 @@ package requests
 import (
 	"context"
 
-	"github.com/rs/zerolog/log"
-
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"

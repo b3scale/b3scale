@@ -2,12 +2,9 @@ package requests
 
 import (
 	"context"
-	"net/http"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
-	"gitlab.com/infra.run/public/b3scale/pkg/templates"
 )
 
 // AdminHandler will handle all meetings related API requests
@@ -31,7 +28,7 @@ func AdminRequestHandler(
 			// Dispatch API resources
 			switch req.Resource {
 			case bbb.ResourceIndex:
-				return h.Version(req)
+				return h.Version(ctx, req)
 			case bbb.ResourceGetDefaultConfigXML:
 				return h.GetDefaultConfigXML(ctx, req)
 			case bbb.ResourceSetConfigXML:
