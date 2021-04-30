@@ -28,6 +28,8 @@ type JoinMeetingHandlerOptions struct {
 	// that a reverse proxy can be used. This is an experimental
 	// feature and a known issue is the unfortunate handling
 	// of breakout rooms.
+	// When deployed in reverse proxy mode we will handle the
+	// join internally and the proxy needs to handle subsequent requests.
 	UseReverseProxy bool
 }
 
@@ -99,6 +101,11 @@ func handleJoinMeeting(
 	// ok and the node agent is alive.
 	if !backendState.IsNodeReady() {
 		return retryJoinResponse(req), nil
+	}
+
+	// Commit changes
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 
 	// Dispatch to backend

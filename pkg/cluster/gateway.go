@@ -29,11 +29,6 @@ var (
 
 // GatewayOptions have flags for customizing the gateway behaviour.
 type GatewayOptions struct {
-
-	// IsReverseProxyEnabled affects how the client joins a meeting:
-	// When deployed in reverse proxy mode we will handle the
-	// join internally and the proxy needs to handle subsequent requests.
-	IsReverseProxyEnabled bool
 }
 
 // The Gateway accepts bbb cluster requests and dispatches
