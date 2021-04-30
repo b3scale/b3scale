@@ -2,6 +2,8 @@ package requests
 
 import (
 	"context"
+	"errors"
+	"net/http"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -62,6 +64,15 @@ func (h *RecordingsHandler) GetRecordings(
 	req *bbb.Request,
 ) (bbb.Response, error) {
 	backend, err := h.router.LookupBackend(ctx, req)
+	if errors.Is(err, cluster.ErrNoBackendForMeeting) {
+		// Return failed successfully response
+		res := &bbb.GetRecordingsResponse{
+			XMLResponse: &bbb.XMLResponse{
+				Returncode: bbb.RetSuccess,
+			},
+		}
+		res.SetStatus(http.StatusOK)
+	}
 	if err != nil {
 		return nil, err
 	}

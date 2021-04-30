@@ -16,7 +16,7 @@ var (
 	// ErrNoBackendForMeeting indicates, that there is a backend
 	// expected to be associated with a meeting, yet the meeting
 	// is unknown to the cluster.
-	ErrNoBackendForMeeting = errors.New("no backends available")
+	ErrNoBackendForMeeting = errors.New("no backends associated with meeting")
 
 	// ErrMeetingIDMissing indicates that there is a meetingID
 	// expected to be in the requests params, but it is missing.

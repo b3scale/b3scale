@@ -2,6 +2,7 @@ package requests
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -147,6 +148,17 @@ func (h *MeetingsHandler) IsMeetingRunning(
 	ctx context.Context, req *bbb.Request,
 ) (bbb.Response, error) {
 	backend, err := h.router.LookupBackend(ctx, req)
+	if errors.Is(err, cluster.ErrNoBackendForMeeting) {
+		// Return failed successfully response
+		res := &bbb.IsMeetingRunningResponse{
+			XMLResponse: &bbb.XMLResponse{
+				Returncode: bbb.RetSuccess,
+			},
+			Running: false,
+		}
+		res.SetStatus(http.StatusOK)
+		return res, nil
+	}
 	if err != nil {
 		return nil, err
 	}

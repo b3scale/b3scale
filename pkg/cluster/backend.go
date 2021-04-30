@@ -475,21 +475,6 @@ func (b *Backend) IsMeetingRunning(
 		return nil, err
 	}
 	isMeetingRunningRes := res.(*bbb.IsMeetingRunningResponse)
-	meetingID, _ := req.Params.MeetingID()
-	if isMeetingRunningRes.Returncode == "ERROR" {
-		// Delete meeting
-		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to start tx")
-		}
-		defer tx.Rollback(ctx)
-		if err := store.DeleteMeetingStateByID(ctx, tx, meetingID); err != nil {
-			log.Error().Err(err).Msg("failed to delete meeting")
-		}
-		if err := tx.Commit(ctx); err != nil {
-			log.Error().Err(err).Msg("failed to commit")
-		}
-	}
 	return isMeetingRunningRes, err
 }
 
