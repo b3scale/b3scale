@@ -37,3 +37,17 @@ func TestTmplRetryJoin(t *testing.T) {
 		t.Error("result should contain the URL")
 	}
 }
+
+func TestTmplDefaultPresentation(t *testing.T) {
+	url := "http://foo-bar-test"
+	filename := "ffff-filename2342.dat"
+	res := DefaultPresentationBody(url, filename)
+	t.Log(string(res))
+
+	if !bytes.Contains(res, []byte(url)) {
+		t.Error("result should contain the URL")
+	}
+	if !bytes.Contains(res, []byte(filename)) {
+		t.Error("result should contain the filename")
+	}
+}

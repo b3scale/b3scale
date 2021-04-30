@@ -14,8 +14,12 @@ var (
 	//go:embed html/retry-join.html
 	tmplRetryJoinHTML string
 
-	tmplRedirect  *template.Template
-	tmplRetryJoin *template.Template
+	//go:embed html/default-presentation-body.xml
+	tmplDefaultPresentationBodyXML string
+
+	tmplRedirect                *template.Template
+	tmplRetryJoin               *template.Template
+	tmplDefaultPresentationBody *template.Template
 )
 
 // Redirect applies the redirect template
@@ -39,5 +43,22 @@ func RetryJoin(url string) []byte {
 	// Render template
 	res := new(bytes.Buffer)
 	tmplRedirect.Execute(res, url)
+	return res.Bytes()
+}
+
+// DefaultPresentationBody renders the xml body for
+// a default presentation.
+func DefaultPresentationBody(url, filename string) []byte {
+	if tmplDefaultPresentationBody == nil {
+		tmplDefaultPresentationBody, _ = template.New("default_presentation").
+			Parse(tmplDefaultPresentationBodyXML)
+	}
+
+	// Render template
+	res := new(bytes.Buffer)
+	tmplDefaultPresentationBody.Execute(res, map[string]string{
+		"url":      url,
+		"filename": filename,
+	})
 	return res.Bytes()
 }
