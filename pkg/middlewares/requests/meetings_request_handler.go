@@ -136,7 +136,16 @@ func (h *MeetingsHandler) Create(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := h.router.SelectBackend(ctx, req)
+	var (
+		backend *cluster.Backend
+		err     error
+	)
+	// Lookup backend, as we need to make this
+	// endpoint idempotent
+	backend, err = h.router.LookupBackend(ctx, req)
+	if errors.Is(err, cluster.ErrNoBackendForMeeting) {
+		backend, err = h.router.SelectBackend(ctx, req)
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -119,7 +119,14 @@ func (r *Router) LookupBackend(
 		return nil, err
 	}
 	if backend == nil {
+		log.Debug().
+			Str("meetingID", meetingID).
+			Msg("no backend for meetingID")
 		return nil, ErrNoBackendForMeeting
 	}
+	log.Debug().
+		Str("meetingID", meetingID).
+		Str("backend", backend.state.Backend.Host).
+		Msg("found backend for meetingID")
 	return backend, nil
 }
