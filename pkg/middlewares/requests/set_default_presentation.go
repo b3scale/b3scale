@@ -2,9 +2,7 @@ package requests
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
-	"strings"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"

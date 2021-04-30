@@ -135,7 +135,7 @@ func (h *MeetingsHandler) Create(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := router.SelectBackend(req)
+	backend, err := h.router.SelectBackend(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -146,17 +146,18 @@ func (h *MeetingsHandler) Create(
 func (h *MeetingsHandler) IsMeetingRunning(
 	ctx context.Context, req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := router.LookupBackend(req)
+	backend, err := h.router.LookupBackend(ctx, req)
 	if err != nil {
 		return nil, err
 	}
+	return backend.IsMeetingRunning(ctx, req)
 }
 
 // End will end a meeting on a backend
 func (h *MeetingsHandler) End(
 	ctx context.Context, req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := router.LookupBackend(req)
+	backend, err := h.router.LookupBackend(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +170,7 @@ func (h *MeetingsHandler) GetMeetingInfo(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := router.LookupBackend(req)
+	backend, err := h.router.LookupBackend(ctx, req)
 	if err != nil {
 		return nil, err
 	}
