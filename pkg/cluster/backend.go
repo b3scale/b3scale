@@ -258,7 +258,7 @@ func (b *Backend) refreshNodeState(
 	}
 
 	if count > 0 {
-		log.Warn().
+		log.Info().
 			Int("orphans", int(count)).
 			Str("backend", b.state.Backend.Host).
 			Msg("removed orphan meetings associated with backend")
