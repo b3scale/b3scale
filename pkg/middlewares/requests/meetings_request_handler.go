@@ -93,13 +93,6 @@ func (h *MeetingsHandler) Join(
 		return retryJoinResponse(req), nil
 	}
 
-	// Assign frontend if not present. As we disallow rebinding
-	// this will fail if the frontendID not null or the same
-	// as the request frontendID.
-	if err := meeting.BindFrontendID(ctx, tx, frontend.ID()); err != nil {
-		return nil, err
-	}
-
 	// Get backend do redirect
 	backendState, err := meeting.GetBackendState(ctx, tx)
 	if err != nil {
