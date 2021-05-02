@@ -73,8 +73,6 @@ func MeetingsRequestHandler(
 func (h *MeetingsHandler) Join(
 	ctx context.Context, req *bbb.Request,
 ) (bbb.Response, error) {
-	frontend := cluster.FrontendFromContext(ctx)
-
 	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return nil, err
