@@ -2,13 +2,29 @@ package cluster
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
+)
+
+// Routing errors
+var (
+	// ErrNoBackendForMeeting indicates, that there is a backend
+	// expected to be associated with a meeting, yet the meeting
+	// is unknown to the cluster.
+	ErrNoBackendForMeeting = errors.New("no backends associated with meeting")
+
+	// ErrNoBackendAvailable indicates that there is no backend
+	// available for creating a meeting.
+	ErrNoBackendAvailable = errors.New("no free backend availble for meeting")
+
+	// ErrMeetingIDMissing indicates that there is a meetingID
+	// expected to be in the requests params, but it is missing.
+	ErrMeetingIDMissing = errors.New("meetingID missing from request")
 )
 
 // The Router provides a requets middleware for routing
@@ -29,82 +45,18 @@ type Router struct {
 func NewRouter(ctrl *Controller) *Router {
 	return &Router{
 		ctrl:       ctrl,
-		middleware: selectDiscardHandler,
+		middleware: nilHandler,
 	}
 }
 
-// As a final step in routing, make sure that there
-// is only a single backend left in the list of
-// potential backends for some resources.
-//
-// This pretty much applies to all state mutating
-// API resources like join or create.
-//
-// We use the selectDiscardHandler as the end of our
-// middleware chain.
-func selectDiscardHandler(
+// The nil handler is the end of the middleware chain.
+// It will just return the backends as they are.
+func nilHandler(
 	ctx context.Context,
 	backends []*Backend,
 	req *bbb.Request,
 ) ([]*Backend, error) {
-	res := req.Resource
-	switch res {
-	case bbb.ResourceIndex:
-		return selectFirst(backends), nil
-	case bbb.ResourceJoin:
-		return selectFirst(backends), nil
-	case bbb.ResourceCreate:
-		return selectFirst(
-			discardShutdown(backends)), nil
-	case bbb.ResourceIsMeetingRunning:
-		return selectFirst(backends), nil
-	case bbb.ResourceEnd:
-		return selectFirst(backends), nil
-	case bbb.ResourceGetMeetingInfo:
-		return selectFirst(backends), nil
-	case bbb.ResourceGetMeetings:
-		return selectFirst(backends), nil
-	case bbb.ResourceGetRecordings:
-		return selectFirst(backends), nil
-	case bbb.ResourcePublishRecordings:
-		return selectFirst(backends), nil
-	case bbb.ResourceDeleteRecordings:
-		return selectFirst(backends), nil
-	case bbb.ResourceUpdateRecordings:
-		return selectFirst(backends), nil
-	case bbb.ResourceGetDefaultConfigXML:
-		return selectFirst(backends), nil
-	case bbb.ResourceSetConfigXML:
-		return selectFirst(backends), nil
-	case bbb.ResourceGetRecordingTextTracks:
-		return selectFirst(backends), nil
-	case bbb.ResourcePutRecordingTextTrack:
-		return selectFirst(backends), nil
-	}
-
-	return nil, fmt.Errorf(
-		"unknown api resource for backend select: %s", res)
-}
-
-// Keep only first backend
-func selectFirst(backends []*Backend) []*Backend {
-	// The following slice operation with empty slices
-	if len(backends) == 0 {
-		return backends
-	}
-	return backends[:1]
-}
-
-// Keep only backends with admin state ready
-func discardShutdown(backends []*Backend) []*Backend {
-	filtered := make([]*Backend, 0, len(backends))
-	for _, b := range backends {
-		if b.state.AdminState != "ready" {
-			continue
-		}
-		filtered = append(filtered, b)
-	}
-	return filtered
+	return backends, nil
 }
 
 // Use will insert a middleware into the chain
@@ -112,9 +64,43 @@ func (r *Router) Use(middleware RouterMiddleware) {
 	r.middleware = middleware(r.middleware)
 }
 
-// Lookup middleware for retriving an already associated
-// backend for a given meeting.
-func (r *Router) lookupBackendForRequest(
+// SelectBackend will apply the routing middleware
+// chain to a given request with all ready nodes in
+// the cluster where the admin state is also ready.
+// Selecting a backend will fail if no backends are available
+// as routing targets.
+func (r *Router) SelectBackend(
+	ctx context.Context, req *bbb.Request,
+) (*Backend, error) {
+	// Filter backends and only accept state active,
+	// and where the node agent is active on the host.
+	// Also we exclude stopped nodes.
+	deadline := time.Now().UTC().Add(-5 * time.Second)
+	backends, err := GetBackends(ctx, store.Q().
+		Where("agent_heartbeat >= ?", deadline).
+		Where("admin_state = ?", "ready").
+		Where("node_state = ?", "ready"))
+	if err != nil {
+		return nil, err
+	}
+	backends, err = r.middleware(ctx, backends, req)
+	if err != nil {
+		return nil, err
+	}
+	if len(backends) == 0 {
+		return nil, ErrNoBackendAvailable
+	}
+
+	// Use first backend
+	return backends[0], nil
+}
+
+// LookupBackend will retriev a backend or will fail
+// if the backend could not be found. Primary identifier
+// is the MeetingID of the request.
+// When no backend is found, this will not fail, however
+// the backend will be nil and this case needs to be handled.
+func (r *Router) LookupBackend(
 	ctx context.Context,
 	req *bbb.Request,
 ) (*Backend, error) {
@@ -122,16 +108,14 @@ func (r *Router) lookupBackendForRequest(
 	// there is nothing to do for us here.
 	meetingID, ok := req.Params.MeetingID()
 	if !ok {
-		return nil, nil
+		return nil, ErrMeetingIDMissing
 	}
-
 	log.Debug().
 		Str("meetingID", meetingID).
 		Msg("lookupBackendForRequest")
 
 	// Lookup backend for meeting in cluster, use backend
-	// if there is one associated - otherwise return
-	// all possible backends.
+	// if there is one associated.
 	backend, err := GetBackend(ctx, store.Q().
 		Join("meetings ON meetings.backend_id = backends.id").
 		Where("meetings.id = ?", meetingID))
@@ -139,122 +123,14 @@ func (r *Router) lookupBackendForRequest(
 		return nil, err
 	}
 	if backend == nil {
-		// No specific backend was associated with the ID
+		log.Debug().
+			Str("meetingID", meetingID).
+			Msg("no backend for meetingID")
 		return nil, nil
 	}
-
-	// Depending on the request we need to check if
-	// the backend can be used for accepting the request.
-	// To do so, we apply the routing middleware chain
-	// to the backend and see if it is included in the result set.
-	res, err := r.middleware(ctx, []*Backend{backend}, req)
-	if err != nil {
-		return nil, err
-	}
-	if !r.isBackendAvailable(backend, res) {
-
-		// TODO: IF the backend is just temporary unavailable
-		// we should try to stall the request. With a join request
-		// this would be possible to redirect to a waiting page
-		// and then try again.
-
-		// The backend associated with the meeting can not be used for
-		// this request. We need to relocate and will destroy the association
-		// with the backend.
-		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
-		if err != nil {
-			return nil, err
-		}
-		defer tx.Rollback(ctx)
-		if err := store.DeleteMeetingStateByID(ctx, tx, meetingID); err != nil {
-			log.Error().
-				Err(err).
-				Msg("failed removing meeting state")
-		}
-
-		return nil, tx.Commit(ctx)
-	}
-
-	// Okay looks like this backend is a good candidate.
+	log.Debug().
+		Str("meetingID", meetingID).
+		Str("backend", backend.state.Backend.Host).
+		Msg("found backend for meetingID")
 	return backend, nil
-}
-
-func (r *Router) isBackendAvailable(
-	backend *Backend,
-	backends []*Backend,
-) bool {
-	for _, b := range backends {
-		if b.ID() == backend.ID() {
-			return true
-		}
-	}
-
-	// Emit a warning
-	log.Warn().
-		Str("backend", backend.Host()).
-		Str("backendID", backend.ID()).
-		Msg("requested backend is no longer available " +
-			"as selectable routing target. " +
-			"Reassigning meetig.")
-
-	return false
-}
-
-// Middleware builds a request middleware
-func (r *Router) Middleware() RequestMiddleware {
-	return func(next RequestHandler) RequestHandler {
-		// Do routing
-		return func(
-			ctx context.Context, req *bbb.Request,
-		) (bbb.Response, error) {
-			// Filter backends and only accept state active,
-			// and where the noded is active on the host.
-			// Also we exclude stopped nodes.
-			deadline := time.Now().UTC().Add(-5 * time.Second)
-			backends, err := GetBackends(ctx, store.Q().
-				Where("agent_heartbeat >= ?", deadline).
-				Where("node_state = ?", "ready"))
-			if err != nil {
-				return nil, err
-			}
-			if len(backends) == 0 {
-				return nil, fmt.Errorf("no backends available")
-			}
-
-			// Try to lookup meeting for the incoming request
-			backend, err := r.lookupBackendForRequest(ctx, req)
-			if err != nil {
-				return nil, err
-			}
-
-			if backend != nil {
-				log.Debug().
-					Str("backendID", backend.ID()).
-					Msg("found backend for meeting id")
-
-				// We found a backend! If it is still available, we skip
-				// the router middleware chain and invoke the next request
-				// middleware with this backend.
-				if r.isBackendAvailable(backend, backends) {
-					ctx = ContextWithBackends(ctx, []*Backend{backend})
-					return next(ctx, req)
-				}
-			} else {
-				// Router only path
-				log.Debug().
-					Msg("no backend found for meeting... " +
-						"applying routing middlewares")
-			}
-
-			// Apply routing middleware to backends for a BBB request
-			backends, err = r.middleware(ctx, backends, req)
-			if err != nil {
-				return nil, err
-			}
-
-			// Let other middlewares handle the request
-			ctx = ContextWithBackends(ctx, backends)
-			return next(ctx, req)
-		}
-	}
 }

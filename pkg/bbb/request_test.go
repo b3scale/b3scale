@@ -1,6 +1,8 @@
 package bbb
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"testing"
@@ -159,5 +161,67 @@ func TestString(t *testing.T) {
 		"?checksum=272c9555258496a3f19c5ad8f599af2a4ebec031381ff1e37b34842c42c12284"
 	if reqURL != expected {
 		t.Error("Unexpected request URL:", reqURL)
+	}
+}
+
+func TestUnAndMarshalURLSafe(t *testing.T) {
+	req := JoinRequest(Params{
+		"meetingID": "abcd1235789-foo",
+		"userID":    "optional",
+		"checksum":  "12342",
+	})
+	reqURL, _ := url.Parse("/bbb/frontend/join?foo")
+	req.Request.URL = reqURL
+
+	enc := req.MarshalURLSafe()
+	req1, err := UnmarshalURLSafeRequest(enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(req1)
+	id, _ := req1.Params.MeetingID()
+	if id != "abcd1235789-foo" {
+
+	}
+}
+
+func TestDecodeURLSafeRequest(t *testing.T) {
+	req := JoinRequest(Params{
+		"meetingID": "abcd1235789-foo",
+		"userID":    "optional",
+		"checksum":  "12342",
+	})
+
+	reqURL, _ := url.Parse("/bbb/frontend/join?foo=42")
+	hdr := http.Header{}
+	hdr.Set("content-type", "application/test")
+	req.Request.Header = hdr
+	req.Request.URL = reqURL
+
+	data := req.MarshalURLSafe()
+	payload := make([]byte, base64.RawURLEncoding.DecodedLen(len(data)))
+	if _, err := base64.RawURLEncoding.Decode(payload, data); err != nil {
+		t.Fatal(err)
+	}
+
+	var r interface{}
+	if err := json.Unmarshal(payload, &r); err != nil {
+		t.Fatal(err)
+	}
+
+	req1 := decodeURLSafeRequest(r)
+	if req1 == nil {
+		t.Error("decode failed.")
+	}
+	/*
+		if req1.Request.Header.Get("content-type") != "application/test" {
+			t.Error("unexpected http header", req1.Request.Header)
+		}
+	*/
+	if req1.Request.URL.Path != "/bbb/frontend/join" {
+		t.Error("unexpected path", req1.Request.URL.Path)
+	}
+	if req1.Request.URL.Query().Get("foo") != "42" {
+		t.Error("unexpected query")
 	}
 }
