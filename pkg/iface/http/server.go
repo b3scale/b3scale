@@ -74,7 +74,7 @@ func NewServer(
 
 	// Register routes
 	e.GET("/", s.httpIndex)
-	e.GET("/_b3scale/retry-join/:req", s.httpRetryJoin)
+	e.GET("/b3s/retry-join/:req", s.httpRetryJoin)
 
 	return s
 }
@@ -121,6 +121,11 @@ func (s *Server) httpIndex(c echo.Context) error {
 // Internal / Retry Join Handler
 func (s *Server) httpRetryJoin(c echo.Context) error {
 	// Restore join URL from request
+	// Please note, that the blob is made opaque because it
+	// contains information like a password etc which could
+	// irritate users. HOWEVER: this information is not really
+	// a secret, as it is done clientsided when klicking "join".
+	//
 	req, err := bbb.UnmarshalURLSafeRequest([]byte(c.Param("req")))
 	if err != nil {
 		return err
