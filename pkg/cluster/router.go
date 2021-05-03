@@ -115,7 +115,7 @@ func (r *Router) LookupBackend(
 		Msg("lookupBackendForRequest")
 
 	// Lookup backend for meeting in cluster, use backend
-	// if there is one associated. Fail otherwise.
+	// if there is one associated.
 	backend, err := GetBackend(ctx, store.Q().
 		Join("meetings ON meetings.backend_id = backends.id").
 		Where("meetings.id = ?", meetingID))
