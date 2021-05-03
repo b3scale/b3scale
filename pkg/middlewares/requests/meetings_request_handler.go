@@ -2,7 +2,6 @@ package requests
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -38,7 +37,6 @@ func MeetingsRequestHandler(
 		opts:   opts,
 		router: router,
 	}
-
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
 		return func(
 			ctx context.Context,
@@ -134,7 +132,11 @@ func (h *MeetingsHandler) Create(
 	// Lookup backend, as we need to make this
 	// endpoint idempotent
 	backend, err = h.router.LookupBackend(ctx, req)
-	if errors.Is(err, cluster.ErrNoBackendForMeeting) {
+	if err != nil {
+		return nil, err
+	}
+	// When no backend is found, select a new one.
+	if backend == nil {
 		backend, err = h.router.SelectBackend(ctx, req)
 	}
 	if err != nil {
@@ -148,21 +150,14 @@ func (h *MeetingsHandler) IsMeetingRunning(
 	ctx context.Context, req *bbb.Request,
 ) (bbb.Response, error) {
 	backend, err := h.router.LookupBackend(ctx, req)
-	if errors.Is(err, cluster.ErrNoBackendForMeeting) {
-		// Return failed successfully response
-		res := &bbb.IsMeetingRunningResponse{
-			XMLResponse: &bbb.XMLResponse{
-				Returncode: bbb.RetSuccess,
-			},
-			Running: false,
-		}
-		res.SetStatus(http.StatusOK)
-		return res, nil
-	}
 	if err != nil {
 		return nil, err
 	}
-	return backend.IsMeetingRunning(ctx, req)
+	if backend != nil {
+		// We have a backend, to handle the request
+		return backend.IsMeetingRunning(ctx, req)
+	}
+	return unknownMeetingResponse(), nil
 }
 
 // End will end a meeting on a backend
@@ -173,7 +168,10 @@ func (h *MeetingsHandler) End(
 	if err != nil {
 		return nil, err
 	}
-	return backend.End(ctx, req)
+	if backend != nil {
+		return backend.End(ctx, req)
+	}
+	return unknownMeetingResponse(), nil
 }
 
 // GetMeetingInfo will not hit a backend, but we will query
@@ -186,11 +184,11 @@ func (h *MeetingsHandler) GetMeetingInfo(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.GetMeetingInfo(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.GetMeetingInfo(ctx, req)
 	}
-	return res, nil
+
+	return unknownMeetingResponse(), nil
 }
 
 // GetMeetings lists all meetings in the cluster relevant
@@ -214,7 +212,6 @@ func (h *MeetingsHandler) GetMeetings(
 	if err != nil {
 		return nil, err
 	}
-
 	tx.Rollback(ctx)
 
 	meetings := make([]*bbb.Meeting, 0, len(mstates))
@@ -229,8 +226,7 @@ func (h *MeetingsHandler) GetMeetings(
 		},
 		Meetings: meetings,
 	}
-	res.SetStatus(200)
-
+	res.SetStatus(http.StatusOK)
 	return res, nil
 }
 
@@ -251,5 +247,20 @@ func retryJoinResponse(req *bbb.Request) *bbb.JoinResponse {
 		"content-type": []string{"text/html"},
 		"location":     []string{req.URL()},
 	})
+	return res
+}
+
+// unknownMeetingResponse is a standard error response,
+// when the meeting could not be found by a lookup.
+func unknownMeetingResponse() *bbb.XMLResponse {
+	res := &bbb.XMLResponse{
+		Returncode: bbb.RetFailed,
+		Message:    "The meeting is not known to us.",
+		MessageKey: "unknownMeetingID",
+	}
+	res.SetStatus(http.StatusOK) // I'm pretty sure we need
+	// to respond with some success status code, otherwise
+	// greenlight and the like will assume incorrect credentials
+	// or something.
 	return res
 }

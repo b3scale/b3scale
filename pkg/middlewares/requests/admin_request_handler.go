@@ -65,11 +65,10 @@ func (h *AdminHandler) GetDefaultConfigXML(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.GetDefaultConfigXML(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.GetDefaultConfigXML(ctx, req)
 	}
-	return res, nil
+	return unknownMeetingResponse(), nil
 }
 
 // SetConfigXML will lookup a backend for the request
@@ -82,9 +81,8 @@ func (h *AdminHandler) SetConfigXML(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.SetConfigXML(ctx, req)
 	if err != nil {
-		return nil, err
+		return backend.SetConfigXML(ctx, req)
 	}
-	return res, nil
+	return unknownMeetingResponse(), nil
 }

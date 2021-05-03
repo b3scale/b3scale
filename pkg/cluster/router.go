@@ -67,6 +67,8 @@ func (r *Router) Use(middleware RouterMiddleware) {
 // SelectBackend will apply the routing middleware
 // chain to a given request with all ready nodes in
 // the cluster where the admin state is also ready.
+// Selecting a backend will fail if no backends are available
+// as routing targets.
 func (r *Router) SelectBackend(
 	ctx context.Context, req *bbb.Request,
 ) (*Backend, error) {
@@ -96,6 +98,8 @@ func (r *Router) SelectBackend(
 // LookupBackend will retriev a backend or will fail
 // if the backend could not be found. Primary identifier
 // is the MeetingID of the request.
+// When no backend is found, this will not fail, however
+// the backend will be nil and this case needs to be handled.
 func (r *Router) LookupBackend(
 	ctx context.Context,
 	req *bbb.Request,
@@ -122,7 +126,7 @@ func (r *Router) LookupBackend(
 		log.Debug().
 			Str("meetingID", meetingID).
 			Msg("no backend for meetingID")
-		return nil, ErrNoBackendForMeeting
+		return nil, nil
 	}
 	log.Debug().
 		Str("meetingID", meetingID).

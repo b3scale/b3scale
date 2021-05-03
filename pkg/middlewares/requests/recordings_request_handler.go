@@ -64,23 +64,19 @@ func (h *RecordingsHandler) GetRecordings(
 	req *bbb.Request,
 ) (bbb.Response, error) {
 	backend, err := h.router.LookupBackend(ctx, req)
-	if errors.Is(err, cluster.ErrNoBackendForMeeting) {
-		// Return failed successfully response
-		res := &bbb.GetRecordingsResponse{
-			XMLResponse: &bbb.XMLResponse{
-				Returncode: bbb.RetSuccess,
-			},
-		}
-		res.SetStatus(http.StatusOK)
-		return res, nil
-	}
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.GetRecordings(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.GetRecordings(ctx, req)
 	}
+	// Return failed successfully response
+	res := &bbb.GetRecordingsResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: bbb.RetSuccess,
+		},
+	}
+	res.SetStatus(http.StatusOK)
 	return res, nil
 }
 
@@ -94,11 +90,10 @@ func (h *RecordingsHandler) PublishRecordings(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.PublishRecordings(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.PublishRecordings(ctx, req)
 	}
-	return res, nil
+	return unknownMeetingResponse(), nil
 }
 
 // UpdateRecordings will lookup a backend for the request
@@ -111,11 +106,10 @@ func (h *RecordingsHandler) UpdateRecordings(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.UpdateRecordings(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.UpdateRecordings(ctx, req)
 	}
-	return res, nil
+	return unknownMeetingResponse(), nil
 }
 
 // DeleteRecordings will lookup a backend for the request
@@ -128,11 +122,10 @@ func (h *RecordingsHandler) DeleteRecordings(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.GetRecordings(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.GetRecordings(ctx, req)
 	}
-	return res, nil
+	return unknownMeetingResponse(), nil
 }
 
 // GetRecordingTextTracks will lookup a backend for the request
@@ -145,11 +138,10 @@ func (h *RecordingsHandler) GetRecordingTextTracks(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.GetRecordingTextTracks(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.GetRecordingTextTracks(ctx, req)
 	}
-	return res, nil
+	return unknownMeetingResponse(), nil
 }
 
 // PutRecordingTextTrack will lookup a backend for the request
@@ -162,9 +154,8 @@ func (h *RecordingsHandler) PutRecordingTextTrack(
 	if err != nil {
 		return nil, err
 	}
-	res, err := backend.PutRecordingTextTrack(ctx, req)
-	if err != nil {
-		return nil, err
+	if backend != nil {
+		return backend.PutRecordingTextTrack(ctx, req)
 	}
-	return res, nil
+	return unknownMeetingResponse(), nil
 }
