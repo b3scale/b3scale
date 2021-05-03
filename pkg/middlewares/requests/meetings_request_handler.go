@@ -157,7 +157,14 @@ func (h *MeetingsHandler) IsMeetingRunning(
 		// We have a backend, to handle the request
 		return backend.IsMeetingRunning(ctx, req)
 	}
-	return unknownMeetingResponse(), nil
+	res := &bbb.IsMeetingRunningResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: bbb.RetSuccess,
+		},
+		Running: false,
+	}
+	res.SetStatus(http.StatusOK) // I'm pretty sure we need
+	return res, nil
 }
 
 // End will end a meeting on a backend
@@ -234,7 +241,7 @@ func (h *MeetingsHandler) GetMeetings(
 // a redirect to a waiting page. The original request will be
 // encoded and passed to the page as a parameter.
 func retryJoinResponse(req *bbb.Request) *bbb.JoinResponse {
-	retryURL := "/_b3scale/retry-join/" + string(req.MarshalURLSafe())
+	retryURL := "/b3s/retry-join/" + string(req.MarshalURLSafe())
 	body := templates.Redirect(retryURL)
 
 	// Create custom join response
@@ -245,7 +252,7 @@ func retryJoinResponse(req *bbb.Request) *bbb.JoinResponse {
 	res.SetRaw(body)
 	res.SetHeader(http.Header{
 		"content-type": []string{"text/html"},
-		"location":     []string{req.URL()},
+		"location":     []string{retryURL},
 	})
 	return res
 }

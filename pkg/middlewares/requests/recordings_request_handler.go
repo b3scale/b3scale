@@ -2,7 +2,6 @@ package requests
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"

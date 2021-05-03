@@ -1,5 +1,0 @@
-package requests
-
-import (
-	"testing"
-)
