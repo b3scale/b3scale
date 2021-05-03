@@ -3,6 +3,7 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo-contrib/prometheus"
@@ -11,12 +12,13 @@ import (
 	pclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 	"github.com/ziflex/lecho/v2"
-
 	"golang.org/x/net/http2"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/metrics"
+	"gitlab.com/infra.run/public/b3scale/pkg/templates"
 )
 
 const (
@@ -70,8 +72,9 @@ func NewServer(
 		controller: ctrl,
 	}
 
-	// Register index route
+	// Register routes
 	e.GET("/", s.httpIndex)
+	e.GET("/b3s/retry-join/:req", s.httpRetryJoin)
 
 	return s
 }
@@ -113,4 +116,27 @@ func (s *Server) httpIndex(c echo.Context) error {
 		fmt.Sprintf(
 			"<h1>B3Scale! v.%s (%s)</h1>",
 			config.Version, config.Build))
+}
+
+// Internal / Retry Join Handler
+func (s *Server) httpRetryJoin(c echo.Context) error {
+	// Restore join URL from request
+	// Please note, that the blob is made opaque because it
+	// contains information like a password etc which could
+	// irritate users. HOWEVER: this information is not really
+	// a secret, as it is done clientsided when klicking "join".
+	//
+	req, err := bbb.UnmarshalURLSafeRequest([]byte(c.Param("req")))
+	if err != nil {
+		return err
+	}
+	joinURL := req.Request.URL.String()
+
+	// Prevent open redirects. This is already a slippery slope.
+	if !strings.HasPrefix(joinURL, "/bbb") {
+		return fmt.Errorf("invalid join URL")
+	}
+
+	body := templates.RetryJoin(joinURL)
+	return c.HTMLBlob(http.StatusOK, body)
 }

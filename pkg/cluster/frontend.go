@@ -24,6 +24,11 @@ func NewFrontend(state *store.FrontendState) *Frontend {
 	}
 }
 
+// ID retrievs the frontend id
+func (f *Frontend) ID() string {
+	return f.state.ID
+}
+
 // Frontend gets the states BBB frontend
 func (f *Frontend) Frontend() *bbb.Frontend {
 	return f.state.Frontend

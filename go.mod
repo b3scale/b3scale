@@ -1,6 +1,6 @@
 module gitlab.com/infra.run/public/b3scale
 
-go 1.15
+go 1.16
 
 require (
 	github.com/Masterminds/squirrel v1.5.0

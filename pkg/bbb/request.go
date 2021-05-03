@@ -4,7 +4,9 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -107,6 +109,98 @@ func (req *Request) WithBackend(b *Backend) *Request {
 func (req *Request) WithFrontend(f *Frontend) *Request {
 	req.Frontend = f
 	return req
+}
+
+// MarshalURLSafe will encode the request in an urlsafe way
+// using json+base64.
+func (req *Request) MarshalURLSafe() []byte {
+	// We redact our url a bit
+	reqURL := &url.URL{
+		RawQuery: req.Request.URL.RawQuery,
+		Path:     req.Request.URL.Path,
+	}
+
+	// We can not directly mashal the http.Request, so we create
+	// a temporary map with all relevant data
+	repr := map[string]interface{}{
+		"mth": req.Request.Method,
+		"url": reqURL.String(),
+	}
+	data, err := json.Marshal(repr)
+	if err != nil {
+		panic(err)
+	}
+	// Encode as urlsafe base64
+	buf := make([]byte, base64.RawURLEncoding.EncodedLen(len(data)))
+	base64.RawURLEncoding.Encode(buf, data)
+	return buf
+}
+
+// UnmarshalURLSafeRequest will decode an encoded request. Remember not
+// to trust any user data! THIS IS NOT SIGNED.
+func UnmarshalURLSafeRequest(data []byte) (req *Request, err error) {
+	payload := make([]byte, base64.RawURLEncoding.DecodedLen(len(data)))
+	if _, err := base64.RawURLEncoding.Decode(payload, data); err != nil {
+		return nil, err
+	}
+
+	var r interface{}
+	if err := json.Unmarshal(payload, &r); err != nil {
+		return nil, err
+	}
+
+	// Recover if the the following decoding of the representation
+	// into a Request fails.
+	defer func() {
+		if recv := recover(); recv != nil {
+			err = fmt.Errorf("decoding error: %v", recv)
+		}
+	}()
+
+	req = decodeURLSafeRequest(r)
+	return req, nil
+}
+
+func decodeURLSafeRequest(enc interface{}) *Request {
+	repr := enc.(map[string]interface{})
+	params := Params{}
+	header := http.Header{}
+	/*
+		if repr["prm"] != nil {
+			for k, v := range repr["prm"].(map[string]interface{}) {
+				params[k] = v.(string)
+			}
+		}
+
+		if repr["hdr"] != nil {
+			for k, v := range repr["hdr"].(map[string]interface{}) {
+				values := make([]string, len(v.([]interface{})))
+				for j, hv := range v.([]interface{}) {
+					values[j] = hv.(string)
+				}
+				header[k] = values
+			}
+		}
+	*/
+	var (
+		reqURL *url.URL
+		err    error
+	)
+	if repr["url"] != nil {
+		reqURL, err = url.Parse(repr["url"].(string))
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	return &Request{
+		Params: params,
+		Request: &http.Request{
+			Method: repr["mth"].(string),
+			Header: header,
+			URL:    reqURL,
+		},
+	}
 }
 
 // JoinRequest creates a new join request

@@ -301,9 +301,15 @@ func (s *BackendState) UpdateAgentHeartbeat(
 // IsAgentAlive checks if the heartbeat is older
 // than the threshold
 func (s *BackendState) IsAgentAlive() bool {
-	threshold := 1 * time.Second
+	threshold := 5 * time.Second
 	now := time.Now().UTC()
 	return now.Sub(s.AgentHeartbeat) <= threshold
+}
+
+// IsNodeReady checks if the agent is alive and the node
+// state is ready
+func (s *BackendState) IsNodeReady() bool {
+	return s.IsAgentAlive() && s.NodeState == "ready"
 }
 
 // ClearMeetings will remove all meetings in the current state

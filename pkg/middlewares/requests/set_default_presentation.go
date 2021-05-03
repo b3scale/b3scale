@@ -2,22 +2,21 @@ package requests
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
-	"strings"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/templates"
 )
 
-// DefaultPresentation produces a middleware for injecting
+// SetDefaultPresentation produces a middleware for injecting
 // a XML snippet into the request body of a create request.
 // There are two frontend setting variables:
 //
 //   default_presentation.url = https://path-to-presentation
 //   default_presentation.force = true | false
 //
-func DefaultPresentation() cluster.RequestMiddleware {
+func SetDefaultPresentation() cluster.RequestMiddleware {
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
 		return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {
 			frontend := cluster.FrontendFromContext(ctx)
@@ -49,21 +48,10 @@ func maybeUpdateDefaultPresentation(req *bbb.Request, fe *cluster.Frontend) {
 		return // presentation present, nothing to do here
 	}
 
+	presURL := opts.URL
+	filename := filepath.Base(presURL)
+
 	// Set or override presentation
 	req.Header.Set("content-type", "application/xml")
-	req.Body = makePresentationRequestBody(opts.URL)
-}
-
-// create the XML document
-func makePresentationRequestBody(url string) []byte {
-	tmpl := strings.TrimSpace(`
-<modules>
-   <module name="presentation">
-      <document url="%s" filename="%s"/>
-   </module>
-</modules>`)
-
-	filename := filepath.Base(url)
-	body := fmt.Sprintf(tmpl, url, filename)
-	return []byte(body)
+	req.Body = templates.DefaultPresentationBody(presURL, filename)
 }

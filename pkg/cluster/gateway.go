@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // Errors
@@ -29,11 +28,6 @@ var (
 
 // GatewayOptions have flags for customizing the gateway behaviour.
 type GatewayOptions struct {
-
-	// IsReverseProxyEnabled affects how the client joins a meeting:
-	// When deployed in reverse proxy mode we will handle the
-	// join internally and the proxy needs to handle subsequent requests.
-	IsReverseProxyEnabled bool
 }
 
 // The Gateway accepts bbb cluster requests and dispatches
@@ -50,109 +44,18 @@ func NewGateway(ctrl *Controller, opts *GatewayOptions) *Gateway {
 		ctrl: ctrl,
 		opts: opts,
 	}
-	gw.middleware = gw.dispatchBackendHandler(ctrl)
+	gw.middleware = gw.unhandledRequestHandler(ctrl)
 	return gw
 }
 
-// The dispatchBackendHandler marks the end of the
+// The unhandledRequestHandler marks the end of the
 // middleware chain and is the default handler for requests.
-// It expects the presence of a "backend" in the current
-// context. Otherwise it will fail.
-func (gw *Gateway) dispatchBackendHandler(ctrl *Controller) RequestHandler {
+func (gw *Gateway) unhandledRequestHandler(ctrl *Controller) RequestHandler {
 	return func(
 		ctx context.Context, req *bbb.Request,
 	) (bbb.Response, error) {
-		// Get backend and frontend
-		backends := BackendsFromContext(ctx)
-		if len(backends) == 0 {
-			return nil, ErrNoBackendInContext
-		}
-		backend := backends[0]
-
-		frontend := FrontendFromContext(ctx)
-		if frontend == nil {
-			return nil, ErrNoFrontendInContext
-		}
-
-		// Check if the backend is ready to accept requests:
-		if backend.state.NodeState != BackendStateReady {
-			return nil, ErrBackendNotReady
-		}
-
-		// Make sure the meeting is associated with the backend
-		if meetingID, ok := req.Params.MeetingID(); ok {
-			// Next, we have to access our shared state
-			tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
-			if err != nil {
-				return nil, err
-			}
-			defer tx.Rollback(ctx)
-
-			meeting, err := store.GetMeetingStateByID(ctx, tx, meetingID)
-			if err != nil {
-				log.Error().
-					Err(err).
-					Str("meetingID", meetingID).
-					Msg("GetMeetingStateByID")
-			} else {
-				if meeting != nil {
-					// Assign to backend
-					if err := meeting.SetBackendID(ctx, tx, backend.ID()); err != nil {
-						return nil, err
-					}
-					// Assign frontend if not present
-					if err := meeting.BindFrontendID(ctx, tx, frontend.state.ID); err != nil {
-						return nil, err
-					}
-				}
-			}
-
-			// Persist changes and close transaction
-			if err := tx.Commit(ctx); err != nil {
-				return nil, err
-			}
-		}
-
-		// Dispatch API resources
-		switch req.Resource {
-		case bbb.ResourceIndex:
-			return backend.Version(req)
-		case bbb.ResourceJoin:
-			if gw.opts.IsReverseProxyEnabled {
-				return backend.JoinProxy(ctx, req)
-			}
-			return backend.Join(ctx, req)
-		case bbb.ResourceCreate:
-			return backend.Create(ctx, req)
-		case bbb.ResourceIsMeetingRunning:
-			return backend.IsMeetingRunning(ctx, req)
-		case bbb.ResourceEnd:
-			return backend.End(ctx, req)
-		case bbb.ResourceGetMeetingInfo:
-			return backend.GetMeetingInfo(ctx, req)
-		case bbb.ResourceGetMeetings:
-			return backend.GetMeetings(ctx, req)
-		case bbb.ResourceGetRecordings:
-			return backend.GetRecordings(ctx, req)
-		case bbb.ResourcePublishRecordings:
-			return backend.PublishRecordings(ctx, req)
-		case bbb.ResourceDeleteRecordings:
-			return backend.DeleteRecordings(ctx, req)
-		case bbb.ResourceUpdateRecordings:
-			return backend.UpdateRecordings(ctx, req)
-		case bbb.ResourceGetDefaultConfigXML:
-			return backend.GetDefaultConfigXML(ctx, req)
-		case bbb.ResourceSetConfigXML:
-			return backend.SetConfigXML(ctx, req)
-		case bbb.ResourceGetRecordingTextTracks:
-			return backend.GetRecordingTextTracks(ctx, req)
-		case bbb.ResourcePutRecordingTextTrack:
-			return backend.PutRecordingTextTrack(ctx, req)
-		}
-
-		// We could not dispatch this
-		return nil, fmt.Errorf(
-			"unknown resource: %s", req.Resource)
+		// We could not handle the request.
+		return nil, fmt.Errorf("unknown resource: %s", req.Resource)
 	}
 }
 
@@ -170,10 +73,13 @@ func (gw *Gateway) Dispatch(
 	conn *pgxpool.Conn,
 	req *bbb.Request,
 ) bbb.Response {
+
+	// TODO: Defer handle error
+
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()
 
-	// Make cluster request and initialize context
+	// Let the middleware chain handle the request
 	res, err := gw.middleware(ctx, req)
 	if err != nil {
 		be := BackendFromContext(ctx)
