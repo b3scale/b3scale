@@ -12,7 +12,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -68,67 +67,6 @@ func NewCommandQueue() *CommandQueue {
 	return &CommandQueue{}
 }
 
-// Subscribe will let the queue listen for notifications
-func (q *CommandQueue) subscribe() error {
-	if q.subscription != nil {
-		q.subscription.Release()
-	}
-
-	ctx, cancel := context.WithTimeout(
-		context.Background(), time.Second)
-	defer cancel()
-
-	conn, err := Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	// Subscribe to queue
-	_, err = conn.Exec(ctx, "LISTEN "+cmdQueue)
-	if err != nil {
-		return err
-	}
-	q.subscription = conn
-
-	return nil
-}
-
-// Start will subscribe the command queue to notifications
-// and will periodically emit trigger events
-func (q *CommandQueue) Start() {
-
-	for {
-		// Subscribe on demand
-		if q.subscription == nil {
-			if err := q.subscribe(); err != nil {
-				log.Error().Err(err).Msg("could not subscribe to event queue")
-			}
-		}
-
-		// We periodically check our queue. We only check instantly
-		// if we got informed that there is a job waiting.
-		ctx, cancel := context.WithTimeout(
-			context.Background(), time.Second)
-		// Await command, after a timeout just try to dequeue
-		_, err := q.subscription.Conn().WaitForNotification(ctx)
-		cancel() // Invalidate context
-
-		if err != nil {
-			q.subscription.Release()
-			q.subscription = nil
-			netErr, ok := err.(net.Error)
-			if ok {
-				// In case we just ran into a timeout it
-				// is perfectly fine to continue. Otherwise
-				// we just forward the error
-				if netErr.Timeout() {
-					continue
-				}
-				log.Error().Err(err).Msg("failed awaiting command from queue")
-			}
-		}
-	}
-}
-
 // QueueCommand adds a new command to the queue
 func QueueCommand(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 	// Our command will always expire. For now 2 minutes.
@@ -163,65 +101,38 @@ func QueueCommand(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 // responds with an error, the error will be returned.
 func (q *CommandQueue) Receive(handler CommandHandler) error {
 	for {
-		// Subscribe on demand
-		if q.subscription == nil {
-			if err := q.subscribe(); err != nil {
-				return err
-			}
-		}
-
-		// We periodically check our queue. We only check instantly
-		// if we got informed that there is a job waiting.
-		ctx, cancel := context.WithTimeout(
-			context.Background(), time.Second)
-		// Await command, after a timeout just try to dequeue
-		_, err := q.subscription.Conn().WaitForNotification(ctx)
-		cancel() // Invalidate context
-
-		if err != nil {
-			q.subscription.Release()
-			q.subscription = nil
-			netErr, ok := err.(net.Error)
-			if ok {
-				// In case we just ran into a timeout it
-				// is perfectly fine to continue. Otherwise
-				// we just forward the error
-				if !netErr.Timeout() {
-					return err
-				}
-			} else {
-				return err
-			}
-		}
-
 		// Start processing in the background, so we can take
 		// care of the next incomming command.
 		go func(q *CommandQueue) {
 			err := q.process(handler)
 			if err != nil {
-				log.Error().
-					Err(err).
-					Msg("processing job failed")
+				log.Error().Err(err).Msg("processing job failed")
 			}
 		}(q)
+
+		// Limit polling frequency to 15 Hz
+		time.Sleep(66 * time.Millisecond)
 	}
 }
 
 // Run the handler, but recover if an error occured.
 func safeExecHandler(
+	ctx context.Context,
 	cmd *Command,
 	handler CommandHandler,
 ) (res interface{}, err error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+
 	var conn *pgxpool.Conn
+	// Get a database connection for the handler and pass
+	// it through the context.
 	conn, err = Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Release()
 	ctx = ContextWithConnection(ctx, conn)
+	defer conn.Release()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -240,13 +151,14 @@ func safeExecHandler(
 // will be returned.
 func (q *CommandQueue) process(handler CommandHandler) error {
 	// Begin transaction with a total timelimit
-	// of 300 seconds for the entire command
+	// of X seconds for the entire command. The safeExecHandler
+	// will instanciate a child context with a stricter timelimit
+	// of Y < X seconds for the job to complete.
 	startedAt := time.Now()
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 300*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 70*time.Second)
 	defer cancel()
 
-	tx, err := begin(ctx)
+	tx, err := begin(ctx) // Command TX
 	if err != nil {
 		return err
 	}
@@ -292,7 +204,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		result = "timedout"
 	} else {
 		// Apply command handler
-		result, err = safeExecHandler(cmd, handler)
+		result, err = safeExecHandler(ctx, cmd, handler)
 		if err != nil {
 			log.Error().
 				Err(err).
@@ -334,7 +246,6 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -342,4 +253,45 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 // newly requested command
 func NextDeadline(dt time.Duration) time.Time {
 	return time.Now().UTC().Add(dt)
+}
+
+// CountCommandsWithState retrievs the number of commands
+// in the queue with a given state. e.g. requested, error,
+// etc.
+func CountCommandsWithState(
+	ctx context.Context,
+	tx pgx.Tx,
+	state string,
+) (int, error) {
+	count := 0
+	qry := `
+		SELECT COUNT(1)
+		  FROM (
+		  	SELECT 1 FROM commands
+			 WHERE state = $1
+		  ORDER BY seq ASC
+			   FOR SHARE SKIP LOCKED) AS Q`
+	err := tx.QueryRow(ctx, qry, state).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// CountCommandsRequested returns the number of
+// unprocessed commands in the queue.
+func CountCommandsRequested(ctx context.Context, tx pgx.Tx) (int, error) {
+	return CountCommandsWithState(ctx, tx, "requested")
+}
+
+// CountCommandsSuccess returns the number of
+// successfully processed commands in the queue.
+func CountCommandsSuccess(ctx context.Context, tx pgx.Tx) (int, error) {
+	return CountCommandsWithState(ctx, tx, "success")
+}
+
+// CountCommandsError returns the number of
+// successfully processed commands in the queue.
+func CountCommandsError(ctx context.Context, tx pgx.Tx) (int, error) {
+	return CountCommandsWithState(ctx, tx, "error")
 }
