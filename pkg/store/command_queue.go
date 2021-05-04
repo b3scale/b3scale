@@ -60,11 +60,11 @@ func (cmd *Command) FetchParams(
 // provides methods for queuing and dequeuing commands.
 type CommandQueue struct {
 	subscription *pgxpool.Conn
+	trigger      chan bool
 }
 
 // NewCommandQueue initializes a new command queue
 func NewCommandQueue() *CommandQueue {
-	// Subscribe to notifications
 	return &CommandQueue{}
 }
 
@@ -90,6 +90,43 @@ func (q *CommandQueue) subscribe() error {
 	q.subscription = conn
 
 	return nil
+}
+
+// Start will subscribe the command queue to notifications
+// and will periodically emit trigger events
+func (q *CommandQueue) Start() {
+
+	for {
+		// Subscribe on demand
+		if q.subscription == nil {
+			if err := q.subscribe(); err != nil {
+				log.Error().Err(err).Msg("could not subscribe to event queue")
+			}
+		}
+
+		// We periodically check our queue. We only check instantly
+		// if we got informed that there is a job waiting.
+		ctx, cancel := context.WithTimeout(
+			context.Background(), time.Second)
+		// Await command, after a timeout just try to dequeue
+		_, err := q.subscription.Conn().WaitForNotification(ctx)
+		cancel() // Invalidate context
+
+		if err != nil {
+			q.subscription.Release()
+			q.subscription = nil
+			netErr, ok := err.(net.Error)
+			if ok {
+				// In case we just ran into a timeout it
+				// is perfectly fine to continue. Otherwise
+				// we just forward the error
+				if netErr.Timeout() {
+					continue
+				}
+				log.Error().Err(err).Msg("failed awaiting command from queue")
+			}
+		}
+	}
 }
 
 // QueueCommand adds a new command to the queue
@@ -160,7 +197,6 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 		// Start processing in the background, so we can take
 		// care of the next incomming command.
 		go func(q *CommandQueue) {
-
 			err := q.process(handler)
 			if err != nil {
 				log.Error().
@@ -175,30 +211,28 @@ func (q *CommandQueue) Receive(handler CommandHandler) error {
 func safeExecHandler(
 	cmd *Command,
 	handler CommandHandler,
-	errc chan error,
-) interface{} {
+) (res interface{}, err error) {
 	ctx, cancel := context.WithTimeout(
-		context.Background(), 300*time.Second)
+		context.Background(), 60*time.Second)
 	defer cancel()
-
-	conn, err := Acquire(ctx)
+	var conn *pgxpool.Conn
+	conn, err = Acquire(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer conn.Release()
 	ctx = ContextWithConnection(ctx, conn)
 
-	defer func(e chan error) {
+	defer func() {
 		if r := recover(); r != nil {
-			e <- fmt.Errorf("%v", r)
+			var ok bool
+			err, ok = r.(error)
+			if !ok {
+				err = fmt.Errorf("%v", r)
+			}
 		}
-	}(errc)
-
-	// Run handler
-	res, err := handler(ctx, cmd)
-	errc <- err
-
-	return res
+	}()
+	return handler(ctx, cmd)
 }
 
 // Process will dequeue a command and apply the
@@ -258,16 +292,13 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 		result = "timedout"
 	} else {
 		// Apply command handler
-		errc := make(chan error, 1)
-		result = safeExecHandler(cmd, handler, errc)
-		err = <-errc
+		result, err = safeExecHandler(cmd, handler)
 		if err != nil {
 			log.Error().
 				Err(err).
 				Int("seq", cmd.Seq).
 				Str("action", cmd.Action).
 				Msg("exec command handler error")
-
 			state = "error"
 			result = fmt.Sprintf("%s", err)
 		}
