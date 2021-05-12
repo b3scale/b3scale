@@ -73,9 +73,6 @@ func (gw *Gateway) Dispatch(
 	conn *pgxpool.Conn,
 	req *bbb.Request,
 ) bbb.Response {
-
-	// TODO: Defer handle error
-
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()
 
