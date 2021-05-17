@@ -86,8 +86,7 @@ func (h *MeetingsHandler) Join(
 	if meeting == nil {
 		// The meeting is not known to the cluster.
 		// To prevent endless loops we fail here.
-		// return retryJoinResponse(req), nil
-		return unknownMeetingPageResponse(), nil
+		return unknownMeetingBrowserResponse(), nil
 	}
 
 	// Get backend do redirect
@@ -284,15 +283,13 @@ func unknownMeetingResponse() *bbb.XMLResponse {
 
 // The unknownMeetingBrowserResponse renders a human readable 404 template
 // in case the meeting was not found.
-func unknownMeetingBrowserResponse() *bbb.XMLResponse {
-	res := &bbb.XMLResponse{
-		Returncode: bbb.RetFailed,
-		Message:    "The meeting is not known to us.",
-		MessageKey: "invalidMeetingIdentifier",
+func unknownMeetingBrowserResponse() *bbb.JoinResponse {
+	// Create custom join response
+	body := templates.MeetingNotFound()
+	res := &bbb.JoinResponse{
+		XMLResponse: new(bbb.XMLResponse),
 	}
-	res.SetStatus(http.StatusOK) // I'm pretty sure we need
-	// to respond with some success status code, otherwise
-	// greenlight and the like will assume incorrect credentials
-	// or something.
+	res.SetRaw(body)
+	res.SetStatus(http.StatusNotFound)
 	return res
 }
