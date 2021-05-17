@@ -84,9 +84,9 @@ func (h *MeetingsHandler) Join(
 		return nil, err
 	}
 	if meeting == nil {
-		// The meeting is now known to the cluster.
-		// Send user to the stalling page.
-		return retryJoinResponse(req), nil
+		// The meeting is not known to the cluster.
+		// To prevent endless loops we fail here.
+		return unknownMeetingBrowserResponse(), nil
 	}
 
 	// Get backend do redirect
@@ -149,21 +149,30 @@ func (h *MeetingsHandler) Create(
 func (h *MeetingsHandler) IsMeetingRunning(
 	ctx context.Context, req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := h.router.LookupBackend(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	if backend != nil {
-		// We have a backend, to handle the request
-		return backend.IsMeetingRunning(ctx, req)
-	}
-	res := &bbb.IsMeetingRunningResponse{
+	// Fallback response: If we encounter an error
+	// in the backend, we assume that the meeting is
+	// not running.
+	notRunningRes := &bbb.IsMeetingRunningResponse{
 		XMLResponse: &bbb.XMLResponse{
 			Returncode: bbb.RetSuccess,
 		},
 		Running: false,
 	}
-	res.SetStatus(http.StatusOK) // I'm pretty sure we need
+	notRunningRes.SetStatus(http.StatusOK) // I'm pretty sure we need to do this...
+
+	backend, err := h.router.LookupBackend(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if backend == nil {
+		return notRunningRes, nil
+	}
+	// We have a backend to handle the request. Let's try this.
+	res, err := backend.IsMeetingRunning(ctx, req)
+	if err != nil {
+		return notRunningRes, nil
+	}
+
 	return res, nil
 }
 
@@ -263,11 +272,24 @@ func unknownMeetingResponse() *bbb.XMLResponse {
 	res := &bbb.XMLResponse{
 		Returncode: bbb.RetFailed,
 		Message:    "The meeting is not known to us.",
-		MessageKey: "unknownMeetingID",
+		MessageKey: "invalidMeetingIdentifier",
 	}
 	res.SetStatus(http.StatusOK) // I'm pretty sure we need
 	// to respond with some success status code, otherwise
 	// greenlight and the like will assume incorrect credentials
 	// or something.
+	return res
+}
+
+// The unknownMeetingBrowserResponse renders a human readable 404 template
+// in case the meeting was not found.
+func unknownMeetingBrowserResponse() *bbb.JoinResponse {
+	// Create custom join response
+	body := templates.MeetingNotFound()
+	res := &bbb.JoinResponse{
+		XMLResponse: new(bbb.XMLResponse),
+	}
+	res.SetRaw(body)
+	res.SetStatus(http.StatusNotFound)
 	return res
 }

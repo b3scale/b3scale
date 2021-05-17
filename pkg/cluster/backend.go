@@ -316,7 +316,6 @@ func (b *Backend) refreshMeetingState(
 			ctx, tx, state.InternalID); err != nil {
 			return err
 		}
-
 		return tx.Commit(ctx)
 	}
 

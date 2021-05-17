@@ -73,9 +73,6 @@ func (gw *Gateway) Dispatch(
 	conn *pgxpool.Conn,
 	req *bbb.Request,
 ) bbb.Response {
-
-	// TODO: Defer handle error
-
 	// Trigger backed jobs
 	go gw.ctrl.StartBackground()
 
@@ -91,9 +88,9 @@ func (gw *Gateway) Dispatch(
 			Str("frontend", fmt.Sprintf("%v", fe)).
 			Msg("gateway error")
 		// We encode our error as a BBB error response
-		return &bbb.XMLResponse{
-			Returncode: "FAILED",
-			MessageKey: "b3scale_gateway_error",
+		res = &bbb.XMLResponse{
+			Returncode: bbb.RetFailed,
+			MessageKey: "b3scaleGatewayError",
 			Message:    fmt.Sprintf("%s", err),
 		}
 	}
