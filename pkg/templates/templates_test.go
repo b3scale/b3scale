@@ -51,3 +51,8 @@ func TestTmplDefaultPresentation(t *testing.T) {
 		t.Error("result should contain the filename")
 	}
 }
+
+func TestTmplMeetingNotFound(t *testing.T) {
+	res := MeetingNotFound()
+	t.Log(res)
+}
