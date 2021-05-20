@@ -76,6 +76,10 @@ func NewServer(
 	e.GET("/", s.httpIndex)
 	e.GET("/b3s/retry-join/:req", s.httpRetryJoin)
 
+	if err := InitAPI(e); err != nil {
+		panic(err)
+	}
+
 	return s
 }
 
