@@ -77,7 +77,7 @@ func NewServer(
 	e.GET("/b3s/retry-join/:req", s.httpRetryJoin)
 
 	if err := InitAPI(e); err != nil {
-		panic(err)
+		log.Warn().Err(err).Msg("could not initialize rest API")
 	}
 
 	return s

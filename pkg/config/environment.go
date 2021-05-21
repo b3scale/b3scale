@@ -17,8 +17,9 @@ const (
 	EnvLogLevel     = "B3SCALE_LOG_LEVEL"
 	EnvListenHTTP   = "B3SCALE_LISTEN_HTTP"
 	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
-	EnvBBBConfig    = "BBB_CONFIG"
 	EnvLoadFactor   = "B3SCALE_LOAD_FACTOR"
+	EnvJWTSecret    = "B3SCALE_API_JWT_SECRET"
+	EnvBBBConfig    = "BBB_CONFIG"
 )
 
 // Defaults
@@ -78,7 +79,7 @@ func EnvOpt(key, fallback string) string {
 	return value
 }
 
-// IsEnabled returns true if the input is trueis
+// IsEnabled returns true if the input is trueish
 func IsEnabled(value string) bool {
 	value = strings.ToLower(value)
 	switch value {

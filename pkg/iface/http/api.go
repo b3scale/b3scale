@@ -8,9 +8,75 @@ details.
 */
 
 import (
+	"errors"
+	"strings"
+
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
+
+// Errors
+var (
+	// ErrMissingJWTSecret will be returned if a JWT secret
+	// could not be found in the environment.
+	ErrMissingJWTSecret = errors.New("missing JWT secret")
+)
+
+// Scopes
+const (
+	ScopeUser  = "b3scale"
+	ScopeAdmin = "b3scale:admin"
+)
+
+// APIAuthClaims extends the JWT standard claims
+// with a well-known `scope` claim.
+type APIAuthClaims struct {
+	Scope string `json:"scope"`
+	jwt.StandardClaims
+}
+
+// APIContext extends the context and provides methods
+// for handling the current user.
+type APIContext struct {
+	echo.Context
+}
+
+// HasScope checks if the authentication scope claim
+// contains a scope by name.
+// The scope claim is a space separated list of scopes
+// according to RFC8693, Section 4.2, (OAuth 2).
+func (ctx *APIContext) HasScope(s string) (found bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			found = false
+		}
+	}()
+	user := ctx.Get("user").(*jwt.Token)
+	claims := user.Claims.(*APIAuthClaims)
+	scopes := strings.Split(claims.Scope, " ")
+
+	for _, sc := range scopes {
+		if sc == s {
+			return true
+		}
+	}
+	return false
+}
+
+// UserID retrievs the current user ID from the JWT
+func (ctx *APIContext) UserID() (uid string) {
+	defer func() {
+		if r := recover(); r != nil {
+			uid = ""
+		}
+	}()
+	user := ctx.Get("user").(*jwt.Token)
+	claims := user.Claims.(*APIAuthClaims)
+	return claims.StandardClaims.Subject
+}
 
 // API is the v1 implementation of the b3scale
 // administrative API.
@@ -19,13 +85,26 @@ type API struct{}
 // InitAPI sets up a group with authentication
 // for a restful management interface.
 func InitAPI(e *echo.Echo) error {
-	// Initialize JWT middleware and authorization middleware
+	// Initialize JWT middleware config
+	jwtConfig, err := NewAPIJWTConfig()
+	if err != nil {
+		return err
+	}
 
 	// Initialize API
 	api := &API{}
 
 	// Register routes
 	a := e.Group("/api/v1")
+
+	// API Auth and Context Middlewares
+	a.Use(middleware.JWTWithConfig(jwtConfig))
+	a.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			ac := &APIContext{c}
+			return next(ac)
+		}
+	})
 
 	// Frontends
 	a.GET("/frontends", api.FrontendsList)
@@ -42,6 +121,22 @@ func InitAPI(e *echo.Echo) error {
 	a.PATCH("/backends/:id", api.BackendUpdate)
 
 	return nil
+}
+
+// NewAPIJWTConfig creates a new JWT middleware config.
+// Parameters like shared secrets, public keys, etc..
+// are retrieved from the environment.
+func NewAPIJWTConfig() (middleware.JWTConfig, error) {
+	secret := config.EnvOpt(config.EnvJWTSecret, "")
+	if secret == "" {
+		return middleware.JWTConfig{}, ErrMissingJWTSecret
+	}
+
+	cfg := middleware.JWTConfig{
+		Claims:     &APIAuthClaims{},
+		SigningKey: []byte("secret"),
+	}
+	return cfg, nil
 }
 
 // FrontendsList will list all frontends known
