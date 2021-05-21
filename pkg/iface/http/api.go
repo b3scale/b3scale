@@ -9,6 +9,7 @@ details.
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
@@ -102,6 +103,12 @@ func InitAPI(e *echo.Echo) error {
 	a.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			ac := &APIContext{c}
+
+			// Check presence of required scopes
+			if !ac.HasScope(ScopeUser) && !ac.HasScope(ScopeAdmin) {
+				return api.ErrorInvalidCredentials(c)
+			}
+
 			return next(ac)
 		}
 	})
@@ -134,7 +141,7 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 
 	cfg := middleware.JWTConfig{
 		Claims:     &APIAuthClaims{},
-		SigningKey: []byte("secret"),
+		SigningKey: []byte(secret),
 	}
 	return cfg, nil
 }
@@ -197,4 +204,16 @@ func (a *API) BackendDestroy(c echo.Context) error {
 // be updated.
 func (a *API) BackendUpdate(c echo.Context) error {
 	return nil
+}
+
+// Error responses
+
+// ErrorInvalidCredentials will create an API response
+// for an unauthorized request
+func (a *API) ErrorInvalidCredentials(c echo.Context) error {
+	return c.JSON(http.StatusForbidden, map[string]string{
+		"error": "invalid_credentials",
+		"message": "the credentials provided are lacking the " +
+			"scope: b3scale or b3scale:admin",
+	})
 }
