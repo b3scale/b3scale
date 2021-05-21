@@ -50,15 +50,9 @@ type APIContext struct {
 // The scope claim is a space separated list of scopes
 // according to RFC8693, Section 4.2, (OAuth 2).
 func (ctx *APIContext) HasScope(s string) (found bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			found = false
-		}
-	}()
 	user := ctx.Get("user").(*jwt.Token)
 	claims := user.Claims.(*APIAuthClaims)
 	scopes := strings.Split(claims.Scope, " ")
-
 	for _, sc := range scopes {
 		if sc == s {
 			return true
@@ -69,11 +63,6 @@ func (ctx *APIContext) HasScope(s string) (found bool) {
 
 // UserID retrievs the current user ID from the JWT
 func (ctx *APIContext) UserID() (uid string) {
-	defer func() {
-		if r := recover(); r != nil {
-			uid = ""
-		}
-	}()
 	user := ctx.Get("user").(*jwt.Token)
 	claims := user.Claims.(*APIAuthClaims)
 	return claims.StandardClaims.Subject
@@ -113,6 +102,9 @@ func InitAPI(e *echo.Echo) error {
 		}
 	})
 
+	// Status
+	a.GET("", api.Status)
+
 	// Frontends
 	a.GET("/frontends", api.FrontendsList)
 	a.POST("/frontends", api.FrontendCreate)
@@ -144,6 +136,16 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 		SigningKey: []byte(secret),
 	}
 	return cfg, nil
+}
+
+// Status will respond with the api version and b3scale
+// version.
+func (a *API) Status(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{
+		"version": config.Version,
+		"build":   config.Build,
+		"api":     "v1",
+	})
 }
 
 // FrontendsList will list all frontends known
