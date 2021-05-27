@@ -61,8 +61,8 @@ func (ctx *APIContext) HasScope(s string) (found bool) {
 	return false
 }
 
-// UserID retrievs the current user ID from the JWT
-func (ctx *APIContext) UserID() (uid string) {
+// Subject retrievs the "current user" from the JWT
+func (ctx *APIContext) Subject() (sub string) {
 	user := ctx.Get("user").(*jwt.Token)
 	claims := user.Claims.(*APIAuthClaims)
 	return claims.StandardClaims.Subject
