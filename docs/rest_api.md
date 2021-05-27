@@ -28,7 +28,10 @@ current user identified by the `sub` claim.
  /api/v1/frontends
 
     GET   :: Retrieve a list of frontends
+          SC b3scale.frontends:list
+
     POST  :: Register a new frontend
+          SC b3scale.frontends:create
 
  /api/v1/frontends/<id>
 

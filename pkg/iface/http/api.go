@@ -74,7 +74,7 @@ type API struct{}
 
 // InitAPI sets up a group with authentication
 // for a restful management interface.
-func InitAPI(e *echo.Echo) error {
+func InitAPI(s *Server) error {
 	// Initialize JWT middleware config
 	jwtConfig, err := NewAPIJWTConfig()
 	if err != nil {
@@ -85,7 +85,7 @@ func InitAPI(e *echo.Echo) error {
 	api := &API{}
 
 	// Register routes
-	a := e.Group("/api/v1")
+	a := s.echo.Group("/api/v1")
 
 	// API Auth and Context Middlewares
 	a.Use(middleware.JWTWithConfig(jwtConfig))
