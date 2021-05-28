@@ -36,7 +36,7 @@ type BackendState struct {
 
 	LoadFactor float64 `json:"load_factor"`
 
-	Backend *bbb.Backend `json:"state"`
+	Backend *bbb.Backend `json:"bbb" validate:"required"`
 
 	Settings BackendSettings `json:"settings"`
 
@@ -57,6 +57,9 @@ func InitBackendState(init *BackendState) *BackendState {
 	}
 	if init.Backend == nil {
 		init.Backend = &bbb.Backend{}
+	}
+	if init.LoadFactor == 0 {
+		init.LoadFactor = 1.0
 	}
 	return init
 }
