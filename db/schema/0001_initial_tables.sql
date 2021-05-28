@@ -77,7 +77,7 @@ CREATE TABLE frontends (
     -- The account reference will be used to limit
     -- access to the list of frontends when accessed
     -- through an authorized API request.
-    account_ref VARCHAR(80) DEFAULT '',
+    account_ref VARCHAR(80) NULL DEFAULT NULL,
 
     -- Runtime configuration can be added for each
     -- frontend. This should be used to save middleware
