@@ -13,15 +13,15 @@ import (
 // The FrontendState holds shared information about
 // a frontend.
 type FrontendState struct {
-	ID string
+	ID string `json:"id"`
 
-	Active   bool
-	Frontend *bbb.Frontend
+	Active   bool          `json:"-"`
+	Frontend *bbb.Frontend `json:"state"`
 
-	Settings FrontendSettings
+	Settings FrontendSettings `json:"settings"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // InitFrontendState initializes the state with a

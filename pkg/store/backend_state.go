@@ -21,28 +21,28 @@ var (
 // and encapsulates the list of meetings and recordings.
 // The backend.ID should be used as identifier.
 type BackendState struct {
-	ID string
+	ID string `json:"id"`
 
-	NodeState  string
-	AdminState string
+	NodeState  string `json:"node_state"`
+	AdminState string `json:"admin_state"`
 
-	AgentHeartbeat time.Time
+	AgentHeartbeat time.Time `json:"agent_heartbeat"`
 
-	LastError *string
+	LastError *string `json:"last_error"`
 
-	Latency        time.Duration
-	MeetingsCount  uint
-	AttendeesCount uint
+	Latency        time.Duration `json:"latency"`
+	MeetingsCount  uint          `json:"meetings_count"`
+	AttendeesCount uint          `json:"attendees_count"`
 
-	LoadFactor float64
+	LoadFactor float64 `json:"load_factor"`
 
-	Backend *bbb.Backend
+	Backend *bbb.Backend `json:"state"`
 
-	Settings BackendSettings
+	Settings BackendSettings `json:"settings"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	SyncedAt  time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	SyncedAt  time.Time `json:"synced_at"`
 }
 
 // InitBackendState initializes a new backend state with
