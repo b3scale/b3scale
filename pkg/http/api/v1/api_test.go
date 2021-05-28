@@ -77,21 +77,7 @@ func TestAPIContextSubject(t *testing.T) {
 func TestAPIStatus(t *testing.T) {
 	ctx, rec := MakeTestContext(nil)
 	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
-	a := &API{}
-	if err := a.Status(ctx); err != nil {
-		t.Fatal(err)
-	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
-	}
-}
-
-func TestAPIFrontendsList(t *testing.T) {
-	ctx, rec := MakeTestContext(nil)
-	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
-	a := &API{}
-	if err := a.FrontendsList(ctx); err != nil {
+	if err := Status(ctx); err != nil {
 		t.Fatal(err)
 	}
 	res := rec.Result()

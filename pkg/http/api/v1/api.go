@@ -105,6 +105,7 @@ func Init(e *echo.Echo) error {
 	}
 
 	// Register routes
+	log.Info().Str("path", "/api/v1").Msg("initializing http api v1")
 	a := e.Group("/api/v1")
 
 	// API Auth and Context Middlewares
@@ -175,9 +176,12 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 // Status will respond with the api version and b3scale
 // version.
 func Status(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{
-		"version": config.Version,
-		"build":   config.Build,
-		"api":     "v1",
+	ctx := c.(*APIContext)
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"version":  config.Version,
+		"build":    config.Build,
+		"api":      "v1",
+		"sub":      ctx.Subject(),
+		"is_admin": ctx.HasScope(ScopeAdmin),
 	})
 }
