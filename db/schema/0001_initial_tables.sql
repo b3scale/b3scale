@@ -74,10 +74,10 @@ CREATE TABLE frontends (
     key     text NOT NULL UNIQUE,
     secret  text NOT NULL,
 
-    -- The subject reference will be used to limit
+    -- The account reference will be used to limit
     -- access to the list of frontends when accessed
     -- through an authorized API request.
-    subject_ref VARCHAR(80) NULL, 
+    account_ref VARCHAR(80) DEFAULT '',
 
     -- Runtime configuration can be added for each
     -- frontend. This should be used to save middleware
@@ -93,8 +93,8 @@ CREATE TABLE frontends (
     synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
-CREATE INDEX idx_frontends_subject_ref ON frontends
- USING HASH ( subject_ref );
+CREATE INDEX idx_frontends_account_ref ON frontends
+ USING HASH ( account_ref );
   
 
 -- The store tables: `meetings`, `recordings`,
