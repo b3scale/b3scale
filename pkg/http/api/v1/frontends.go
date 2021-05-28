@@ -20,15 +20,13 @@ func FrontendsList(c echo.Context) error {
 	if ref != nil {
 		q.Where("account_ref = ?", *ref)
 	}
-	tx, err := store.ConnectionFromContext(ctx.Ctx()).Begin(reqCtx)
+	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 	}
 	defer tx.Rollback(reqCtx)
 	frontends, err := store.GetFrontendStates(reqCtx, tx, q)
-
 	c.JSON(http.StatusOK, frontends)
-
 	return nil
 }
 

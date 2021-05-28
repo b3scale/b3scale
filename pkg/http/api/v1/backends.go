@@ -1,17 +1,37 @@
 package v1
 
 import (
-	// "net/http"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
-	//	"github.com/rs/zerolog/log"
-	// "gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/rs/zerolog/log"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // BackendsList will list all frontends known
 // to the cluster or within the user scope.
 // ! requires: `admin`
 func BackendsList(c echo.Context) error {
+	ctx := c.(*APIContext)
+	reqCtx := ctx.Ctx()
+	ref := ctx.FilterAccountRef()
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(reqCtx)
+
+	// Begin Query
+	q := store.Q()
+	if ref != nil {
+		q.Where("account_ref = ?", *ref)
+	}
+
+	backends, err := store.GetBackendStates(reqCtx, tx, q)
+	c.JSON(http.StatusOK, backends)
+
 	return nil
 }
 
