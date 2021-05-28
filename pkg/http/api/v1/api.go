@@ -1,4 +1,4 @@
-package http
+package v1
 
 /*
 B3Scale API v1
@@ -8,6 +8,7 @@ details.
 */
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -15,8 +16,10 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // Errors
@@ -62,30 +65,47 @@ func (ctx *APIContext) HasScope(s string) (found bool) {
 }
 
 // Subject retrievs the "current user" from the JWT
-func (ctx *APIContext) Subject() (sub string) {
+func (ctx *APIContext) Subject() string {
 	user := ctx.Get("user").(*jwt.Token)
 	claims := user.Claims.(*APIAuthClaims)
 	return claims.StandardClaims.Subject
 }
 
-// API is the v1 implementation of the b3scale
-// administrative API.
-type API struct{}
+// FilterSubjectRef when the b3scale:admin scope is
+// present, this function retrieves the value
+// of the query param `ref`. The value will be nil
+// in absence of the parameter.
+//
+// When the admin scope is not present, the requesting
+// subject will be used.
+func (ctx *APIContext) FilterSubjectRef() *string {
+	if ctx.HasScope(ScopeAdmin) {
+		ref := ctx.Context.QueryParam("subject_ref")
+		if ref == "" {
+			return nil
+		}
+		return &ref
+	}
+	ref := ctx.Subject()
+	return &ref
+}
 
-// InitAPI sets up a group with authentication
+// Ctx is a shortcut to access the request context
+func (ctx *APIContext) Ctx() context.Context {
+	return ctx.Request().Context()
+}
+
+// Init sets up a group with authentication
 // for a restful management interface.
-func InitAPI(s *Server) error {
+func Init(e *echo.Echo) error {
 	// Initialize JWT middleware config
 	jwtConfig, err := NewAPIJWTConfig()
 	if err != nil {
 		return err
 	}
 
-	// Initialize API
-	api := &API{}
-
 	// Register routes
-	a := s.echo.Group("/api/v1")
+	a := e.Group("/api/v1")
 
 	// API Auth and Context Middlewares
 	a.Use(middleware.JWTWithConfig(jwtConfig))
@@ -95,8 +115,22 @@ func InitAPI(s *Server) error {
 
 			// Check presence of required scopes
 			if !ac.HasScope(ScopeUser) && !ac.HasScope(ScopeAdmin) {
-				return api.ErrorInvalidCredentials(c)
+				return ErrorInvalidCredentials(c)
 			}
+
+			req := c.Request()
+			ctx := req.Context()
+
+			// Acquire connection
+			conn, err := store.Acquire(ctx)
+			if err != nil {
+				return err
+			}
+			defer conn.Release()
+
+			ctx = store.ContextWithConnection(ctx, conn)
+			req = req.WithContext(ctx)
+			c.SetRequest(req)
 
 			return next(ac)
 		}
@@ -140,7 +174,7 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 
 // Status will respond with the api version and b3scale
 // version.
-func (a *API) Status(c echo.Context) error {
+func Status(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"version": config.Version,
 		"build":   config.Build,
@@ -150,72 +184,47 @@ func (a *API) Status(c echo.Context) error {
 
 // FrontendsList will list all frontends known
 // to the cluster or within the user scope.
-func (a *API) FrontendsList(c echo.Context) error {
+func FrontendsList(c echo.Context) error {
+	ctx := c.(*APIContext)
+	ref := ctx.FilterSubjectRef()
+	reqCtx := ctx.Ctx()
+
+	q := store.Q()
+	if ref != nil {
+		q.Where("subject_ref = ?", *ref)
+	}
+	tx, err := store.ConnectionFromContext(ctx.Ctx()).Begin(reqCtx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+	}
+	defer tx.Rollback(reqCtx)
+	frontends, err := store.GetFrontendStates(reqCtx, tx, q)
+
+	c.JSON(http.StatusOK, frontends)
+
 	return nil
 }
 
 // FrontendCreate will add a new frontend to the cluster.
-func (a *API) FrontendCreate(c echo.Context) error {
+func FrontendCreate(c echo.Context) error {
 	return nil
 }
 
 // FrontendRetrieve will retrieve a single frontend
 // identified by ID.
-func (a *API) FrontendRetrieve(c echo.Context) error {
+func FrontendRetrieve(c echo.Context) error {
 	return nil
 }
 
 // FrontendDestroy will remove a frontend from the cluster.
 // The frontend is identified by ID.
-func (a *API) FrontendDestroy(c echo.Context) error {
+func FrontendDestroy(c echo.Context) error {
 	return nil
 }
 
 // FrontendUpdate will update the frontend with values
 // provided by the request. Only keys provided will
 // be updated.
-func (a *API) FrontendUpdate(c echo.Context) error {
+func FrontendUpdate(c echo.Context) error {
 	return nil
-}
-
-// BackendsList will list all frontends known
-// to the cluster or within the user scope.
-func (a *API) BackendsList(c echo.Context) error {
-	return nil
-}
-
-// BackendCreate will add a new frontend to the cluster.
-func (a *API) BackendCreate(c echo.Context) error {
-	return nil
-}
-
-// BackendRetrieve will retrieve a single frontend
-// identified by ID.
-func (a *API) BackendRetrieve(c echo.Context) error {
-	return nil
-}
-
-// BackendDestroy will remove a frontend from the cluster.
-// The frontend is identified by ID.
-func (a *API) BackendDestroy(c echo.Context) error {
-	return nil
-}
-
-// BackendUpdate will update the frontend with values
-// provided by the request. Only keys provided will
-// be updated.
-func (a *API) BackendUpdate(c echo.Context) error {
-	return nil
-}
-
-// Error responses
-
-// ErrorInvalidCredentials will create an API response
-// for an unauthorized request
-func (a *API) ErrorInvalidCredentials(c echo.Context) error {
-	return c.JSON(http.StatusForbidden, map[string]string{
-		"error": "invalid_credentials",
-		"message": "the credentials provided are lacking the " +
-			"scope: b3scale or b3scale:admin",
-	})
 }
