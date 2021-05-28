@@ -137,21 +137,21 @@ func Init(e *echo.Echo) error {
 	})
 
 	// Status
-	a.GET("", api.Status)
+	a.GET("", Status)
 
 	// Frontends
-	a.GET("/frontends", api.FrontendsList)
-	a.POST("/frontends", api.FrontendCreate)
-	a.GET("/frontends/:id", api.FrontendRetrieve)
-	a.DELETE("/frontends/:id", api.FrontendDestroy)
-	a.PATCH("/frontends/:id", api.FrontendUpdate)
+	a.GET("/frontends", FrontendsList)
+	a.POST("/frontends", FrontendCreate)
+	a.GET("/frontends/:id", FrontendRetrieve)
+	a.DELETE("/frontends/:id", FrontendDestroy)
+	a.PATCH("/frontends/:id", FrontendUpdate)
 
 	// Backends
-	a.GET("/backends", api.BackendsList)
-	a.POST("/backends", api.BackendCreate)
-	a.GET("/backends/:id", api.BackendRetrieve)
-	a.DELETE("/backends/:id", api.BackendDestroy)
-	a.PATCH("/backends/:id", api.BackendUpdate)
+	a.GET("/backends", BackendsList)
+	a.POST("/backends", BackendCreate)
+	a.GET("/backends/:id", BackendRetrieve)
+	a.DELETE("/backends/:id", BackendDestroy)
+	a.PATCH("/backends/:id", BackendUpdate)
 
 	return nil
 }
@@ -180,51 +180,4 @@ func Status(c echo.Context) error {
 		"build":   config.Build,
 		"api":     "v1",
 	})
-}
-
-// FrontendsList will list all frontends known
-// to the cluster or within the user scope.
-func FrontendsList(c echo.Context) error {
-	ctx := c.(*APIContext)
-	ref := ctx.FilterSubjectRef()
-	reqCtx := ctx.Ctx()
-
-	q := store.Q()
-	if ref != nil {
-		q.Where("subject_ref = ?", *ref)
-	}
-	tx, err := store.ConnectionFromContext(ctx.Ctx()).Begin(reqCtx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(reqCtx)
-	frontends, err := store.GetFrontendStates(reqCtx, tx, q)
-
-	c.JSON(http.StatusOK, frontends)
-
-	return nil
-}
-
-// FrontendCreate will add a new frontend to the cluster.
-func FrontendCreate(c echo.Context) error {
-	return nil
-}
-
-// FrontendRetrieve will retrieve a single frontend
-// identified by ID.
-func FrontendRetrieve(c echo.Context) error {
-	return nil
-}
-
-// FrontendDestroy will remove a frontend from the cluster.
-// The frontend is identified by ID.
-func FrontendDestroy(c echo.Context) error {
-	return nil
-}
-
-// FrontendUpdate will update the frontend with values
-// provided by the request. Only keys provided will
-// be updated.
-func FrontendUpdate(c echo.Context) error {
-	return nil
 }
