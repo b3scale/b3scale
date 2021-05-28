@@ -13,12 +13,12 @@ import (
 // to the cluster or within the user scope.
 func FrontendsList(c echo.Context) error {
 	ctx := c.(*APIContext)
-	ref := ctx.FilterSubjectRef()
+	ref := ctx.FilterAccountRef()
 	reqCtx := ctx.Ctx()
 
 	q := store.Q()
 	if ref != nil {
-		q.Where("subject_ref = ?", *ref)
+		q.Where("account_ref = ?", *ref)
 	}
 	tx, err := store.ConnectionFromContext(ctx.Ctx()).Begin(reqCtx)
 	if err != nil {

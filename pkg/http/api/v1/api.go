@@ -27,6 +27,12 @@ var (
 	// ErrMissingJWTSecret will be returned if a JWT secret
 	// could not be found in the environment.
 	ErrMissingJWTSecret = errors.New("missing JWT secret")
+
+	// ErrAdminScopeRequired will be returned if the token
+	// has insuficient rights.
+	ErrAdminScopeRequired = echo.NewHTTPError(
+		http.StatusForbidden,
+		"b3scale:admin scope required")
 )
 
 // Scopes
@@ -64,21 +70,22 @@ func (ctx *APIContext) HasScope(s string) (found bool) {
 	return false
 }
 
-// Subject retrievs the "current user" from the JWT
-func (ctx *APIContext) Subject() string {
+// AccountRef retrievs the subject from the JWT
+// as the account reference.
+func (ctx *APIContext) AccountRef() string {
 	user := ctx.Get("user").(*jwt.Token)
 	claims := user.Claims.(*APIAuthClaims)
 	return claims.StandardClaims.Subject
 }
 
-// FilterSubjectRef when the b3scale:admin scope is
+// FilterAccountRef when the b3scale:admin scope is
 // present, this function retrieves the value
 // of the query param `ref`. The value will be nil
 // in absence of the parameter.
 //
 // When the admin scope is not present, the requesting
 // subject will be used.
-func (ctx *APIContext) FilterSubjectRef() *string {
+func (ctx *APIContext) FilterAccountRef() *string {
 	if ctx.HasScope(ScopeAdmin) {
 		ref := ctx.Context.QueryParam("subject_ref")
 		if ref == "" {
@@ -86,13 +93,26 @@ func (ctx *APIContext) FilterSubjectRef() *string {
 		}
 		return &ref
 	}
-	ref := ctx.Subject()
+	ref := ctx.AccountRef()
 	return &ref
 }
 
 // Ctx is a shortcut to access the request context
 func (ctx *APIContext) Ctx() context.Context {
 	return ctx.Request().Context()
+}
+
+// RequireAdminScope wraps a handler func and checks for
+// the presence of the AdminScope before invoking the
+// decorated function.
+func RequireAdminScope(fn echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.(*APIContext)
+		if !ctx.HasScope(ScopeAdmin) {
+			return ErrAdminScopeRequired
+		}
+		return fn(c)
+	}
 }
 
 // Init sets up a group with authentication
@@ -148,11 +168,11 @@ func Init(e *echo.Echo) error {
 	a.PATCH("/frontends/:id", FrontendUpdate)
 
 	// Backends
-	a.GET("/backends", BackendsList)
-	a.POST("/backends", BackendCreate)
-	a.GET("/backends/:id", BackendRetrieve)
-	a.DELETE("/backends/:id", BackendDestroy)
-	a.PATCH("/backends/:id", BackendUpdate)
+	a.GET("/backends", RequireAdminScope(BackendsList))
+	a.POST("/backends", RequireAdminScope(BackendCreate))
+	a.GET("/backends/:id", RequireAdminScope(BackendRetrieve))
+	a.DELETE("/backends/:id", RequireAdminScope(BackendDestroy))
+	a.PATCH("/backends/:id", RequireAdminScope(BackendUpdate))
 
 	return nil
 }
@@ -181,7 +201,7 @@ func Status(c echo.Context) error {
 		"version":  config.Version,
 		"build":    config.Build,
 		"api":      "v1",
-		"sub":      ctx.Subject(),
+		"account":  ctx.AccountRef(),
 		"is_admin": ctx.HasScope(ScopeAdmin),
 	})
 }

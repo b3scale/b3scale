@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -76,7 +77,7 @@ func TestAPIContextSubject(t *testing.T) {
 
 func TestAPIStatus(t *testing.T) {
 	ctx, rec := MakeTestContext(nil)
-	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
+	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeUser})
 	if err := Status(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -84,4 +85,6 @@ func TestAPIStatus(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Error("unexpected status code:", res.StatusCode)
 	}
+	body, _ := ioutil.ReadAll(res.Body)
+	t.Log(string(body))
 }
