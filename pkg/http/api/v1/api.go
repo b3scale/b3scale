@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
@@ -102,6 +103,27 @@ func (ctx *APIContext) Ctx() context.Context {
 	return ctx.Request().Context()
 }
 
+// APIValidator is a small wrapper around a validation
+// library and will be applied to incoming structs.
+type APIValidator struct {
+	validator *validator.Validate
+}
+
+// NewAPIValidator creates a new validator
+func NewAPIValidator() *APIValidator {
+	return &APIValidator{
+		validator: validator.New(),
+	}
+}
+
+// Validate a struct value
+func (av *APIValidator) Validate(v interface{}) error {
+	if err := av.validator.Struct(v); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return nil
+}
+
 // RequireAdminScope wraps a handler func and checks for
 // the presence of the AdminScope before invoking the
 // decorated function.
@@ -123,6 +145,9 @@ func Init(e *echo.Echo) error {
 	if err != nil {
 		return err
 	}
+
+	// Add validator
+	e.Validator = NewAPIValidator()
 
 	// Register routes
 	log.Info().Str("path", "/api/v1").Msg("initializing http api v1")
@@ -198,10 +223,10 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 func Status(c echo.Context) error {
 	ctx := c.(*APIContext)
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"version":  config.Version,
-		"build":    config.Build,
-		"api":      "v1",
-		"account":  ctx.AccountRef(),
-		"is_admin": ctx.HasScope(ScopeAdmin),
+		"version":     config.Version,
+		"build":       config.Build,
+		"api":         "v1",
+		"account_ref": ctx.AccountRef(),
+		"is_admin":    ctx.HasScope(ScopeAdmin),
 	})
 }

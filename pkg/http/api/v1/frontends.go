@@ -32,6 +32,7 @@ func FrontendsList(c echo.Context) error {
 
 // FrontendCreate will add a new frontend to the cluster.
 func FrontendCreate(c echo.Context) error {
+
 	return nil
 }
 

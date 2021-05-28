@@ -14,44 +14,123 @@ import (
 func BackendsList(c echo.Context) error {
 	ctx := c.(*APIContext)
 	reqCtx := ctx.Ctx()
-	ref := ctx.FilterAccountRef()
 
 	// Begin TX
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
+		return err
 	}
 	defer tx.Rollback(reqCtx)
 
 	// Begin Query
 	q := store.Q()
-	if ref != nil {
-		q.Where("account_ref = ?", *ref)
-	}
-
 	backends, err := store.GetBackendStates(reqCtx, tx, q)
 	c.JSON(http.StatusOK, backends)
 
 	return nil
 }
 
-// BackendCreate will add a new frontend to the cluster.
+// BackendCreate will add a new backend to the cluster.
 // ! requires: `admin`
 func BackendCreate(c echo.Context) error {
+	ctx := c.(*APIContext)
+	reqCtx := ctx.Ctx()
+
+	b := &store.BackendState{}
+	if err := c.Bind(b); err != nil {
+		return err
+	}
+
+	// Force defaults
+	b.ID = ""
+	b.NodeState = ""
+	b = store.InitBackendState(b)
+
+	// Begin transaction and save new backend state
+	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+		return err
+	}
+	defer tx.Rollback(reqCtx)
+
+	if err := b.Save(reqCtx, tx); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(reqCtx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-// BackendRetrieve will retrieve a single frontend
-// identified by ID.
+// BackendRetrieve will retrieve a single backend by ID.
 // ! requires: `admin`
 func BackendRetrieve(c echo.Context) error {
+	ctx := c.(*APIContext)
+	reqCtx := ctx.Ctx()
+
+	id := c.Param("id")
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+		return err
+	}
+	defer tx.Rollback(reqCtx)
+
+	// Begin Query
+	q := store.Q().Where("id = ?", id)
+	backend, err := store.GetBackendState(reqCtx, tx, q)
+
+	if backend == nil {
+		return echo.ErrNotFound
+	}
+
+	c.JSON(http.StatusOK, backend)
+
 	return nil
 }
 
-// BackendDestroy will remove a frontend from the cluster.
-// The frontend is identified by ID.
+// BackendDestroy will start a backend decommissioning.
 // ! requires: `admin`
 func BackendDestroy(c echo.Context) error {
+	ctx := c.(*APIContext)
+	reqCtx := ctx.Ctx()
+
+	id := c.Param("id")
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+		return err
+	}
+
+	defer tx.Rollback(reqCtx)
+	// Begin Query
+	q := store.Q().Where("id = ?", id)
+	backend, err := store.GetBackendState(reqCtx, tx, q)
+
+	if backend == nil {
+		return echo.ErrNotFound
+	}
+
+	// Request backend decommissioning
+	backend.AdminState = "decommissioned"
+	if err := backend.Save(reqCtx, tx); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(reqCtx); err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, backend)
+
 	return nil
 }
 
@@ -60,5 +139,42 @@ func BackendDestroy(c echo.Context) error {
 // be updated.
 // ! requires: `admin`
 func BackendUpdate(c echo.Context) error {
+	ctx := c.(*APIContext)
+	reqCtx := ctx.Ctx()
+
+	id := c.Param("id")
+
+	// Begin TX
+	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not start transaction")
+		return err
+	}
+
+	defer tx.Rollback(reqCtx)
+	// Begin Query
+	q := store.Q().Where("id = ?", id)
+	backend, err := store.GetBackendState(reqCtx, tx, q)
+
+	if backend == nil {
+		return echo.ErrNotFound
+	}
+
+	// Update backend
+	if err := c.Bind(backend); err != nil {
+		return err
+	}
+
+	// Persist updated backend
+	if err := backend.Save(reqCtx, tx); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(reqCtx); err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, backend)
+
 	return nil
 }

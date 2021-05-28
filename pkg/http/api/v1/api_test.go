@@ -67,11 +67,11 @@ func TestAPIContextHasScope(t *testing.T) {
 	}
 }
 
-func TestAPIContextSubject(t *testing.T) {
+func TestAPIContextAccountRef(t *testing.T) {
 	ctx, _ := MakeTestContext(nil)
 	ctx = AuthorizeTestContext(ctx, "user42", []string{})
-	if ctx.Subject() != "user42" {
-		t.Error("unexpected subject:", ctx.Subject())
+	if ctx.AccountRef() != "user42" {
+		t.Error("unexpected account ref:", ctx.AccountRef())
 	}
 }
 
