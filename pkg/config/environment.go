@@ -15,6 +15,7 @@ const (
 	EnvDbURL        = "B3SCALE_DB_URL"
 	EnvDbPoolSize   = "B3SCALE_DB_POOL_SIZE"
 	EnvLogLevel     = "B3SCALE_LOG_LEVEL"
+	EnvLogFormat    = "B3SCALE_LOG_FORMAT"
 	EnvListenHTTP   = "B3SCALE_LISTEN_HTTP"
 	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
 	EnvBBBConfig    = "BBB_CONFIG"
@@ -26,6 +27,7 @@ const (
 	EnvDbPoolSizeDefault   = "128"
 	EnvDbURLDefault        = "postgres://postgres:postgres@localhost:5432/b3scale"
 	EnvLogLevelDefault     = "info"
+	EnvLogFormatDefault    = "structured"
 	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
 	EnvReverseProxyDefault = "false"
 	EnvBBBConfigDefault    = "/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties"
