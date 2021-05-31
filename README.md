@@ -44,6 +44,8 @@ The following environment variables can be configured:
     
     You can use either the numeric or integer value
 
+  * `B3SCALE_LOG_FORMAT` choose between `plain` or `structured` logging.
+     The default is `structured` and will emit JSON on stderr.
 
 Same applies for the `b3scalenoded`, however only `B3SCALE_DB_URL`
 is required.
@@ -121,9 +123,6 @@ Configure a default presentation:
 
     b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
 
-
-### Issues
-
-At the moment a running node agent might prevent the backend from being deleted.
-
-
+## Monitoring
+ 
+Metrics are exported in a `prometheus` compatible format under `/metrics`.
