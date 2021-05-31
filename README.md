@@ -44,6 +44,8 @@ The following environment variables can be configured:
     
     You can use either the numeric or integer value
 
+  * `B3SCALE_LOG_FORMAT` choose between `plain` or `structured` logging.
+     The default is `structured` and will emit JSON on stderr.
 
 Same applies for the `b3scalenoded`, however only `B3SCALE_DB_URL`
 is required.

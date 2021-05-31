@@ -12,9 +12,10 @@ import (
 )
 
 // Options for logging. Get them from the env or a
-// config or something
+// config or something.
 type Options struct {
-	Level string
+	Level  string
+	Format string
 }
 
 // Parse the log level string. This can either be a
@@ -53,7 +54,9 @@ func Setup(opts *Options) error {
 
 	// Setup logging
 	zerolog.SetGlobalLevel(loglevel)
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
+	if opts.Format != "structured" {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	}
 	return nil
 }
