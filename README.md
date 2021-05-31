@@ -123,9 +123,6 @@ Configure a default presentation:
 
     b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
 
-
-### Issues
-
-At the moment a running node agent might prevent the backend from being deleted.
-
-
+## Monitoring
+ 
+Metrics are exported in a `prometheus` compatible format under `/metrics`.
