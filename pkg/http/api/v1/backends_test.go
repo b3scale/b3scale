@@ -9,7 +9,7 @@ import (
 func TestBackendsList(t *testing.T) {
 	ctx, rec := MakeTestContext(nil)
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
-	if err := FrontendsList(ctx); err != nil {
+	if err := BackendsList(ctx); err != nil {
 		t.Fatal(err)
 	}
 	res := rec.Result()

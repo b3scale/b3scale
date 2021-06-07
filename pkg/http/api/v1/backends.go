@@ -164,6 +164,7 @@ func BackendUpdate(c echo.Context) error {
 	if err := c.Bind(backend); err != nil {
 		return err
 	}
+	backend.ID = id
 
 	// Persist updated backend
 	if err := backend.Save(reqCtx, tx); err != nil {
