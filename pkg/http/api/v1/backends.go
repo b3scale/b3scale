@@ -46,6 +46,7 @@ func BackendCreate(c echo.Context) error {
 	b.ID = ""
 	b.NodeState = ""
 	b = store.InitBackendState(b)
+	log.Print("B:", b)
 
 	// Begin transaction and save new backend state
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
@@ -63,7 +64,7 @@ func BackendCreate(c echo.Context) error {
 		return err
 	}
 
-	return nil
+	return c.JSON(http.StatusOK, b)
 }
 
 // BackendRetrieve will retrieve a single backend by ID.
@@ -143,6 +144,7 @@ func BackendUpdate(c echo.Context) error {
 	reqCtx := ctx.Ctx()
 
 	id := c.Param("id")
+	log.Info().Str("id", id).Msg("update backend")
 
 	// Begin TX
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)

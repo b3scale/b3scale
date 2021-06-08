@@ -28,6 +28,7 @@ func MakeTestContext(req *http.Request) (*APIContext, *httptest.ResponseRecorder
 	if err != nil {
 		panic(err)
 	}
+
 	reqCtx = store.ContextWithConnection(reqCtx, conn)
 
 	// Make request if not present
@@ -38,6 +39,8 @@ func MakeTestContext(req *http.Request) (*APIContext, *httptest.ResponseRecorder
 
 	rec := httptest.NewRecorder()
 	e := echo.New()
+	e.Validator = NewAPIValidator()
+
 	ctx := e.NewContext(req, rec)
 
 	return &APIContext{ctx}, rec
