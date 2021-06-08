@@ -5,6 +5,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
+
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -107,35 +109,43 @@ func BackendDestroy(c echo.Context) error {
 
 	id := c.Param("id")
 
+	force := config.IsEnabled(c.QueryParam("force"))
+
 	// Begin TX
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not start transaction")
 		return err
 	}
-
 	defer tx.Rollback(reqCtx)
+
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
 	backend, err := store.GetBackendState(reqCtx, tx, q)
-
 	if backend == nil {
 		return echo.ErrNotFound
 	}
 
-	// Request backend decommissioning
-	backend.AdminState = "decommissioned"
-	if err := backend.Save(reqCtx, tx); err != nil {
-		return err
+	if force {
+		// force removal of backend. this is a hard delete
+		// without decommissioning.
+		if err := backend.Delete(reqCtx, tx); err != nil {
+			return err
+		}
+
+	} else {
+		// Request backend decommissioning.
+		backend.AdminState = "decommissioned"
+		if err := backend.Save(reqCtx, tx); err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(reqCtx); err != nil {
 		return err
 	}
 
-	c.JSON(http.StatusOK, backend)
-
-	return nil
+	return c.JSON(http.StatusOK, backend)
 }
 
 // BackendUpdate will update the frontend with values
@@ -169,6 +179,10 @@ func BackendUpdate(c echo.Context) error {
 		return err
 	}
 	backend.ID = id
+
+	if err := backend.Validate(); err != nil {
+		return err
+	}
 
 	// Persist updated backend
 	if err := backend.Save(reqCtx, tx); err != nil {

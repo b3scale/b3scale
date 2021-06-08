@@ -138,3 +138,33 @@ func TestBackendUpdate(t *testing.T) {
 	resBody, _ := ioutil.ReadAll(res.Body)
 	t.Log("create:", string(resBody))
 }
+
+func TestBackendDestroy(t *testing.T) {
+	defer clearBackends()
+
+	ctx, _ := MakeTestContext(nil)
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+
+	// Create a backend
+	b, err := createTestBackend(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("destroy backend id:", b.ID)
+
+	req, _ := http.NewRequest("DELETE", "http:///", nil)
+	ctx, rec := MakeTestContext(req)
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+	ctx.Context.SetParamNames("id")
+	ctx.Context.SetParamValues(b.ID)
+
+	if err := BackendDestroy(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("destroy:", string(resBody))
+}
