@@ -4,10 +4,11 @@ go 1.16
 
 require (
 	github.com/Masterminds/squirrel v1.5.0
+	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator v9.31.0+incompatible
-	github.com/go-redis/redis/v8 v8.5.0
+	github.com/go-redis/redis/v8 v8.10.0
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.2.0
 	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
@@ -19,6 +20,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.28.0 // indirect
 	github.com/rs/zerolog v1.22.0
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/ziflex/lecho/v2 v2.3.1
