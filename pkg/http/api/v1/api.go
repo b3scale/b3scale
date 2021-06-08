@@ -130,6 +130,7 @@ func Init(e *echo.Echo) error {
 
 	// API Auth and Context Middlewares
 	a.Use(middleware.JWTWithConfig(jwtConfig))
+	a.Use(APIErrorHandler)
 	a.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			ac := &APIContext{c}
