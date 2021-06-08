@@ -144,7 +144,6 @@ func BackendUpdate(c echo.Context) error {
 	reqCtx := ctx.Ctx()
 
 	id := c.Param("id")
-	log.Info().Str("id", id).Msg("update backend")
 
 	// Begin TX
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)

@@ -39,7 +39,6 @@ func MakeTestContext(req *http.Request) (*APIContext, *httptest.ResponseRecorder
 
 	rec := httptest.NewRecorder()
 	e := echo.New()
-	e.Validator = NewAPIValidator()
 
 	ctx := e.NewContext(req, rec)
 
