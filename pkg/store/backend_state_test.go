@@ -145,3 +145,30 @@ func TestBackendStateAgentHeartbeat(t *testing.T) {
 		t.Error("agent should be alive")
 	}
 }
+
+func TestBackendStateValidate(t *testing.T) {
+	valid := &BackendState{
+		Backend: &bbb.Backend{
+			Host:   "http://testhost",
+			Secret: "seeecret",
+		},
+	}
+
+	if err := valid.Validate(); err != nil {
+		t.Error(err)
+	}
+
+	invalid := &BackendState{}
+	err := invalid.Validate()
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	invalid = &BackendState{Backend: &bbb.Backend{}}
+	err = invalid.Validate()
+	if err == nil {
+		t.Fatal(err)
+	}
+	t.Log(err)
+
+}

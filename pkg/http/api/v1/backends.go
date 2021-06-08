@@ -46,7 +46,10 @@ func BackendCreate(c echo.Context) error {
 	b.ID = ""
 	b.NodeState = ""
 	b = store.InitBackendState(b)
-	log.Print("B:", b)
+
+	if err := b.Validate(); err != nil {
+		return err
+	}
 
 	// Begin transaction and save new backend state
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)

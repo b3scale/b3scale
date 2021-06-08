@@ -429,8 +429,13 @@ func (s *BackendState) CreateOrUpdateMeetingState(
 }
 
 // Validate the backend state
-func (s *BackendState) Validate() *ValidationError {
-	err := &ValidationError{}
+func (s *BackendState) Validate() ValidationError {
+	err := ValidationError{}
+
+	if s.Backend == nil {
+		err.Add("bbb", "this field is required")
+		return err
+	}
 
 	// BBB hostname
 	host := s.Backend.Host
@@ -449,6 +454,10 @@ func (s *BackendState) Validate() *ValidationError {
 	secret := strings.TrimSpace(s.Backend.Secret)
 	if secret == "" {
 		err.Add("bbb.secret", ErrFieldRequired)
+	}
+
+	if len(err) > 0 {
+		return err
 	}
 
 	return nil
