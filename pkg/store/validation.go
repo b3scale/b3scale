@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+const (
+	// ErrFieldRequired is an error message if a value is missing
+	ErrFieldRequired = "this field is required"
+)
+
 // A ValidationError is a mapping between the field
 // name (same as json field name), and a list of error strings.
 type ValidationError map[string][]string

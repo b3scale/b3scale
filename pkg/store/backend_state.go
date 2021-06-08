@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -424,5 +425,31 @@ func (s *BackendState) CreateOrUpdateMeetingState(
 	if _, err := mstate.Upsert(ctx, tx); err != nil {
 		return err
 	}
+	return nil
+}
+
+// Validate the backend state
+func (s *BackendState) Validate() *ValidationError {
+	err := &ValidationError{}
+
+	// BBB hostname
+	host := s.Backend.Host
+	if host == "" {
+		err.Add("bbb.host", ErrFieldRequired)
+	}
+
+	if !strings.HasPrefix(host, "http") {
+		err.Add("bbb.host", "should start with http(s)://")
+	}
+	if !strings.HasSuffix(host, "/") {
+		host += "/"
+	}
+
+	// Secret
+	secret := strings.TrimSpace(s.Backend.Secret)
+	if secret == "" {
+		err.Add("bbb.secret", ErrFieldRequired)
+	}
+
 	return nil
 }
