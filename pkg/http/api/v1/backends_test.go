@@ -37,6 +37,8 @@ func createTestBackend(ctx *APIContext) (*store.BackendState, error) {
 
 func clearBackends() error {
 	ctx, _ := MakeTestContext(nil)
+	defer ctx.Release()
+
 	reqCtx := ctx.Ctx()
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
 	if err != nil {
@@ -55,6 +57,8 @@ func TestBackendsList(t *testing.T) {
 	defer clearBackends()
 
 	ctx, rec := MakeTestContext(nil)
+	defer ctx.Release()
+
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
@@ -90,6 +94,8 @@ func TestBackendCreate(t *testing.T) {
 	req.Header.Set("content-type", "application/json")
 
 	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 	if err := BackendCreate(ctx); err != nil {
 		t.Fatal(err)
@@ -106,6 +112,8 @@ func TestBackendUpdate(t *testing.T) {
 	defer clearBackends()
 
 	ctx, _ := MakeTestContext(nil)
+	defer ctx.Release()
+
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
@@ -124,6 +132,8 @@ func TestBackendUpdate(t *testing.T) {
 	req, _ := http.NewRequest("PATCH", "http:///", bytes.NewBuffer(body))
 	req.Header.Set("content-type", "application/json")
 	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 	ctx.Context.SetParamNames("id")
 	ctx.Context.SetParamValues(b.ID)
@@ -143,6 +153,8 @@ func TestBackendDestroy(t *testing.T) {
 	defer clearBackends()
 
 	ctx, _ := MakeTestContext(nil)
+	defer ctx.Release()
+
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
@@ -154,6 +166,42 @@ func TestBackendDestroy(t *testing.T) {
 
 	req, _ := http.NewRequest("DELETE", "http:///", nil)
 	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+	ctx.Context.SetParamNames("id")
+	ctx.Context.SetParamValues(b.ID)
+
+	if err := BackendDestroy(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("destroy:", string(resBody))
+}
+
+func TestBackendForceDestroy(t *testing.T) {
+	defer clearBackends()
+
+	ctx, _ := MakeTestContext(nil)
+	defer ctx.Release()
+
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+
+	// Create a backend
+	b, err := createTestBackend(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("force destroy backend id:", b.ID)
+
+	req, _ := http.NewRequest("DELETE", "http://test?fxrce=true", nil)
+	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 	ctx.Context.SetParamNames("id")
 	ctx.Context.SetParamValues(b.ID)

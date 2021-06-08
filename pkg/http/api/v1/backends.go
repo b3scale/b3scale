@@ -132,6 +132,7 @@ func BackendDestroy(c echo.Context) error {
 		if err := backend.Delete(reqCtx, tx); err != nil {
 			return err
 		}
+		backend.AdminState = "destroyed"
 
 	} else {
 		// Request backend decommissioning.

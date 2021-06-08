@@ -54,6 +54,14 @@ type APIContext struct {
 	echo.Context
 }
 
+// Release will free any acquired resources of this context
+func (ctx *APIContext) Release() {
+	conn := store.ConnectionFromContext(ctx.Ctx())
+	if conn != nil {
+		conn.Release()
+	}
+}
+
 // HasScope checks if the authentication scope claim
 // contains a scope by name.
 // The scope claim is a space separated list of scopes
