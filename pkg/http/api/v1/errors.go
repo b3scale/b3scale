@@ -20,7 +20,7 @@ func ErrorInvalidCredentials(c echo.Context) error {
 
 // ErrorValidationFailed creates an API response when validating
 // a resource failed.
-func ErrorValidationFailed(c echo.Context, err *store.ValidationError) error {
+func ErrorValidationFailed(c echo.Context, err store.ValidationError) error {
 	return c.JSON(http.StatusBadRequest, map[string]interface{}{
 		"error":   "validation_error",
 		"message": "validation failed with input",
@@ -36,7 +36,7 @@ func APIErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
 		if err == nil {
 			return nil
 		}
-		if validationErr, ok := err.(*store.ValidationError); ok {
+		if validationErr, ok := err.(store.ValidationError); ok {
 			return ErrorValidationFailed(c, validationErr)
 		}
 		return err
