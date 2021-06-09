@@ -20,7 +20,6 @@ func BackendsList(c echo.Context) error {
 	// Begin TX
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
 	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
 		return err
 	}
 	defer tx.Rollback(reqCtx)
@@ -28,9 +27,7 @@ func BackendsList(c echo.Context) error {
 	// Begin Query
 	q := store.Q()
 	backends, err := store.GetBackendStates(reqCtx, tx, q)
-	c.JSON(http.StatusOK, backends)
-
-	return nil
+	return c.JSON(http.StatusOK, backends)
 }
 
 // BackendCreate will add a new backend to the cluster.
@@ -44,12 +41,15 @@ func BackendCreate(c echo.Context) error {
 		return err
 	}
 
-	// Force defaults
-	b.ID = ""
-	b.NodeState = ""
-	b = store.InitBackendState(b)
+	// Only allow create with well known fields
+	backend := store.InitBackendState(&store.BackendState{
+		Backend:    b.Backend,
+		Settings:   b.Settings,
+		AdminState: b.AdminState,
+		LoadFactor: b.LoadFactor,
+	})
 
-	if err := b.Validate(); err != nil {
+	if err := backend.Validate(); err != nil {
 		return err
 	}
 
@@ -61,7 +61,7 @@ func BackendCreate(c echo.Context) error {
 	}
 	defer tx.Rollback(reqCtx)
 
-	if err := b.Save(reqCtx, tx); err != nil {
+	if err := backend.Save(reqCtx, tx); err != nil {
 		return err
 	}
 
@@ -69,7 +69,7 @@ func BackendCreate(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, b)
+	return c.JSON(http.StatusOK, backend)
 }
 
 // BackendRetrieve will retrieve a single backend by ID.
@@ -163,21 +163,33 @@ func BackendUpdate(c echo.Context) error {
 		log.Fatal().Err(err).Msg("could not start transaction")
 		return err
 	}
-
 	defer tx.Rollback(reqCtx)
+
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
-	backend, err := store.GetBackendState(reqCtx, tx, q)
-
-	if backend == nil {
+	update, err := store.GetBackendState(reqCtx, tx, q)
+	if err != nil {
+		return err
+	}
+	if update == nil {
 		return echo.ErrNotFound
 	}
 
-	// Update backend
-	if err := c.Bind(backend); err != nil {
+	backend, err := store.GetBackendState(reqCtx, tx, q)
+	if err != nil {
 		return err
 	}
-	backend.ID = id
+
+	// Update backend
+	if err := c.Bind(update); err != nil {
+		return err
+	}
+
+	// Apply update for well known fields
+	backend.Backend = update.Backend
+	backend.Settings = update.Settings
+	backend.AdminState = update.AdminState
+	backend.LoadFactor = update.LoadFactor
 
 	if err := backend.Validate(); err != nil {
 		return err
