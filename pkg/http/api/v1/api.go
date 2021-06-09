@@ -195,10 +195,10 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 		return middleware.JWTConfig{}, ErrMissingJWTSecret
 	}
 
-	cfg := middleware.JWTConfig{
-		Claims:     &APIAuthClaims{},
-		SigningKey: []byte(secret),
-	}
+	cfg := middleware.DefaultJWTConfig
+	cfg.Claims = &APIAuthClaims{}
+	cfg.SigningKey = []byte(secret)
+
 	return cfg, nil
 }
 

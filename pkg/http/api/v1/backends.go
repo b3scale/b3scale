@@ -96,9 +96,7 @@ func BackendRetrieve(c echo.Context) error {
 		return echo.ErrNotFound
 	}
 
-	c.JSON(http.StatusOK, backend)
-
-	return nil
+	return c.JSON(http.StatusOK, backend)
 }
 
 // BackendDestroy will start a backend decommissioning.
@@ -194,7 +192,5 @@ func BackendUpdate(c echo.Context) error {
 		return err
 	}
 
-	c.JSON(http.StatusOK, backend)
-
-	return nil
+	return c.JSON(http.StatusOK, backend)
 }
