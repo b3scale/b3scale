@@ -26,8 +26,7 @@ func FrontendsList(c echo.Context) error {
 	}
 	defer tx.Rollback(reqCtx)
 	frontends, err := store.GetFrontendStates(reqCtx, tx, q)
-	c.JSON(http.StatusOK, frontends)
-	return nil
+	return c.JSON(http.StatusOK, frontends)
 }
 
 // FrontendCreate will add a new frontend to the cluster.
