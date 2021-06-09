@@ -66,3 +66,19 @@ func TestGetFrontendState(t *testing.T) {
 	}
 	t.Log(ret)
 }
+
+func TestFrontendValidate(t *testing.T) {
+	state := frontendStateFactory()
+	if err := state.Validate(); err != nil {
+		t.Error("frontend state should be valid")
+	}
+
+	state = &FrontendState{
+		Frontend: &bbb.Frontend{},
+	}
+	err := state.Validate()
+	if err == nil {
+		t.Error("validation should have failed")
+	}
+	t.Log(err)
+}

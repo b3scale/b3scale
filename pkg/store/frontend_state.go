@@ -177,10 +177,10 @@ func (s *FrontendState) Validate() ValidationError {
 	s.Frontend.Secret = strings.TrimSpace(s.Frontend.Secret)
 
 	if s.Frontend.Key == "" {
-		err.Add("bbb.key", "frontend key may not be empty")
+		err.Add("bbb.key", ErrFieldRequired)
 	}
 	if s.Frontend.Secret == "" {
-		err.Add("bbb.secret", "secret may not be empty")
+		err.Add("bbb.secret", ErrFieldRequired)
 	}
 
 	if len(err) > 0 {

@@ -22,7 +22,7 @@ func FrontendsList(c echo.Context) error {
 	}
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
 	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
+		return err
 	}
 	defer tx.Rollback(reqCtx)
 	frontends, err := store.GetFrontendStates(reqCtx, tx, q)
@@ -31,6 +31,31 @@ func FrontendsList(c echo.Context) error {
 
 // FrontendCreate will add a new frontend to the cluster.
 func FrontendCreate(c echo.Context) error {
+	ctx := c.(*APIContext)
+	cctx := ctx.Ctx()
+	accountRef := ctx.AccountRef()
+	isAdmin := ctx.HasScope(ScopeAdmin)
+
+	f := &store.FrontendState{}
+	if err := c.Bind(f); err != nil {
+		return err
+	}
+
+	frontend := store.InitFrontendState(&store.FrontendState{
+		Frontend: f.Frontend,
+		Settings: f.Settings,
+		Active:   f.Active,
+	})
+
+	if err := frontend.Validate(); err != nil {
+		return err
+	}
+
+	tx, err := store.ConnectionFromContext(cctx).Begin(cctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(cctx)
 
 	return nil
 }
