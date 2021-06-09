@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -16,7 +17,7 @@ type FrontendState struct {
 	ID string `json:"id"`
 
 	Active   bool          `json:"-"`
-	Frontend *bbb.Frontend `json:"state"`
+	Frontend *bbb.Frontend `json:"bbb"`
 
 	Settings FrontendSettings `json:"settings"`
 
@@ -161,4 +162,29 @@ func (s *FrontendState) Delete(ctx context.Context, tx pgx.Tx) error {
 	`
 	_, err := tx.Exec(ctx, qry, s.ID)
 	return err
+}
+
+// Validate checks for presence of required fields.
+func (s *FrontendState) Validate() ValidationError {
+	err := ValidationError{}
+
+	if s.Frontend == nil {
+		err.Add("bbb", "this field is required")
+		return err
+	}
+
+	s.Frontend.Key = strings.TrimSpace(s.Frontend.Key)
+	s.Frontend.Secret = strings.TrimSpace(s.Frontend.Secret)
+
+	if s.Frontend.Key == "" {
+		err.Add("bbb.key", "frontend key may not be empty")
+	}
+	if s.Frontend.Secret == "" {
+		err.Add("bbb.secret", "secret may not be empty")
+	}
+
+	if len(err) > 0 {
+		return err
+	}
+	return nil
 }
