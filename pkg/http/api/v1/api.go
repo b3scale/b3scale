@@ -183,6 +183,13 @@ func Init(e *echo.Echo) error {
 	a.DELETE("/backends/:id", RequireAdminScope(BackendDestroy))
 	a.PATCH("/backends/:id", RequireAdminScope(BackendUpdate))
 
+	// Meetings at backend. The backend is required because
+	// the returned response set might be really big.
+	// However, the backend might be specified either through
+	// the backend ID or by host.
+	a.GET("/meetings", RequireAdminScope(BackendMeetingsList))
+	a.DELETE("/meetings", RequireAdminScope(BackendMeetingsEnd))
+
 	return nil
 }
 
