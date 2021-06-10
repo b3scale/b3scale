@@ -263,4 +263,7 @@ func TestFrontendUpdateUser(t *testing.T) {
 	if data["account_ref"] != "user23" {
 		t.Error("unexpected account_ref", data["account_ref"])
 	}
+	if data["bbb"].(map[string]interface{})["key"] != "newkey23" {
+		t.Error("unexpected account_ref", data["account_ref"])
+	}
 }
