@@ -11,13 +11,16 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-func createTestFrontend(ctx *APIContext) (*store.FrontendState, error) {
+func createTestFrontend() (*store.FrontendState, error) {
+	ctx, _ := MakeTestContext(nil)
+	defer ctx.Release()
 	cctx := ctx.Ctx()
 	tx, err := store.ConnectionFromContext(cctx).Begin(cctx)
 	if err != nil {
 		return nil, err
 	}
 
+	ref := "user23"
 	f := store.InitFrontendState(&store.FrontendState{
 		Frontend: &bbb.Frontend{
 			Key:    "testkey",
@@ -26,6 +29,7 @@ func createTestFrontend(ctx *APIContext) (*store.FrontendState, error) {
 		Settings: store.FrontendSettings{
 			RequiredTags: []string{"tag1"},
 		},
+		AccountRef: &ref,
 	})
 
 	if err := f.Save(cctx, tx); err != nil {
@@ -57,15 +61,43 @@ func TestFrontendsList(t *testing.T) {
 	if err := clearFrontends(); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := createTestFrontend(); err != nil {
+		t.Fatal(err)
+	}
 
 	ctx, rec := MakeTestContext(nil)
 	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
 	defer ctx.Release()
 
-	if _, err := createTestFrontend(ctx); err != nil {
+	if err := FrontendsList(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := FrontendsList(ctx); err != nil {
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("list:", string(resBody))
+}
+
+func TestFrontendsRetrieve(t *testing.T) {
+	if err := clearFrontends(); err != nil {
+		t.Fatal(err)
+	}
+	f, err := createTestFrontend()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, rec := MakeTestContext(nil)
+	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
+	defer ctx.Release()
+
+	ctx.Context.SetParamNames("id")
+	ctx.Context.SetParamValues(f.ID)
+
+	if err := FrontendRetrieve(ctx); err != nil {
 		t.Fatal(err)
 	}
 	res := rec.Result()
@@ -137,4 +169,98 @@ func TestFrontendCreateUser(t *testing.T) {
 	}
 	resBody, _ := ioutil.ReadAll(res.Body)
 	t.Log("create:", string(resBody))
+	data := map[string]interface{}{}
+	json.Unmarshal(resBody, &data)
+
+	if data["account_ref"] != "user23" {
+		t.Error("unexpected account_ref", data["account_ref"])
+	}
+}
+
+func TestFrontendUpdateAdmin(t *testing.T) {
+	if err := clearFrontends(); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := createTestFrontend()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create backend request
+	body, _ := json.Marshal(map[string]interface{}{
+		"bbb": map[string]interface{}{
+			"key":    "newkey23",
+			"secret": "changedsecret",
+		},
+		"account_ref": "new_user_ref",
+	})
+	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
+	req.Header.Set("content-type", "application/json")
+	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+
+	ctx.Context.SetParamNames("id")
+	ctx.Context.SetParamValues(f.ID)
+
+	if err := FrontendUpdate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("update:", string(resBody))
+	data := map[string]interface{}{}
+	json.Unmarshal(resBody, &data)
+
+	if data["account_ref"] != "new_user_ref" {
+		t.Error("unexpected account_ref", data["account_ref"])
+	}
+}
+
+func TestFrontendUpdateUser(t *testing.T) {
+	if err := clearFrontends(); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := createTestFrontend()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create backend request
+	body, _ := json.Marshal(map[string]interface{}{
+		"bbb": map[string]interface{}{
+			"key":    "newkey23",
+			"secret": "changedsecret",
+		},
+		"account_ref": "new_user_ref",
+	})
+	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
+	req.Header.Set("content-type", "application/json")
+	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+	ctx = AuthorizeTestContext(ctx, "user23", []string{})
+
+	ctx.Context.SetParamNames("id")
+	ctx.Context.SetParamValues(f.ID)
+
+	if err := FrontendUpdate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("update:", string(resBody))
+	data := map[string]interface{}{}
+	json.Unmarshal(resBody, &data)
+
+	if data["account_ref"] != "user23" {
+		t.Error("unexpected account_ref", data["account_ref"])
+	}
 }
