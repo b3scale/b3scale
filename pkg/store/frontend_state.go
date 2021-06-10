@@ -16,7 +16,7 @@ import (
 type FrontendState struct {
 	ID string `json:"id"`
 
-	Active   bool          `json:"-"`
+	Active   bool          `json:"active"`
 	Frontend *bbb.Frontend `json:"bbb"`
 
 	Settings FrontendSettings `json:"settings"`

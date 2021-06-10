@@ -26,6 +26,7 @@ func createTestFrontend() (*store.FrontendState, error) {
 			Key:    "testkey",
 			Secret: "testsecret",
 		},
+		Active: true,
 		Settings: store.FrontendSettings{
 			RequiredTags: []string{"tag1"},
 		},
@@ -237,6 +238,7 @@ func TestFrontendUpdateUser(t *testing.T) {
 			"key":    "newkey23",
 			"secret": "changedsecret",
 		},
+		"active":      false,
 		"account_ref": "new_user_ref",
 	})
 	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
@@ -263,7 +265,10 @@ func TestFrontendUpdateUser(t *testing.T) {
 	if data["account_ref"] != "user23" {
 		t.Error("unexpected account_ref", data["account_ref"])
 	}
+	if data["active"] != false {
+		t.Error("active should be false")
+	}
 	if data["bbb"].(map[string]interface{})["key"] != "newkey23" {
-		t.Error("unexpected account_ref", data["account_ref"])
+		t.Error("unexpected bbb.key")
 	}
 }
