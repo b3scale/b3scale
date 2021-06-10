@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -53,6 +54,12 @@ func clearFrontends() error {
 func TestFrontendsList(t *testing.T) {
 	ctx, rec := MakeTestContext(nil)
 	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
+	defer ctx.Release()
+	defer clearFrontends()
+
+	if _, err := createTestFrontend(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if err := FrontendsList(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -60,4 +67,7 @@ func TestFrontendsList(t *testing.T) {
 	if res.StatusCode != http.StatusOK {
 		t.Error("unexpected status code:", res.StatusCode)
 	}
+
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("list:", string(resBody))
 }
