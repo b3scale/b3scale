@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -52,10 +54,13 @@ func clearFrontends() error {
 }
 
 func TestFrontendsList(t *testing.T) {
+	if err := clearFrontends(); err != nil {
+		t.Fatal(err)
+	}
+
 	ctx, rec := MakeTestContext(nil)
 	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
 	defer ctx.Release()
-	defer clearFrontends()
 
 	if _, err := createTestFrontend(ctx); err != nil {
 		t.Fatal(err)
@@ -70,4 +75,66 @@ func TestFrontendsList(t *testing.T) {
 
 	resBody, _ := ioutil.ReadAll(res.Body)
 	t.Log("list:", string(resBody))
+}
+
+func TestFrontendCreateAdmin(t *testing.T) {
+	if err := clearFrontends(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create backend request
+	body, _ := json.Marshal(map[string]interface{}{
+		"bbb": map[string]interface{}{
+			"key":    "newfrontendkey",
+			"secret": "testsec",
+		},
+		"account_ref": "user:32421",
+	})
+	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
+	req.Header.Set("content-type", "application/json")
+
+	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+	if err := FrontendCreate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("create:", string(resBody))
+}
+
+func TestFrontendCreateUser(t *testing.T) {
+	if err := clearFrontends(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create backend request
+	body, _ := json.Marshal(map[string]interface{}{
+		"bbb": map[string]interface{}{
+			"key":    "newfrontendkey",
+			"secret": "testsec",
+		},
+		"account_ref": "admin42",
+	})
+	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
+	req.Header.Set("content-type", "application/json")
+
+	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+
+	ctx = AuthorizeTestContext(ctx, "user23", []string{})
+	if err := FrontendCreate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("create:", string(resBody))
 }
