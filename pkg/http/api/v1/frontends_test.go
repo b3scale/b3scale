@@ -272,3 +272,34 @@ func TestFrontendUpdateUser(t *testing.T) {
 		t.Error("unexpected bbb.key")
 	}
 }
+
+func TestFrontendDestroy(t *testing.T) {
+	if err := clearFrontends(); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := createTestFrontend()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create request
+	req, _ := http.NewRequest("DELETE", "http:///", nil)
+
+	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+
+	ctx.Context.SetParamNames("id")
+	ctx.Context.SetParamValues(f.ID)
+
+	if err := FrontendDestroy(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("destroy:", string(resBody))
+}

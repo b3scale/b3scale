@@ -143,6 +143,7 @@ func FrontendDestroy(c echo.Context) error {
 		return err
 	}
 
+	frontend.Active = false
 	return c.JSON(http.StatusOK, frontend)
 }
 
