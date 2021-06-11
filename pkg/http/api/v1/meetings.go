@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
@@ -12,13 +13,13 @@ import (
 
 // The backend is either identified by ID or by
 // hostname. The hostname must be an exact match.
-func backendFromContext(
+func backendFromRequest(
 	c echo.Context,
 	tx pgx.Tx,
 ) (*store.BackendState, error) {
 	ctx := c.(*APIContext)
-	id := c.QueryParam("backend_id")
-	host := c.QueryParam("host")
+	id := strings.TrimSpace(c.QueryParam("backend_id"))
+	host := strings.TrimSpace(c.QueryParam("backend_host"))
 
 	hasQuery := false
 	q := store.Q()
@@ -27,7 +28,7 @@ func backendFromContext(
 		hasQuery = true
 	}
 	if host != "" {
-		q.Where("host = ?", host)
+		q = q.Where("host = ?", host)
 		hasQuery = true
 	}
 	if !hasQuery {
@@ -55,7 +56,7 @@ func BackendMeetingsList(c echo.Context) error {
 	}
 	defer tx.Rollback(cctx)
 
-	backend, err := backendFromContext(c, tx)
+	backend, err := backendFromRequest(c, tx)
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func BackendMeetingsEnd(c echo.Context) error {
 	}
 	defer tx.Rollback(cctx)
 
-	backend, err := backendFromContext(c, tx)
+	backend, err := backendFromRequest(c, tx)
 	if err != nil {
 		return err
 	}
