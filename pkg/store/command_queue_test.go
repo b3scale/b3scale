@@ -54,6 +54,8 @@ func TestCountCommandsRequested(t *testing.T) {
 	tx := beginTest(ctx, t)
 	defer tx.Rollback(ctx)
 
+	tx.Exec(ctx, "DELETE FROM commands")
+
 	count, err := CountCommandsRequested(ctx, tx)
 	if err != nil {
 		t.Fatal(err)
