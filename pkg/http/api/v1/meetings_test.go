@@ -1,13 +1,14 @@
 package v1
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
 
-	//	"github.com/google/uuid"
+	"github.com/google/uuid"
 
-	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -22,6 +23,10 @@ func CreateTestMeeting(backend *store.BackendState) (*store.MeetingState, error)
 
 	m := store.InitMeetingState(&store.MeetingState{
 		BackendID: &backend.ID,
+		Meeting: &bbb.Meeting{
+			MeetingID:         uuid.New().String(),
+			InternalMeetingID: uuid.New().String(),
+		},
 	})
 
 	if err := m.Save(cctx, tx); err != nil {
@@ -59,6 +64,7 @@ func TestBackendFromRequest(t *testing.T) {
 		URL: u,
 	}
 	ctx, _ = MakeTestContext(req)
+	defer ctx.Release()
 
 	if lookup, err := backendFromRequest(ctx, tx); err != nil {
 		t.Error(err)
@@ -75,6 +81,7 @@ func TestBackendFromRequest(t *testing.T) {
 		URL: u,
 	}
 	ctx, _ = MakeTestContext(req)
+	defer ctx.Release()
 
 	if lookup, err := backendFromRequest(ctx, tx); err != nil {
 		t.Error(err)
@@ -90,6 +97,7 @@ func TestBackendFromRequest(t *testing.T) {
 		URL: u,
 	}
 	ctx, _ = MakeTestContext(req)
+	defer ctx.Release()
 	if lookup, err := backendFromRequest(ctx, tx); err != nil {
 		t.Error(err)
 	} else {
@@ -107,14 +115,25 @@ func TestBackendMeetingsList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(backend)
-	/*
-		meeting, err := createTestMeeting(backend)
-		if err != nil {
-			t.Fatal(err)
-		}
+	if _, err := CreateTestMeeting(backend); err != nil {
+		t.Fatal(err)
+	}
 
+	u, _ := url.Parse("http:///?backend_host=" + backend.Backend.Host)
+	req := &http.Request{
+		URL: u,
+	}
+	ctx, rec := MakeTestContext(req)
+	defer ctx.Release()
+	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
-		t.Log(meeting)
-	*/
+	if err := BackendMeetingsList(ctx); err != nil {
+		t.Fatal(err)
+	}
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Error("unexpected status code:", res.StatusCode)
+	}
+	resBody, _ := ioutil.ReadAll(res.Body)
+	t.Log("list:", string(resBody))
 }
