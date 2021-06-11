@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,28 +22,28 @@ var (
 // and encapsulates the list of meetings and recordings.
 // The backend.ID should be used as identifier.
 type BackendState struct {
-	ID string
+	ID string `json:"id"`
 
-	NodeState  string
-	AdminState string
+	NodeState  string `json:"node_state"`
+	AdminState string `json:"admin_state"`
 
-	AgentHeartbeat time.Time
+	AgentHeartbeat time.Time `json:"agent_heartbeat"`
 
-	LastError *string
+	LastError *string `json:"last_error"`
 
-	Latency        time.Duration
-	MeetingsCount  uint
-	AttendeesCount uint
+	Latency        time.Duration `json:"latency"`
+	MeetingsCount  uint          `json:"meetings_count"`
+	AttendeesCount uint          `json:"attendees_count"`
 
-	LoadFactor float64
+	LoadFactor float64 `json:"load_factor"`
 
-	Backend *bbb.Backend
+	Backend *bbb.Backend `json:"bbb"`
 
-	Settings BackendSettings
+	Settings BackendSettings `json:"settings"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	SyncedAt  time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	SyncedAt  time.Time `json:"synced_at"`
 }
 
 // InitBackendState initializes a new backend state with
@@ -57,6 +58,9 @@ func InitBackendState(init *BackendState) *BackendState {
 	}
 	if init.Backend == nil {
 		init.Backend = &bbb.Backend{}
+	}
+	if init.LoadFactor == 0 {
+		init.LoadFactor = 1.0
 	}
 	return init
 }
@@ -421,5 +425,40 @@ func (s *BackendState) CreateOrUpdateMeetingState(
 	if _, err := mstate.Upsert(ctx, tx); err != nil {
 		return err
 	}
+	return nil
+}
+
+// Validate the backend state
+func (s *BackendState) Validate() ValidationError {
+	err := ValidationError{}
+
+	if s.Backend == nil {
+		err.Add("bbb", "this field is required")
+		return err
+	}
+
+	// BBB hostname
+	host := s.Backend.Host
+	if host == "" {
+		err.Add("bbb.host", ErrFieldRequired)
+	}
+
+	if !strings.HasPrefix(host, "http") {
+		err.Add("bbb.host", "should start with http(s)://")
+	}
+	if !strings.HasSuffix(host, "/") {
+		host += "/"
+	}
+
+	// Secret
+	secret := strings.TrimSpace(s.Backend.Secret)
+	if secret == "" {
+		err.Add("bbb.secret", ErrFieldRequired)
+	}
+
+	if len(err) > 0 {
+		return err
+	}
+
 	return nil
 }

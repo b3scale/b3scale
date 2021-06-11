@@ -70,6 +70,19 @@ func Connect(opts *ConnectOpts) error {
 	return nil
 }
 
+// ConnectTest to pgx db pool. Use b3scale defaults if
+// environment variable is not set.
+func ConnectTest() error {
+	url := os.Getenv("B3SCALE_TEST_DB_URL")
+	if url == "" {
+		url = "postgres://postgres:postgres@localhost:5432/b3scale_test"
+	}
+	return Connect(&ConnectOpts{
+		URL:      url,
+		MinConns: 2,
+		MaxConns: 16})
+}
+
 // Acquire tries to get a database connection
 // from the pool
 func Acquire(ctx context.Context) (*pgxpool.Conn, error) {

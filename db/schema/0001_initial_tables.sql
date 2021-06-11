@@ -74,6 +74,11 @@ CREATE TABLE frontends (
     key     text NOT NULL UNIQUE,
     secret  text NOT NULL,
 
+    -- The account reference will be used to limit
+    -- access to the list of frontends when accessed
+    -- through an authorized API request.
+    account_ref VARCHAR(80) NULL DEFAULT NULL,
+
     -- Runtime configuration can be added for each
     -- frontend. This should be used to save middleware
     -- settings like for example overriding a default
@@ -88,6 +93,9 @@ CREATE TABLE frontends (
     synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP 
 );
 
+CREATE INDEX idx_frontends_account_ref ON frontends
+ USING HASH ( account_ref );
+  
 
 -- The store tables: `meetings`, `recordings`,
 -- `recording_text_tracks` hold the shared state
