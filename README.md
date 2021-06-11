@@ -62,6 +62,13 @@ The load factor of the backend can be set through:
 
  * `B3SCALE_LOAD_FACTOR` (default `1.0`)
 
+ * `B3SCALE_API_JWT_SECRET` if not empty, the API will be enabled
+    and accessible through /api/v1/... with a JWT bearer token.
+    You can set the jwt claim `scope` to `b3scale:admin` to create
+    an admin token.
+
+
+    TOKEN=`pyjwt --key=fooo encode sub="123456789" scope="b3scale b3scale:admin"`
 
 ## Adding Backends
 
