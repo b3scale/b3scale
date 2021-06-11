@@ -100,6 +100,9 @@ func ClearState() error {
 	if err != nil {
 		return err
 	}
+	if _, err := tx.Exec(reqCtx, "DELETE FROM commands"); err != nil {
+		return err
+	}
 	if _, err := tx.Exec(reqCtx, "DELETE FROM meetings"); err != nil {
 		return err
 	}
