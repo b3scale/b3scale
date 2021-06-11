@@ -11,7 +11,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-func createTestBackend() (*store.BackendState, error) {
+func CreateTestBackend() (*store.BackendState, error) {
 	ctx, _ := MakeTestContext(nil)
 	defer ctx.Release()
 
@@ -38,26 +38,8 @@ func createTestBackend() (*store.BackendState, error) {
 	return b, tx.Commit(cctx)
 }
 
-func clearBackends() error {
-	ctx, _ := MakeTestContext(nil)
-	defer ctx.Release()
-
-	reqCtx := ctx.Ctx()
-	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
-	if err != nil {
-		return err
-	}
-	if _, err := tx.Exec(reqCtx, "DELETE FROM backends"); err != nil {
-		return err
-	}
-	if err := tx.Commit(reqCtx); err != nil {
-		return err
-	}
-	return nil
-}
-
 func TestBackendsList(t *testing.T) {
-	if err := clearBackends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -67,7 +49,7 @@ func TestBackendsList(t *testing.T) {
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
-	if _, err := createTestBackend(); err != nil {
+	if _, err := CreateTestBackend(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,7 +66,7 @@ func TestBackendsList(t *testing.T) {
 }
 
 func TestBackendCreate(t *testing.T) {
-	if err := clearBackends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -116,7 +98,7 @@ func TestBackendCreate(t *testing.T) {
 }
 
 func TestBackendUpdate(t *testing.T) {
-	if err := clearBackends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -126,7 +108,7 @@ func TestBackendUpdate(t *testing.T) {
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
-	b, err := createTestBackend()
+	b, err := CreateTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +141,7 @@ func TestBackendUpdate(t *testing.T) {
 }
 
 func TestBackendDestroy(t *testing.T) {
-	if err := clearBackends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -169,7 +151,7 @@ func TestBackendDestroy(t *testing.T) {
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
-	b, err := createTestBackend()
+	b, err := CreateTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +177,7 @@ func TestBackendDestroy(t *testing.T) {
 }
 
 func TestBackendForceDestroy(t *testing.T) {
-	if err := clearBackends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -205,7 +187,7 @@ func TestBackendForceDestroy(t *testing.T) {
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
-	b, err := createTestBackend()
+	b, err := CreateTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +213,7 @@ func TestBackendForceDestroy(t *testing.T) {
 }
 
 func TestBackendRetrieve(t *testing.T) {
-	if err := clearBackends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -241,7 +223,7 @@ func TestBackendRetrieve(t *testing.T) {
 	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
 
 	// Create a backend
-	b, err := createTestBackend()
+	b, err := CreateTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}

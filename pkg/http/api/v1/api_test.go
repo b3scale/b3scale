@@ -90,3 +90,27 @@ func TestAPIStatus(t *testing.T) {
 	body, _ := ioutil.ReadAll(res.Body)
 	t.Log(string(body))
 }
+
+func ClearState() error {
+	ctx, _ := MakeTestContext(nil)
+	defer ctx.Release()
+
+	reqCtx := ctx.Ctx()
+	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec(reqCtx, "DELETE FROM meetings"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(reqCtx, "DELETE FROM backends"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(reqCtx, "DELETE FROM frontends"); err != nil {
+		return err
+	}
+	if err := tx.Commit(reqCtx); err != nil {
+		return err
+	}
+	return nil
+}

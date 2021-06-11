@@ -11,7 +11,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-func createTestFrontend() (*store.FrontendState, error) {
+func CreateTestFrontend() (*store.FrontendState, error) {
 	ctx, _ := MakeTestContext(nil)
 	defer ctx.Release()
 	cctx := ctx.Ctx()
@@ -40,29 +40,11 @@ func createTestFrontend() (*store.FrontendState, error) {
 	return f, tx.Commit(cctx)
 }
 
-func clearFrontends() error {
-	ctx, _ := MakeTestContext(nil)
-	defer ctx.Release()
-
-	reqCtx := ctx.Ctx()
-	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
-	if err != nil {
-		return err
-	}
-	if _, err := tx.Exec(reqCtx, "DELETE FROM frontends"); err != nil {
-		return err
-	}
-	if err := tx.Commit(reqCtx); err != nil {
-		return err
-	}
-	return nil
-}
-
 func TestFrontendsList(t *testing.T) {
-	if err := clearFrontends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := createTestFrontend(); err != nil {
+	if _, err := CreateTestFrontend(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -83,10 +65,10 @@ func TestFrontendsList(t *testing.T) {
 }
 
 func TestFrontendsRetrieve(t *testing.T) {
-	if err := clearFrontends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
-	f, err := createTestFrontend()
+	f, err := CreateTestFrontend()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +93,7 @@ func TestFrontendsRetrieve(t *testing.T) {
 }
 
 func TestFrontendCreateAdmin(t *testing.T) {
-	if err := clearFrontends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -142,7 +124,7 @@ func TestFrontendCreateAdmin(t *testing.T) {
 }
 
 func TestFrontendCreateUser(t *testing.T) {
-	if err := clearFrontends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -179,11 +161,11 @@ func TestFrontendCreateUser(t *testing.T) {
 }
 
 func TestFrontendUpdateAdmin(t *testing.T) {
-	if err := clearFrontends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
-	f, err := createTestFrontend()
+	f, err := CreateTestFrontend()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,11 +205,11 @@ func TestFrontendUpdateAdmin(t *testing.T) {
 }
 
 func TestFrontendUpdateUser(t *testing.T) {
-	if err := clearFrontends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
-	f, err := createTestFrontend()
+	f, err := CreateTestFrontend()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,11 +256,11 @@ func TestFrontendUpdateUser(t *testing.T) {
 }
 
 func TestFrontendDestroy(t *testing.T) {
-	if err := clearFrontends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
-	f, err := createTestFrontend()
+	f, err := CreateTestFrontend()
 	if err != nil {
 		t.Fatal(err)
 	}

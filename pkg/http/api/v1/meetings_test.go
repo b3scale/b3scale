@@ -7,11 +7,11 @@ import (
 
 	//	"github.com/google/uuid"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	// "gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
-func createTestMeeting() (*store.FrontendState, error) {
+func CreateTestMeeting(backend *store.BackendState) (*store.MeetingState, error) {
 	ctx, _ := MakeTestContext(nil)
 	defer ctx.Release()
 	cctx := ctx.Ctx()
@@ -20,50 +20,23 @@ func createTestMeeting() (*store.FrontendState, error) {
 		return nil, err
 	}
 
-	ref := "user23"
-	f := store.InitFrontendState(&store.FrontendState{
-		Frontend: &bbb.Frontend{
-			Key:    "testkey",
-			Secret: "testsecret",
-		},
-		Active: true,
-		Settings: store.FrontendSettings{
-			RequiredTags: []string{"tag1"},
-		},
-		AccountRef: &ref,
+	m := store.InitMeetingState(&store.MeetingState{
+		BackendID: &backend.ID,
 	})
 
-	if err := f.Save(cctx, tx); err != nil {
+	if err := m.Save(cctx, tx); err != nil {
 		return nil, err
 	}
 
-	return f, tx.Commit(cctx)
-}
-
-func clearMeetings() error {
-	ctx, _ := MakeTestContext(nil)
-	defer ctx.Release()
-
-	reqCtx := ctx.Ctx()
-	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
-	if err != nil {
-		return err
-	}
-	if _, err := tx.Exec(reqCtx, "DELETE FROM meetings"); err != nil {
-		return err
-	}
-	if err := tx.Commit(reqCtx); err != nil {
-		return err
-	}
-	return nil
+	return m, tx.Commit(cctx)
 }
 
 func TestBackendFromRequest(t *testing.T) {
-	if err := clearBackends(); err != nil {
+	if err := ClearState(); err != nil {
 		t.Fatal(err)
 	}
 
-	backend, err := createTestBackend()
+	backend, err := CreateTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,4 +97,24 @@ func TestBackendFromRequest(t *testing.T) {
 			t.Error("expected nil, unexpected backend:", lookup)
 		}
 	}
+}
+
+func TestBackendMeetingsList(t *testing.T) {
+	if err := ClearState(); err != nil {
+		t.Fatal(err)
+	}
+	backend, err := CreateTestBackend()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(backend)
+	/*
+		meeting, err := createTestMeeting(backend)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+
+		t.Log(meeting)
+	*/
 }
