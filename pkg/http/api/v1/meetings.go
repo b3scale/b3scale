@@ -71,6 +71,11 @@ func BackendMeetingsList(c echo.Context) error {
 	return c.JSON(http.StatusOK, meetings)
 }
 
+// BackendMeetingsEndResponse is the result of the end
+// all meeting on backend request and will indicate
+// that the command was queued and the request was
+// accepted.
+
 // BackendMeetingsEnd will stop all meetings for a
 // given backend_id.
 func BackendMeetingsEnd(c echo.Context) error {
@@ -105,9 +110,5 @@ func BackendMeetingsEnd(c echo.Context) error {
 	}
 
 	// Make response
-	res := map[string]interface{}{
-		"cmd":   "end_all_meetings_request",
-		"state": "queued",
-	}
-	return c.JSON(http.StatusAccepted, res)
+	return c.JSON(http.StatusAccepted, cmd)
 }
