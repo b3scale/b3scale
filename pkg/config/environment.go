@@ -20,6 +20,7 @@ const (
 	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
 	EnvLoadFactor   = "B3SCALE_LOAD_FACTOR"
 	EnvJWTSecret    = "B3SCALE_API_JWT_SECRET"
+	EnvAccessToken  = "B3SCALE_API_ACCESS_TOKEN"
 	EnvBBBConfig    = "BBB_CONFIG"
 )
 
