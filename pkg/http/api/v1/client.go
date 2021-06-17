@@ -181,21 +181,73 @@ func (c *JWTClient) FrontendRetrieve(
 func (c *JWTClient) FrontendCreate(
 	ctx context.Context, frontend *store.FrontendState,
 ) (*store.FrontendState, error) {
-	return nil, nil
+	payload, err := json.Marshal(frontend)
+	if err != nil {
+		return nil, err
+	}
+	body := bytes.NewBuffer(payload)
+	req, err := http.NewRequestWithContext(
+		ctx, "POST", c.apiURL("frontends", nil), body)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if !httpSuccess(res) {
+		return nil, APIErrorFromResponse(res)
+	}
+	frontend = &store.FrontendState{}
+	err = readJSONResponse(res, frontend)
+	return frontend, err
 }
 
 // FrontendUpdate PATCHes an already existing frontend.
 func (c *JWTClient) FrontendUpdate(
 	ctx context.Context, frontend *store.FrontendState,
 ) (*store.FrontendState, error) {
-	return nil, nil
+	payload, err := json.Marshal(frontend)
+	if err != nil {
+		return nil, err
+	}
+	body := bytes.NewBuffer(payload)
+	req, err := http.NewRequestWithContext(
+		ctx, "PATCH", c.apiURL("frontends/"+frontend.ID, nil), body)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if !httpSuccess(res) {
+		return nil, APIErrorFromResponse(res)
+	}
+	frontend = &store.FrontendState{}
+	err = readJSONResponse(res, frontend)
+	return frontend, err
 }
 
 // FrontendDelete removes a frontend from the cluster.
 func (c *JWTClient) FrontendDelete(
 	ctx context.Context, frontend *store.FrontendState,
 ) (*store.FrontendState, error) {
-	return nil, nil
+	req, err := http.NewRequestWithContext(
+		ctx, "DELETE", c.apiURL("frontends/"+frontend.ID, nil), nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if !httpSuccess(res) {
+		return nil, APIErrorFromResponse(res)
+	}
+	frontend = &store.FrontendState{}
+	err = readJSONResponse(res, frontend)
+	return frontend, err
 }
 
 // BackendsList retrievs a list of backends from the server
