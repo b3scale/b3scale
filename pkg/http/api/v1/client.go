@@ -169,6 +169,9 @@ func (c *JWTClient) FrontendRetrieve(
 	if err != nil {
 		return nil, err
 	}
+	if res.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
 	if !httpSuccess(res) {
 		return nil, APIErrorFromResponse(res)
 	}
@@ -283,6 +286,9 @@ func (c *JWTClient) BackendRetrieve(
 	res, err := c.Client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if res.StatusCode == http.StatusNotFound {
+		return nil, nil
 	}
 	if !httpSuccess(res) {
 		return nil, APIErrorFromResponse(res)

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -26,6 +27,17 @@ func BackendsList(c echo.Context) error {
 
 	// Begin Query
 	q := store.Q()
+
+	// Filter by host
+	queryHost := c.QueryParam("host")
+	if queryHost != "" {
+		q = q.Where("host = ?", queryHost)
+	}
+	queryHostLike := c.QueryParam("host__like")
+	if queryHostLike != "" {
+		q = q.Where("host LIKE ?", fmt.Sprintf("%%%s%%", queryHostLike))
+	}
+
 	backends, err := store.GetBackendStates(reqCtx, tx, q)
 	return c.JSON(http.StatusOK, backends)
 }
