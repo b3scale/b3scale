@@ -33,6 +33,7 @@ func InitFrontendState(init *FrontendState) *FrontendState {
 	if init.Frontend == nil {
 		init.Frontend = &bbb.Frontend{}
 	}
+	init.Active = true
 	return init
 }
 
