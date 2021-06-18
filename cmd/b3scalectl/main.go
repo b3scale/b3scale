@@ -7,8 +7,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
 	"gitlab.com/infra.run/public/b3scale/pkg/logging"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 func main() {
@@ -23,14 +23,20 @@ func main() {
 		})
 	}
 
+	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
 	if err := logging.Setup(&logging.Options{
 		Level: loglevel,
 	}); err != nil {
 		panic(err)
 	}
 
+	// Configure API client
+	host := "http://localhost:42353"
+	token := ""
+	client := v1.NewJWTClient(host, token)
+
 	// Start the CLI
-	cli := NewCli(queue)
+	cli := NewCli(client)
 	if err := cli.Run(context.Background(), os.Args); err != nil {
 		log.Fatal().Err(err).Msg("this is fatal")
 	}

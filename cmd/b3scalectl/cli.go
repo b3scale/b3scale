@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -23,13 +25,12 @@ const RetNoChange = 64
 type Cli struct {
 	app        *cli.App
 	returnCode int
+	client     v1.Client
 }
 
 // NewCli initializes the CLI application
-func NewCli(
-	queue *store.CommandQueue,
-) *Cli {
-	c := &Cli{}
+func NewCli(client v1.Client) *Cli {
+	c := &Cli{client: client}
 	c.app = &cli.App{
 		Usage:                "manage the b3scale cluster",
 		EnableBashCompletion: true,
@@ -200,18 +201,16 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 	key := ctx.Args().Get(0)
 	secret := ctx.String("secret")
 
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
 	// Get or create frontend
-	state, err := store.GetFrontendState(ctx.Context, tx, store.Q().
-		Where("key = ?", key))
+	frontends, err := c.client.FrontendsList(ctx.Context, url.Values{
+		"key": []string{key},
+	})
 	if err != nil {
 		return err
+	}
+	var state *store.FrontendState
+	if len(frontends) > 0 {
+		state = frontends[0]
 	}
 
 	if state == nil {
@@ -232,7 +231,8 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			}
 		}
 		if !dry {
-			if err := state.Save(ctx.Context, tx); err != nil {
+			state, err = c.client.FrontendCreate(ctx.Context, state)
+			if err != nil {
 				return err
 			}
 			fmt.Println("created frontend:", state.ID, state.Frontend.Key)
