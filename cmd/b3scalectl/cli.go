@@ -7,11 +7,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/rs/zerolog/log"
 	"github.com/urfave/cli/v2"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
@@ -588,16 +586,8 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
 	host := ctx.Args().Get(0)
-	state, err := store.GetBackendState(ctx.Context, tx, store.Q().
-		Where("host = ?", host))
+	state, err := getBackendByHost(ctx.Context, c.client, host)
 	if err != nil {
 		return err
 	}
@@ -617,9 +607,12 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 			fmt.Println("skipping delete backend (dry run)")
 			return nil
 		}
-
 		fmt.Println("deleting backend")
-		if err := state.Delete(ctx.Context, tx); err != nil {
+		state, err = c.client.BackendDelete(
+			ctx.Context, state, url.Values{
+				"force": []string{"true"},
+			})
+		if err != nil {
 			return err
 		}
 	} else {
@@ -629,14 +622,13 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 			fmt.Println("skipping decommissioning backend (dry run)")
 			return nil
 		}
-
-		if err := state.Save(ctx.Context, tx); err != nil {
+		state, err = c.client.BackendUpdate(ctx.Context, state)
+		if err != nil {
 			return err
 		}
 	}
-
 	fmt.Println("backend marked for decommissioning")
-	return tx.Commit(ctx.Context)
+	return nil
 }
 
 // end all meetings on a backend
@@ -646,16 +638,7 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
-	state, err := store.GetBackendState(ctx.Context, tx, store.Q().
-		Where("host = ?", host))
+	state, err := getBackendByHost(ctx.Context, c.client, host)
 	if err != nil {
 		return err
 	}
@@ -663,14 +646,13 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 		return fmt.Errorf("no such backend")
 	}
 
-	cmd := cluster.EndAllMeetings(&cluster.EndAllMeetingsRequest{
-		BackendID: state.ID,
-	})
-	if err := store.QueueCommand(ctx.Context, tx, cmd); err != nil {
+	cmd, err := c.client.BackendMeetingsEnd(ctx.Context, state.ID)
+	if err != nil {
 		return err
 	}
+	fmt.Println(cmd)
 
-	return tx.Commit(ctx.Context)
+	return nil
 }
 
 // show the current version
@@ -678,15 +660,12 @@ func (c *Cli) showVersion(ctx *cli.Context) error {
 	fmt.Printf("b3scalectl v.%s\t%s\n",
 		config.Version,
 		config.Build)
-
 	status, err := c.client.Status(ctx.Context)
 	if err != nil {
 		return err
 	}
-
 	fmt.Println("API status:")
 	fmt.Println(status)
-
 	return nil
 }
 
