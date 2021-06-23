@@ -224,6 +224,14 @@ func BackendUpdate(c echo.Context) error {
 		return err
 	}
 
+	// Enqueue node refresh command
+	cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
+		ID: backend.ID,
+	})
+	if err := store.QueueCommand(reqCtx, tx, cmd); err != nil {
+		return err
+	}
+
 	if err := tx.Commit(reqCtx); err != nil {
 		return err
 	}
