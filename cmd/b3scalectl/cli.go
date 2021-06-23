@@ -21,6 +21,38 @@ import (
 // change was applied.
 const RetNoChange = 64
 
+// Frontend retrieval helper
+func getFrontendByKey(
+	ctx context.Context, c v1.Client, key string,
+) (*store.FrontendState, error) {
+	frontends, err := c.FrontendsList(ctx, url.Values{
+		"key": []string{key},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(frontends) > 0 {
+		return frontends[0], nil
+	}
+	return nil, nil
+}
+
+// Backend retrieval helper
+func getBackendByHost(
+	ctx context.Context, c v1.Client, key string,
+) (*store.BackendState, error) {
+	backends, err := c.BackendsList(ctx, url.Values{
+		"key": []string{key},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(backends) > 0 {
+		return backends[0], nil
+	}
+	return nil, nil
+}
+
 // Cli is the main command line interface application
 type Cli struct {
 	app        *cli.App
@@ -202,15 +234,9 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 	secret := ctx.String("secret")
 
 	// Get or create frontend
-	frontends, err := c.client.FrontendsList(ctx.Context, url.Values{
-		"key": []string{key},
-	})
+	state, err := getFrontendByKey(ctx.Context, c.client, key)
 	if err != nil {
 		return err
-	}
-	var state *store.FrontendState
-	if len(frontends) > 0 {
-		state = frontends[0]
 	}
 
 	if state == nil {
@@ -264,7 +290,8 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			c.returnCode = RetNoChange
 		} else {
 			if !dry {
-				if err := state.Save(ctx.Context, tx); err != nil {
+				_, err := c.client.FrontendUpdate(ctx.Context, state)
+				if err != nil {
 					return err
 				}
 				fmt.Println("updated frontend")
@@ -274,28 +301,20 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 		}
 	}
 
-	// Commit changes
-	return tx.Commit(ctx.Context)
+	return nil
 }
 
 // deleteFrontend removes a frontend from the cluster
 func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	dry := ctx.Bool("dry")
 
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
 	// Args should be host
-	if ctx.NArg() < 1 {
-		return fmt.Errorf("require: <key>")
-	}
 	key := ctx.Args().Get(0)
-	state, err := store.GetFrontendState(ctx.Context, tx, store.Q().
-		Where("key = ?", key))
+	if key == "" {
+		return fmt.Errorf("need frontend key for delete")
+	}
+
+	state, err := getFrontendByKey(ctx.Context, c.client, key)
 	if err != nil {
 		return err
 	}
@@ -309,11 +328,8 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("delete frontend:", state.ID)
-	if err := state.Delete(ctx.Context, tx); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx.Context)
+	_, err = c.client.FrontendDelete(ctx.Context, state)
+	return err
 }
 
 // showFrontend displays information about a frontend
@@ -323,44 +339,29 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 		return fmt.Errorf("need frontend key for showing info")
 	}
 
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
-	frontend, err := store.GetFrontendState(ctx.Context, tx, store.Q().
-		Where("key = ?", key))
+	state, err := getFrontendByKey(ctx.Context, c.client, key)
 	if err != nil {
 		return err
 	}
-	if frontend == nil {
-		return fmt.Errorf("frontend not found")
+	if state == nil {
+		return fmt.Errorf("no such frontend")
 	}
 
-	fmt.Println("Frontend:", frontend.Frontend.Key)
+	fmt.Println("Frontend:", state.Frontend.Key)
 	fmt.Println("Settings:")
-	s, _ := json.MarshalIndent(frontend.Settings, "   ", " ")
+	s, _ := json.MarshalIndent(state.Settings, "   ", " ")
 	fmt.Println(string(s))
-
 	return nil
 }
 
 // show a list of all frontends
 func (c *Cli) showFrontends(ctx *cli.Context) error {
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-	states, err := store.GetFrontendStates(ctx.Context, tx, store.Q().
-		OrderBy("frontends.key ASC"))
+	frontends, err := c.client.FrontendsList(ctx.Context, nil)
 	if err != nil {
 		return err
 	}
-	for _, f := range states {
+
+	for _, f := range frontends {
 		settings, _ := json.Marshal(f.Settings)
 		fmt.Printf("%s\t%s\t%s\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret, settings)
 	}
@@ -369,21 +370,10 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 
 // setBackend manages the backends in the cluster
 func (c *Cli) setBackend(ctx *cli.Context) error {
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
 	adminState := ctx.String("state")
 	dry := ctx.Bool("dry")
 
 	// Args should be host
-	if ctx.NArg() < 1 {
-		return fmt.Errorf("require: <host>")
-	}
-
 	host := ctx.Args().Get(0)
 	if !strings.HasPrefix(host, "http") {
 		return fmt.Errorf("host should start with http(s)://")
@@ -393,8 +383,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 	}
 
 	// Check if backend exists
-	state, err := store.GetBackendState(ctx.Context, tx, store.Q().
-		Where("host = ?", host))
+	state, err := getBackendByHost(ctx.Context, c.client, host)
 	if err != nil {
 		return err
 	}
@@ -417,7 +406,8 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			}
 		}
 		if !dry {
-			if err := state.Save(ctx.Context, tx); err != nil {
+			state, err = c.client.BackendCreate(ctx.Context, state)
+			if err != nil {
 				return err
 			}
 			fmt.Println("created backend:", state.ID, state.Backend.Host)
@@ -452,7 +442,8 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 		}
 		if changes {
 			if !dry {
-				if err := state.Save(ctx.Context, tx); err != nil {
+				state, err = c.client.BackendUpdate(ctx.Context, state)
+				if err != nil {
 					return err
 				}
 				fmt.Println("updated backend")
@@ -464,18 +455,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			c.returnCode = RetNoChange
 		}
 	}
-
-	// Create command and enqueue
-	if !dry {
-		cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
-			ID: state.ID,
-		})
-		if err := store.QueueCommand(ctx.Context, tx, cmd); err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit(ctx.Context)
+	return nil
 }
 
 // showBackends displays information about our backend
@@ -485,15 +465,8 @@ func (c *Cli) showBackend(ctx *cli.Context) error {
 		return fmt.Errorf("need host for showing backend info")
 	}
 
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
-	backend, err := store.GetBackendState(ctx.Context, tx, store.Q().
-		Where("backends.host = ?", host))
+	// Check if backend exists
+	backend, err := getBackendByHost(ctx.Context, c.client, host)
 	if err != nil {
 		return err
 	}
@@ -511,23 +484,11 @@ func (c *Cli) showBackend(ctx *cli.Context) error {
 
 // showBackends displays a list of our backends
 func (c *Cli) showBackends(ctx *cli.Context) error {
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx.Context).Begin(ctx.Context)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx.Context)
-
-	backends, err := store.GetBackendStates(ctx.Context, tx, store.Q().
-		OrderBy("backends.host ASC"))
+	// Check if backend exists
+	backends, err := c.client.BackendsList(ctx.Context, nil)
 	if err != nil {
 		return err
 	}
-	if len(backends) == 0 {
-		fmt.Println("no backends found.")
-		return nil
-	}
-
 	for _, b := range backends {
 		ratio := 0.0
 		if b.MeetingsCount > 0 {
@@ -588,23 +549,13 @@ func (c *Cli) setBackendAdminState(
 		host += "/"
 	}
 
-	// Begin TX
-	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not start transaction")
-	}
-	defer tx.Rollback(ctx)
-
-	// Check if backend exists
-	state, err := store.GetBackendState(ctx, tx, store.Q().
-		Where("host = ?", host))
+	state, err := getBackendByHost(ctx, c.client, host)
 	if err != nil {
 		return err
 	}
 	if state == nil {
 		return fmt.Errorf("backend not found")
 	}
-
 	// The state is known to use. Just make updates
 	changes := false
 	if state.AdminState != adminState {
@@ -613,7 +564,8 @@ func (c *Cli) setBackendAdminState(
 	}
 	if changes {
 		if !dry {
-			if err := state.Save(ctx, tx); err != nil {
+			state, err = c.client.BackendUpdate(ctx, state)
+			if err != nil {
 				return err
 			}
 			fmt.Println("updated backend admin state")
@@ -624,17 +576,7 @@ func (c *Cli) setBackendAdminState(
 		fmt.Println("no changes")
 		c.returnCode = RetNoChange
 	}
-
-	// Create command and enqueue
-	if !dry {
-		cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
-			ID: state.ID,
-		})
-		if err := store.QueueCommand(ctx, tx, cmd); err != nil {
-			return err
-		}
-	}
-	return tx.Commit(ctx)
+	return nil
 }
 
 // delete backend removes a backend from the store
@@ -736,16 +678,19 @@ func (c *Cli) showVersion(ctx *cli.Context) error {
 	fmt.Printf("b3scalectl v.%s\t%s\n",
 		config.Version,
 		config.Build)
+
+	status, err := c.client.Status(ctx.Context)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("API status:")
+	fmt.Println(status)
+
 	return nil
 }
 
 // Run starts the CLI
 func (c *Cli) Run(ctx context.Context, args []string) error {
-	conn, err := store.Acquire(ctx)
-	if err != nil {
-		return err
-	}
-	ctx = store.ContextWithConnection(ctx, conn)
-
 	return c.app.RunContext(ctx, args)
 }
