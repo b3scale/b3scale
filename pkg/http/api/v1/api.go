@@ -209,15 +209,26 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 	return cfg, nil
 }
 
+// StatusResponse returns information about the
+// API implementation and the current user.
+type StatusResponse struct {
+	Version    string `json:"version"`
+	Build      string `json:"build"`
+	API        string `json:"api"`
+	AccountRef string `json:"account_ref"`
+	IsAdmin    bool   `json:"is_admin"`
+}
+
 // Status will respond with the api version and b3scale
 // version.
 func Status(c echo.Context) error {
 	ctx := c.(*APIContext)
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"version":     config.Version,
-		"build":       config.Build,
-		"api":         "v1",
-		"account_ref": ctx.AccountRef(),
-		"is_admin":    ctx.HasScope(ScopeAdmin),
-	})
+	status := &StatusResponse{
+		Version:    config.Version,
+		Build:      config.Build,
+		API:        "v1",
+		AccountRef: ctx.AccountRef(),
+		IsAdmin:    ctx.HasScope(ScopeAdmin),
+	}
+	return c.JSON(http.StatusOK, status)
 }

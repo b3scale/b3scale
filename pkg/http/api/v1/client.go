@@ -15,6 +15,8 @@ import (
 
 // Client is an interface to the v1 API.
 type Client interface {
+	Status(ctx context.Context) (*StatusResponse, error)
+
 	FrontendsList(
 		ctx context.Context, query url.Values,
 	) ([]*store.FrontendState, error)
@@ -133,6 +135,27 @@ func (c *JWTClient) apiURL(resource string, query url.Values) string {
 	}
 
 	return u
+}
+
+// Status retrievs the API / server status
+func (c *JWTClient) Status(
+	ctx context.Context,
+) (*StatusResponse, error) {
+	req, err := http.NewRequestWithContext(
+		ctx, "GET", c.apiURL("", nil), nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if !httpSuccess(res) {
+		return nil, APIErrorFromResponse(res)
+	}
+	status := &StatusResponse{}
+	err = readJSONResponse(res, status)
+	return status, err
 }
 
 // FrontendsList retrievs a list of frontends

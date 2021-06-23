@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -37,6 +38,9 @@ func BackendsList(c echo.Context) error {
 	if queryHostLike != "" {
 		q = q.Where("host LIKE ?", fmt.Sprintf("%%%s%%", queryHostLike))
 	}
+
+	// Set ordering
+	q = q.OrderBy("backends.host ASC")
 
 	backends, err := store.GetBackendStates(reqCtx, tx, q)
 	return c.JSON(http.StatusOK, backends)
@@ -74,6 +78,14 @@ func BackendCreate(c echo.Context) error {
 	defer tx.Rollback(reqCtx)
 
 	if err := backend.Save(reqCtx, tx); err != nil {
+		return err
+	}
+
+	// Enqueue node refresh command
+	cmd := cluster.UpdateNodeState(&cluster.UpdateNodeStateRequest{
+		ID: backend.ID,
+	})
+	if err := store.QueueCommand(reqCtx, tx, cmd); err != nil {
 		return err
 	}
 
