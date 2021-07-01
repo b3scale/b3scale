@@ -137,6 +137,14 @@ func (c *JWTClient) apiURL(resource string, query url.Values) string {
 	return u
 }
 
+// AuthorizeRequest will add a http Authorization
+// header with the access token to the request
+func (c *JWTClient) AuthorizeRequest(req *http.Request) *http.Request {
+	bearer := "Bearer " + c.AccessToken
+	req.Header.Set("Authorization", bearer)
+	return req
+}
+
 // Status retrievs the API / server status
 func (c *JWTClient) Status(
 	ctx context.Context,
@@ -146,7 +154,7 @@ func (c *JWTClient) Status(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +175,7 @@ func (c *JWTClient) FrontendsList(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +196,7 @@ func (c *JWTClient) FrontendRetrieve(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +225,7 @@ func (c *JWTClient) FrontendCreate(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +251,7 @@ func (c *JWTClient) FrontendUpdate(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +272,7 @@ func (c *JWTClient) FrontendDelete(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +293,7 @@ func (c *JWTClient) BackendsList(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +314,7 @@ func (c *JWTClient) BackendRetrieve(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +343,7 @@ func (c *JWTClient) BackendCreate(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +369,7 @@ func (c *JWTClient) BackendUpdate(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +390,7 @@ func (c *JWTClient) BackendDelete(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +416,7 @@ func (c *JWTClient) BackendMeetingsList(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +440,7 @@ func (c *JWTClient) BackendMeetingsEnd(
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(req)
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
 	}

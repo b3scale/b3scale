@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
@@ -34,19 +34,6 @@ var (
 		http.StatusForbidden,
 		"b3scale:admin scope required")
 )
-
-// Scopes
-const (
-	ScopeUser  = "b3scale"
-	ScopeAdmin = "b3scale:admin"
-)
-
-// APIAuthClaims extends the JWT standard claims
-// with a well-known `scope` claim.
-type APIAuthClaims struct {
-	Scope string `json:"scope"`
-	jwt.StandardClaims
-}
 
 // APIContext extends the context and provides methods
 // for handling the current user.
@@ -191,22 +178,6 @@ func Init(e *echo.Echo) error {
 	a.DELETE("/meetings", RequireAdminScope(BackendMeetingsEnd))
 
 	return nil
-}
-
-// NewAPIJWTConfig creates a new JWT middleware config.
-// Parameters like shared secrets, public keys, etc..
-// are retrieved from the environment.
-func NewAPIJWTConfig() (middleware.JWTConfig, error) {
-	secret := config.EnvOpt(config.EnvJWTSecret, "")
-	if secret == "" {
-		return middleware.JWTConfig{}, ErrMissingJWTSecret
-	}
-
-	cfg := middleware.DefaultJWTConfig
-	cfg.Claims = &APIAuthClaims{}
-	cfg.SigningKey = []byte(secret)
-
-	return cfg, nil
 }
 
 // StatusResponse returns information about the
