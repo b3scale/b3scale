@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -13,15 +14,17 @@ import (
 // The FrontendState holds shared information about
 // a frontend.
 type FrontendState struct {
-	ID string
+	ID string `json:"id"`
 
-	Active   bool
-	Frontend *bbb.Frontend
+	Active   bool          `json:"active"`
+	Frontend *bbb.Frontend `json:"bbb"`
 
-	Settings FrontendSettings
+	Settings FrontendSettings `json:"settings"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	AccountRef *string `json:"account_ref"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // InitFrontendState initializes the state with a
@@ -30,6 +33,7 @@ func InitFrontendState(init *FrontendState) *FrontendState {
 	if init.Frontend == nil {
 		init.Frontend = &bbb.Frontend{}
 	}
+	init.Active = true
 	return init
 }
 
@@ -46,6 +50,7 @@ func GetFrontendStates(
 		"secret",
 		"active",
 		"settings",
+		"account_ref",
 		"created_at",
 		"updated_at").
 		From("frontends").
@@ -65,6 +70,7 @@ func GetFrontendStates(
 			&state.Frontend.Key, &state.Frontend.Secret,
 			&state.Active,
 			&state.Settings,
+			&state.AccountRef,
 			&state.CreatedAt, &state.UpdatedAt)
 		if err != nil {
 			return nil, err
@@ -107,9 +113,9 @@ func (s *FrontendState) Save(
 func (s *FrontendState) insert(ctx context.Context, tx pgx.Tx) error {
 	qry := `
 		INSERT INTO frontends (
-			key, secret, active, settings
+			key, secret, active, settings, account_ref
 		) VALUES (
-			$1, $2, $3, $4
+			$1, $2, $3, $4, $5
 		)
 		RETURNING id, created_at`
 
@@ -121,7 +127,8 @@ func (s *FrontendState) insert(ctx context.Context, tx pgx.Tx) error {
 		s.Frontend.Key,
 		s.Frontend.Secret,
 		s.Active,
-		s.Settings).Scan(&id, &createdAt); err != nil {
+		s.Settings,
+		s.AccountRef).Scan(&id, &createdAt); err != nil {
 		return err
 	}
 	// Update local state
@@ -135,11 +142,12 @@ func (s *FrontendState) update(ctx context.Context, tx pgx.Tx) error {
 	s.UpdatedAt = time.Now().UTC()
 	qry := `
 		UPDATE frontends
-		   SET key        = $2,
-		       secret     = $3,
-			   active     = $4,
-			   settings   = $5,
-			   updated_at = $6
+		   SET key         = $2,
+		       secret      = $3,
+			   active      = $4,
+			   settings    = $5,
+			   account_ref = $6,
+			   updated_at  = $7
 		 WHERE id = $1`
 	if _, err := tx.Exec(ctx, qry,
 		s.ID,
@@ -148,6 +156,7 @@ func (s *FrontendState) update(ctx context.Context, tx pgx.Tx) error {
 		s.Frontend.Secret,
 		s.Active,
 		s.Settings,
+		s.AccountRef,
 		s.UpdatedAt); err != nil {
 		return err
 	}
@@ -161,4 +170,29 @@ func (s *FrontendState) Delete(ctx context.Context, tx pgx.Tx) error {
 	`
 	_, err := tx.Exec(ctx, qry, s.ID)
 	return err
+}
+
+// Validate checks for presence of required fields.
+func (s *FrontendState) Validate() ValidationError {
+	err := ValidationError{}
+
+	if s.Frontend == nil {
+		err.Add("bbb", "this field is required")
+		return err
+	}
+
+	s.Frontend.Key = strings.TrimSpace(s.Frontend.Key)
+	s.Frontend.Secret = strings.TrimSpace(s.Frontend.Secret)
+
+	if s.Frontend.Key == "" {
+		err.Add("bbb.key", ErrFieldRequired)
+	}
+	if s.Frontend.Secret == "" {
+		err.Add("bbb.secret", ErrFieldRequired)
+	}
+
+	if len(err) > 0 {
+		return err
+	}
+	return nil
 }

@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/iface/http"
+	"gitlab.com/infra.run/public/b3scale/pkg/http"
 	"gitlab.com/infra.run/public/b3scale/pkg/logging"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
 	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
@@ -32,6 +32,7 @@ func main() {
 	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
 	dbPoolSizeStr := config.EnvOpt(config.EnvDbPoolSize, config.EnvDbPoolSizeDefault)
 	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
+	logFormat := config.EnvOpt(config.EnvLogFormat, config.EnvLogFormatDefault)
 	revProxyEnabled := config.IsEnabled(config.EnvOpt(
 		config.EnvReverseProxy, config.EnvReverseProxyDefault))
 
@@ -39,7 +40,8 @@ func main() {
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{
-		Level: loglevel,
+		Level:  loglevel,
+		Format: logFormat,
 	}); err != nil {
 		panic(err)
 	}

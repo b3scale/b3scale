@@ -15,10 +15,12 @@ const (
 	EnvDbURL        = "B3SCALE_DB_URL"
 	EnvDbPoolSize   = "B3SCALE_DB_POOL_SIZE"
 	EnvLogLevel     = "B3SCALE_LOG_LEVEL"
+	EnvLogFormat    = "B3SCALE_LOG_FORMAT"
 	EnvListenHTTP   = "B3SCALE_LISTEN_HTTP"
 	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
-	EnvBBBConfig    = "BBB_CONFIG"
 	EnvLoadFactor   = "B3SCALE_LOAD_FACTOR"
+	EnvJWTSecret    = "B3SCALE_API_JWT_SECRET"
+	EnvBBBConfig    = "BBB_CONFIG"
 )
 
 // Defaults
@@ -26,6 +28,7 @@ const (
 	EnvDbPoolSizeDefault   = "128"
 	EnvDbURLDefault        = "postgres://postgres:postgres@localhost:5432/b3scale"
 	EnvLogLevelDefault     = "info"
+	EnvLogFormatDefault    = "structured"
 	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
 	EnvReverseProxyDefault = "false"
 	EnvBBBConfigDefault    = "/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties"
@@ -78,7 +81,7 @@ func EnvOpt(key, fallback string) string {
 	return value
 }
 
-// IsEnabled returns true if the input is trueis
+// IsEnabled returns true if the input is trueish
 func IsEnabled(value string) bool {
 	value = strings.ToLower(value)
 	switch value {

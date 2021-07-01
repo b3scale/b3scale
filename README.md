@@ -44,6 +44,8 @@ The following environment variables can be configured:
     
     You can use either the numeric or integer value
 
+  * `B3SCALE_LOG_FORMAT` choose between `plain` or `structured` logging.
+     The default is `structured` and will emit JSON on stderr.
 
 Same applies for the `b3scalenoded`, however only `B3SCALE_DB_URL`
 is required.
@@ -60,6 +62,13 @@ The load factor of the backend can be set through:
 
  * `B3SCALE_LOAD_FACTOR` (default `1.0`)
 
+ * `B3SCALE_API_JWT_SECRET` if not empty, the API will be enabled
+    and accessible through /api/v1/... with a JWT bearer token.
+    You can set the jwt claim `scope` to `b3scale:admin` to create
+    an admin token.
+
+
+    TOKEN=`pyjwt --key=fooo encode sub="123456789" scope="b3scale b3scale:admin"`
 
 ## Adding Backends
 
@@ -121,9 +130,6 @@ Configure a default presentation:
 
     b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
 
-
-### Issues
-
-At the moment a running node agent might prevent the backend from being deleted.
-
-
+## Monitoring
+ 
+Metrics are exported in a `prometheus` compatible format under `/metrics`.

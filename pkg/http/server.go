@@ -17,6 +17,7 @@ import (
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
 	"gitlab.com/infra.run/public/b3scale/pkg/metrics"
 	"gitlab.com/infra.run/public/b3scale/pkg/templates"
 )
@@ -75,6 +76,10 @@ func NewServer(
 	// Register routes
 	e.GET("/", s.httpIndex)
 	e.GET("/b3s/retry-join/:req", s.httpRetryJoin)
+
+	if err := v1.Init(e); err != nil {
+		log.Warn().Err(err).Msg("could not initialize rest API")
+	}
 
 	return s
 }

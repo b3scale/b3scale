@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/logging"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 func main() {
@@ -23,29 +22,15 @@ func main() {
 		})
 	}
 
-	// Get configuration from environment
-	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
 	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
-
 	if err := logging.Setup(&logging.Options{
 		Level: loglevel,
 	}); err != nil {
 		panic(err)
 	}
 
-	err := store.Connect(&store.ConnectOpts{
-		URL:      dbConnStr,
-		MaxConns: 8,
-		MinConns: 1,
-	})
-	if err != nil {
-		log.Fatal().Err(err).Msg("database connection")
-	}
-
-	queue := store.NewCommandQueue()
-
 	// Start the CLI
-	cli := NewCli(queue)
+	cli := NewCli()
 	if err := cli.Run(context.Background(), os.Args); err != nil {
 		log.Fatal().Err(err).Msg("this is fatal")
 	}

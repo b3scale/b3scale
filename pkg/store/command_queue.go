@@ -29,19 +29,19 @@ type CommandHandler func(context.Context, *Command) (interface{}, error)
 
 // A Command is a representation of an operation
 type Command struct {
-	ID  string
-	Seq int
+	ID  string `json:"id"`
+	Seq int    `json:"seq"`
 
-	State string
+	State string `json:"state"`
 
-	Action string
-	Params interface{}
-	Result interface{}
+	Action string      `json:"action"`
+	Params interface{} `json:"params"`
+	Result interface{} `json:"result"`
 
-	Deadline  time.Time
-	StartedAt *time.Time
-	StoppedAt *time.Time
-	CreatedAt time.Time
+	Deadline  time.Time  `json:"deadline"`
+	StartedAt *time.Time `json:"started_at"`
+	StoppedAt *time.Time `json:"stopped_at"`
+	CreatedAt time.Time  `json:"created_at"`
 
 	tx pgx.Tx
 }
