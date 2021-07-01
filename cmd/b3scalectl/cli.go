@@ -239,6 +239,9 @@ func (c *Cli) init(ctx *cli.Context) error {
 		err   error
 	)
 
+	fmt.Println("b3scale @", apiHost)
+	fmt.Println("")
+
 	// Check if we have an access token, otherwise acquire
 	// one by requesting the shared JWT secret.
 	token, _ = config.UserDirGetString(tokenFilename)
@@ -260,7 +263,14 @@ func (c *Cli) init(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Println(status)
+	// Print server info
+	fmt.Println("server version:", status.Version, "\tbuild:", status.Build)
+	fmt.Println("   api version:", status.API)
+	fmt.Println("")
+
+	if !status.IsAdmin {
+		return fmt.Errorf("authorization failed")
+	}
 
 	return nil
 }
@@ -284,6 +294,8 @@ func (c *Cli) acquireToken(ctx *cli.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("") // add missing newline
+
 	if len(secret) == 0 {
 		return "", fmt.Errorf("secret should not be empty")
 	}

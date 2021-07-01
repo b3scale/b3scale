@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
@@ -123,17 +124,17 @@ func NewJWTClient(host, token string) *JWTClient {
 	}
 }
 
+// Build the request URL by joining the API base with the
+// api path and resource.
 func (c *JWTClient) apiURL(resource string, query url.Values) string {
 	u := c.Host
 	if !strings.HasSuffix(u, "/") {
 		u += "/"
 	}
-	u += "api/v1/" + resource
-
+	u += path.Join("api/v1", resource)
 	if query != nil {
 		u += "?" + query.Encode()
 	}
-
 	return u
 }
 

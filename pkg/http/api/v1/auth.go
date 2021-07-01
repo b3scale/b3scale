@@ -1,7 +1,10 @@
 package v1
 
 import (
-	"github.com/golang-jwt/jwt"
+	// Until the echo middleware is updated, we have to use the
+	// old repo of the jwt module.
+	// "github.com/golang-jwt/jwt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4/middleware"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
@@ -30,6 +33,7 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 	}
 
 	cfg := middleware.DefaultJWTConfig
+	cfg.SigningMethod = "HS384"
 	cfg.Claims = &APIAuthClaims{}
 	cfg.SigningKey = []byte(secret)
 
