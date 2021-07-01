@@ -1,10 +1,10 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	//	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
@@ -17,9 +17,20 @@ func FrontendsList(c echo.Context) error {
 	reqCtx := ctx.Ctx()
 
 	q := store.Q()
+
+	// Apply filters
 	if ref != nil {
-		q.Where("account_ref = ?", *ref)
+		q = q.Where("account_ref = ?", *ref)
 	}
+	queryKey := c.QueryParam("key")
+	if queryKey != "" {
+		q = q.Where("key = ?", queryKey)
+	}
+	queryKeyLike := c.QueryParam("key__like")
+	if queryKeyLike != "" {
+		q = q.Where("key LIKE ?", fmt.Sprintf("%%%s%%", queryKeyLike))
+	}
+
 	tx, err := store.ConnectionFromContext(reqCtx).Begin(reqCtx)
 	if err != nil {
 		return err

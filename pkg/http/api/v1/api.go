@@ -13,6 +13,9 @@ import (
 	"net/http"
 	"strings"
 
+	// Until the echo middleware is updated, we have to use the
+	// old repo of the jwt module.
+	// "github.com/golang-jwt/jwt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -34,19 +37,6 @@ var (
 		http.StatusForbidden,
 		"b3scale:admin scope required")
 )
-
-// Scopes
-const (
-	ScopeUser  = "b3scale"
-	ScopeAdmin = "b3scale:admin"
-)
-
-// APIAuthClaims extends the JWT standard claims
-// with a well-known `scope` claim.
-type APIAuthClaims struct {
-	Scope string `json:"scope"`
-	jwt.StandardClaims
-}
 
 // APIContext extends the context and provides methods
 // for handling the current user.
@@ -193,31 +183,26 @@ func Init(e *echo.Echo) error {
 	return nil
 }
 
-// NewAPIJWTConfig creates a new JWT middleware config.
-// Parameters like shared secrets, public keys, etc..
-// are retrieved from the environment.
-func NewAPIJWTConfig() (middleware.JWTConfig, error) {
-	secret := config.EnvOpt(config.EnvJWTSecret, "")
-	if secret == "" {
-		return middleware.JWTConfig{}, ErrMissingJWTSecret
-	}
-
-	cfg := middleware.DefaultJWTConfig
-	cfg.Claims = &APIAuthClaims{}
-	cfg.SigningKey = []byte(secret)
-
-	return cfg, nil
+// StatusResponse returns information about the
+// API implementation and the current user.
+type StatusResponse struct {
+	Version    string `json:"version"`
+	Build      string `json:"build"`
+	API        string `json:"api"`
+	AccountRef string `json:"account_ref"`
+	IsAdmin    bool   `json:"is_admin"`
 }
 
 // Status will respond with the api version and b3scale
 // version.
 func Status(c echo.Context) error {
 	ctx := c.(*APIContext)
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"version":     config.Version,
-		"build":       config.Build,
-		"api":         "v1",
-		"account_ref": ctx.AccountRef(),
-		"is_admin":    ctx.HasScope(ScopeAdmin),
-	})
+	status := &StatusResponse{
+		Version:    config.Version,
+		Build:      config.Build,
+		API:        "v1",
+		AccountRef: ctx.AccountRef(),
+		IsAdmin:    ctx.HasScope(ScopeAdmin),
+	}
+	return c.JSON(http.StatusOK, status)
 }

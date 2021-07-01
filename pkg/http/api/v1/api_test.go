@@ -8,6 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	// Until the echo middleware is updated, we have to use the
+	// old repo of the jwt module.
+	// "github.com/golang-jwt/jwt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 
