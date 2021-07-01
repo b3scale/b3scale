@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"syscall"
 
 	"github.com/urfave/cli/v2"
+	"golang.org/x/term"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
@@ -59,11 +61,19 @@ type Cli struct {
 }
 
 // NewCli initializes the CLI application
-func NewCli(client v1.Client) *Cli {
-	c := &Cli{client: client}
+func NewCli() *Cli {
+	c := &Cli{}
 	c.app = &cli.App{
 		Usage:                "manage the b3scale cluster",
 		EnableBashCompletion: true,
+		Before:               c.init,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "api",
+				Aliases: []string{"b"},
+				Value:   "http://" + config.EnvListenHTTPDefault,
+			},
+		},
 		Commands: []*cli.Command{
 			{
 				Name:    "show",
@@ -217,6 +227,68 @@ func NewCli(client v1.Client) *Cli {
 		},
 	}
 	return c
+}
+
+// init initializes the app
+func (c *Cli) init(ctx *cli.Context) error {
+	apiHost := ctx.String("api")
+	tokenFilename := apiHost + ".access_token"
+
+	var (
+		token string
+		err   error
+	)
+
+	// Check if we have an access token, otherwise acquire
+	// one by requesting the shared JWT secret.
+	token, _ = config.UserDirGetString(tokenFilename)
+	if token == "" {
+		token, err = c.acquireToken(ctx)
+		if err != nil {
+			return err
+		}
+		if err := config.UserDirPut(tokenFilename, []byte(token)); err != nil {
+			return err
+		}
+	}
+
+	// Initialize client and test connection
+	c.client = v1.NewJWTClient(apiHost, token)
+
+	status, err := c.client.Status(ctx.Context)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(status)
+
+	return nil
+}
+
+// Create an access token
+func (c *Cli) acquireToken(ctx *cli.Context) (string, error) {
+	apiHost := ctx.String("api")
+
+	// Check if we have an access token, otherwise acquire
+	// one by requesting the shared JWT secret.
+	tokenFullPath, err := config.UserDirPath(apiHost + ".access_token")
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Println("Please paste your shared secret here.")
+	fmt.Println("The generated access token will be stored in", tokenFullPath)
+	fmt.Println("")
+	fmt.Print("Secret: ")
+	secret, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return "", err
+	}
+	if len(secret) == 0 {
+		return "", fmt.Errorf("secret should not be empty")
+	}
+
+	return v1.SignAdminAccessToken("b3scalectl", secret)
 }
 
 // setFrontend manages a forntend

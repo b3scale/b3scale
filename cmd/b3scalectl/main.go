@@ -7,7 +7,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
 	"gitlab.com/infra.run/public/b3scale/pkg/logging"
 )
 
@@ -30,13 +29,8 @@ func main() {
 		panic(err)
 	}
 
-	// Configure API client
-	host := "http://localhost:42353"
-	token := ""
-	client := v1.NewJWTClient(host, token)
-
 	// Start the CLI
-	cli := NewCli(client)
+	cli := NewCli()
 	if err := cli.Run(context.Background(), os.Args); err != nil {
 		log.Fatal().Err(err).Msg("this is fatal")
 	}
