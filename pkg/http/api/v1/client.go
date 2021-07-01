@@ -226,6 +226,8 @@ func (c *JWTClient) FrontendCreate(
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+
 	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
@@ -252,6 +254,8 @@ func (c *JWTClient) FrontendUpdate(
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+
 	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
@@ -344,6 +348,8 @@ func (c *JWTClient) BackendCreate(
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
+
 	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err
@@ -370,6 +376,8 @@ func (c *JWTClient) BackendUpdate(
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("Content-Type", "application/json")
 	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err

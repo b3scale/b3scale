@@ -74,6 +74,7 @@ func NewCli() *Cli {
 				Value:   "http://" + config.EnvListenHTTPDefault,
 			},
 		},
+		Action: c.showStatus,
 		Commands: []*cli.Command{
 			{
 				Name:    "show",
@@ -239,9 +240,6 @@ func (c *Cli) init(ctx *cli.Context) error {
 		err   error
 	)
 
-	fmt.Println("b3scale @", apiHost)
-	fmt.Println("")
-
 	// Check if we have an access token, otherwise acquire
 	// one by requesting the shared JWT secret.
 	token, _ = config.UserDirGetString(tokenFilename)
@@ -263,11 +261,6 @@ func (c *Cli) init(ctx *cli.Context) error {
 		return err
 	}
 
-	// Print server info
-	fmt.Println("server version:", status.Version, "\tbuild:", status.Build)
-	fmt.Println("   api version:", status.API)
-	fmt.Println("")
-
 	if !status.IsAdmin {
 		return fmt.Errorf("authorization failed")
 	}
@@ -286,8 +279,13 @@ func (c *Cli) acquireToken(ctx *cli.Context) (string, error) {
 		return "", err
 	}
 
-	fmt.Println("Please paste your shared secret here.")
-	fmt.Println("The generated access token will be stored in", tokenFullPath)
+	fmt.Println("")
+	fmt.Println("** Authorization required for", apiHost, "**")
+	fmt.Println("")
+	fmt.Println("Please paste your shared secret here. The generated")
+	fmt.Println("access token will be stored in:")
+	fmt.Println("")
+	fmt.Println("  ", tokenFullPath)
 	fmt.Println("")
 	fmt.Print("Secret: ")
 	secret, err := term.ReadPassword(int(syscall.Stdin))
@@ -301,6 +299,22 @@ func (c *Cli) acquireToken(ctx *cli.Context) (string, error) {
 	}
 
 	return v1.SignAdminAccessToken("b3scalectl", secret)
+}
+
+func (c *Cli) showStatus(ctx *cli.Context) error {
+	apiHost := ctx.String("api")
+	status, err := c.client.Status(ctx.Context)
+	if err != nil {
+		return err
+	}
+
+	// Print server info
+	fmt.Println("b3scale @", apiHost)
+	fmt.Println("")
+	fmt.Println("server version:", status.Version, "\tbuild:", status.Build)
+	fmt.Println("   api version:", status.API)
+	fmt.Println("")
+	return nil
 }
 
 // setFrontend manages a forntend
