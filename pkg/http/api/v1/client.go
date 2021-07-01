@@ -184,7 +184,7 @@ func (c *JWTClient) FrontendsList(
 		return nil, APIErrorFromResponse(res)
 	}
 	frontends := []*store.FrontendState{}
-	err = readJSONResponse(res, frontends)
+	err = readJSONResponse(res, &frontends)
 	return frontends, err
 }
 
@@ -302,7 +302,7 @@ func (c *JWTClient) BackendsList(
 		return nil, APIErrorFromResponse(res)
 	}
 	backends := []*store.BackendState{}
-	err = readJSONResponse(res, backends)
+	err = readJSONResponse(res, &backends)
 	return backends, err
 }
 
