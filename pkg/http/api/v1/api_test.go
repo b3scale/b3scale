@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
