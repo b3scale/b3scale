@@ -55,8 +55,9 @@ vet:
     - go vet ./...
 
 
-package:bullseye:
+package:linux:
   stage: build:linux
+  image: golang:1.16-alpine
   artifacts:
     paths:
       - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
@@ -78,6 +79,7 @@ package:bullseye:
 
 package:alpine:
   stage: build:alpine
+  image: golang:1.16-alpine
   artifacts:
     paths:
       - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
