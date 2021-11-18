@@ -57,7 +57,7 @@ vet:
 
 package:linux:
   stage: package
-  image: golang:1.16-alpine
+  image: golang:1.16
   artifacts:
     paths:
       - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
