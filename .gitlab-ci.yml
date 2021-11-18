@@ -91,7 +91,7 @@ package:alpine:
     - main
     - tags
   script:
-    - 'apk --no-cache add --update make git'
+    - 'apk --no-cache add --update make git curl'
     - make static
     - mkdir -p _release/b3scale
     - cp $CI_PROJECT_DIR/README.md _release/b3scale/
