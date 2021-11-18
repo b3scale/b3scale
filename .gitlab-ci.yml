@@ -1,8 +1,9 @@
-image: golang:1.16
+
 
 stages:
   - check
-  - build
+  - build:alpine
+  - build:linux
 
 default:
   before_script:
@@ -10,10 +11,9 @@ default:
     - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/infra.run/public/b3scale
     - ln -s /go/src/gitlab.com/infra.run/public/b3scale /go/src/_/builds/b3scale
 
-build:
-  stage: build
-  tags:
-    - docker
+build:linux:
+  image: golang:1.16
+  stage: build:linux
   script:
     - make static
   artifacts:
@@ -22,33 +22,41 @@ build:
       - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
       - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
 
+build:alpine:
+  image: golang:1.16-alpine
+  stage: build:alpine
+  script:
+    - 'apk --no-cache add --update make git'
+    - make static
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
+      - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
+      - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
+
+
 fmt:
+  image: golang:1.16
   stage: check 
-  tags:
-    - docker
   script:
     - test -z $(gofmt -l ./...)
 
 lint:
+  image: golang:1.16
   stage: check 
-  tags:
-    - docker
   script:
     - go get -u golang.org/x/lint/golint
     - golint -set_exit_status ./...
 
 vet:
+  image: golang:1.16
   stage: check 
-  tags:
-    - docker
   script:
     - go vet ./...
 
 
-package:
-  stage: build
-  tags:
-    - docker
+package:bullseye:
+  stage: build:linux
   artifacts:
     paths:
       - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
@@ -67,3 +75,24 @@ package:
     - cd _release/
     - tar cvzf b3scale.tar.gz b3scale/
     - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file b3scale.tar.gz "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/linux/${CI_COMMIT_TAG}/b3scale-${CI_COMMIT_TAG}.tar.gz"' 
+
+package:alpine:
+  stage: build:alpine
+  artifacts:
+    paths:
+      - $CI_PROJECT_DIR/cmd/b3scaled/b3scaled
+      - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
+      - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
+  only:
+    - master
+    - tags
+  script:
+    - make static
+    - mkdir -p _release/b3scale
+    - cp $CI_PROJECT_DIR/README.md _release/b3scale/
+    - cp $CI_PROJECT_DIR/cmd/b3scaled/b3scaled _release/b3scale/
+    - cp $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl _release/b3scale/
+    - cp $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded _release/b3scale/
+    - cd _release/
+    - tar cvzf b3scale.tar.gz b3scale/
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file b3scale.tar.gz "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/alpine/${CI_COMMIT_TAG}/b3scale-${CI_COMMIT_TAG}.tar.gz"' 
