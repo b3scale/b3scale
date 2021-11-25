@@ -64,8 +64,6 @@ package:linux:
       - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
       - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
   only:
-    - master
-    - main
     - tags
   script:
     - make static
@@ -87,8 +85,6 @@ package:alpine:
       - $CI_PROJECT_DIR/cmd/b3scalectl/b3scalectl
       - $CI_PROJECT_DIR/cmd/b3scalenoded/b3scalenoded
   only:
-    - master
-    - main
     - tags
   script:
     - 'apk --no-cache add --update make git curl'
