@@ -1,4 +1,18 @@
 
+
+0.15.0: `recordings` table requires an additional field `record_id`.
+
+    ALTER TABLE recordings ADD COLUMN record_id VARCHAR(255) NOT NULL UNIQUE;
+
+    ALTER TABLE recording_text_tracks ADD COLUMN record_id VARCHAR(255) NOT NULL REFERENCES recordings(record_id) ON DELETE CASCADE;
+
+    ALTER TABLE recordings DROP COLUMN internal_meeting_id;
+    ALTER TABLE recordings ADD COLUMN internal_meeting_id VARCHAR(255);
+    ALTER TABLE recordings ADD COLUMN meeting_id VARCHAR(255);
+
+    CREATE INDEX idx_recordings_meeting_id ON recordings (meeting_id);
+    CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_id);
+
 0.1.0 Initial Release
 
 0.1.1 First Tag
