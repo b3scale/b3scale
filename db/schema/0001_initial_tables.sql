@@ -139,6 +139,8 @@ CREATE TABLE recordings (
     -- The BBB record ID
     state   jsonb   NOT NULL,
 
+    text_track_states jsonb NOT NULL DEFAULT '[]',
+
     record_id  VARCHAR(255) NOT NULL PRIMARY KEY,
 
     -- Relations
@@ -162,7 +164,7 @@ CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_
 -- meetings through a foreign key relation for querying.
 CREATE TABLE recording_text_tracks (
     -- The BBB record ID
-    id      uuid                    PRIMARY KEY,
+    id      uuid      PRIMARY KEY,
     state   jsonb     NOT NULL,
 
     -- Relations

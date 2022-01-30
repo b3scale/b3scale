@@ -5,14 +5,16 @@
     ALTER TABLE recordings DROP COLUMN id;
     ALTER TABLE recordings ADD COLUMN record_id VARCHAR(255) NOT NULL PRIMARY KEY;
 
-    ALTER TABLE recording_text_tracks ADD COLUMN record_id VARCHAR(255) NOT NULL REFERENCES recordings(record_id) ON DELETE CASCADE;
-
     ALTER TABLE recordings DROP COLUMN internal_meeting_id;
     ALTER TABLE recordings ADD COLUMN internal_meeting_id VARCHAR(255);
     ALTER TABLE recordings ADD COLUMN meeting_id VARCHAR(255);
 
+    ALTER TABLE recordings ADD COLUMN text_track_states jsonb NOT NULL DEFAULT '[]';
+
     CREATE INDEX idx_recordings_meeting_id ON recordings (meeting_id);
     CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_id);
+
+    DROP TABLE recordings_text_tracks;
 
 0.1.0 Initial Release
 

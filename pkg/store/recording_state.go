@@ -15,7 +15,8 @@ import (
 type RecordingState struct {
 	RecordID string
 
-	Recording *bbb.Recording
+	Recording  *bbb.Recording
+	TextTracks []*bbb.TextTracks
 
 	MeetingID         string
 	InternalMeetingID string
@@ -30,6 +31,9 @@ type RecordingState struct {
 // InitRecordingState initializes the state with
 // default values where required
 func InitRecordingState(init *RecordingState) *RecordingState {
+	if init.TextTracks == nil {
+		init.TextTracks = []*bbb.TextTrack{}
+	}
 	return init
 }
 
@@ -111,13 +115,27 @@ func (s *RecordingState) Save(
 	return err
 }
 
+// UpdateTextTracks will persist associated text tracks
+// without touching the rest.
+func (s *RecordingState) UpdateTextTracks(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
+	qry := `UPDATE recordings
+		       SET text_track_states = $2,
+			       updated_at        = $3
+			 WHERE record_id         = $1
+	`
+	_, err := tx.Exec(ctx, qry, s.RecordID, s.TextTracks, time.Now().UTC())
+	return nil
+}
+
 // Delete will remove a recording from the database.
 // This cascades to associated text tracks.
 func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
 	qry = `
 		DELETE FROM recordings WHERE record_id = $1
 	`
-
 	_, err := tx.Exec(ctx, qry, s.RecordID)
 	return err
 }
