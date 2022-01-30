@@ -137,23 +137,26 @@ CREATE TABLE meetings (
 -- a foreign key relation exists to improve querying.
 CREATE TABLE recordings (
     -- The BBB record ID
-    id      uuid    PRIMARY KEY,
     state   jsonb   NOT NULL,
+
+    record_id  VARCHAR(255) NOT NULL PRIMARY KEY,
 
     -- Relations
     backend_id uuid NOT NULL
                REFERENCES backends(id)
                ON DELETE CASCADE,
     
-    internal_meeting_id VARCHAR(255) NOT NULL
-               REFERENCES meetings(internal_id)
-               ON DELETE CASCADE,
+    meeting_id          VARCHAR(255) NOT NULL,
+    internal_meeting_id VARCHAR(255) NOT NULL,
 
     -- Timestamps
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_recordings_meeting_id ON recordings (meeting_id);
+CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_id);
 
 -- RecordingTextTracks are associated with recordings
 -- meetings through a foreign key relation for querying.
@@ -163,8 +166,8 @@ CREATE TABLE recording_text_tracks (
     state   jsonb     NOT NULL,
 
     -- Relations
-    record_id   uuid  NOT NULL
-                REFERENCES recordings(id)
+    record_id   VARCHAR(255) NOT NULL
+                REFERENCES recordings(record_id)
                 ON DELETE CASCADE,
 
     -- Timestamps
