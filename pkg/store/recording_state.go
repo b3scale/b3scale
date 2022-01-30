@@ -15,8 +15,7 @@ import (
 type RecordingState struct {
 	RecordID string
 
-	Recording  *bbb.Recording
-	TextTracks []*bbb.TextTrack
+	Recording *bbb.Recording
 
 	MeetingID         string
 	InternalMeetingID string
@@ -31,9 +30,6 @@ type RecordingState struct {
 // InitRecordingState initializes the state with
 // default values where required
 func InitRecordingState(init *RecordingState) *RecordingState {
-	if init.TextTracks == nil {
-		init.TextTracks = []*bbb.TextTrack{}
-	}
 	return init
 }
 
@@ -123,13 +119,14 @@ func (s *RecordingState) Save(
 func (s *RecordingState) UpdateTextTracks(
 	ctx context.Context,
 	tx pgx.Tx,
+	tracks []*bbb.TextTrack,
 ) error {
 	qry := `UPDATE recordings
 		       SET text_track_states = $2,
 			       updated_at        = $3
 			 WHERE record_id         = $1
 	`
-	_, err := tx.Exec(ctx, qry, s.RecordID, s.TextTracks, time.Now().UTC())
+	_, err := tx.Exec(ctx, qry, s.RecordID, tracks, time.Now().UTC())
 	return err
 }
 
@@ -141,4 +138,24 @@ func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
 	`
 	_, err := tx.Exec(ctx, qry, s.RecordID)
 	return err
+}
+
+// GetRecordingTextTracks retrieves the text tracks from
+// a recording.
+func GetRecordingTextTracks(
+	ctx context.Context,
+	tx pgx.Tx,
+	recordID string,
+) ([]*bbb.TextTrack, error) {
+	// TODO: maybe just forward this to the
+	// backend.
+	qry := `
+		SELECT recording_text_track_states
+		  FROM recordings
+		 WHERE record_id = $1
+	`
+	tracks := []*bbb.TextTrack{}
+	err := tx.QueryRow(ctx, qry, recordID).
+		Scan(&tracks)
+	return tracks, err
 }
