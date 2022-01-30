@@ -160,24 +160,6 @@ CREATE TABLE recordings (
 CREATE INDEX idx_recordings_meeting_id ON recordings (meeting_id);
 CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_id);
 
--- RecordingTextTracks are associated with recordings
--- meetings through a foreign key relation for querying.
-CREATE TABLE recording_text_tracks (
-    -- The BBB record ID
-    id      uuid      PRIMARY KEY,
-    state   jsonb     NOT NULL,
-
-    -- Relations
-    record_id   VARCHAR(255) NOT NULL
-                REFERENCES recordings(record_id)
-                ON DELETE CASCADE,
-
-    -- Timestamps
-    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
 
 -- Commands state transition between requested
 -- and a final success indicator.
