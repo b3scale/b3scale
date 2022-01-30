@@ -16,7 +16,7 @@ type RecordingState struct {
 	RecordID string
 
 	Recording  *bbb.Recording
-	TextTracks []*bbb.TextTracks
+	TextTracks []*bbb.TextTrack
 
 	MeetingID         string
 	InternalMeetingID string
@@ -70,6 +70,9 @@ func GetRecordingStates(
 			&state.BackendID,
 			&state.Recording,
 		)
+		if err != nil {
+			return nil, err
+		}
 		recordings = append(recordings, state)
 	}
 	return recordings, nil
@@ -127,13 +130,13 @@ func (s *RecordingState) UpdateTextTracks(
 			 WHERE record_id         = $1
 	`
 	_, err := tx.Exec(ctx, qry, s.RecordID, s.TextTracks, time.Now().UTC())
-	return nil
+	return err
 }
 
 // Delete will remove a recording from the database.
 // This cascades to associated text tracks.
 func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
-	qry = `
+	qry := `
 		DELETE FROM recordings WHERE record_id = $1
 	`
 	_, err := tx.Exec(ctx, qry, s.RecordID)
