@@ -110,3 +110,14 @@ func (s *RecordingState) Save(
 	)
 	return err
 }
+
+// Delete will remove a recording from the database.
+// This cascades to associated text tracks.
+func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
+	qry = `
+		DELETE FROM recordings WHERE record_id = $1
+	`
+
+	_, err := tx.Exec(ctx, qry, s.RecordID)
+	return err
+}
