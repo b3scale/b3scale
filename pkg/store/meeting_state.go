@@ -17,7 +17,7 @@ var (
 	ErrNoBackend = errors.New("no backend associated with meeting")
 )
 
-// The MeetingState holds a meeting and it's relations
+// The MeetingState holds a meeting and its relations
 // to a backend and frontend.
 type MeetingState struct {
 	ID         string
