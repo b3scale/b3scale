@@ -87,7 +87,7 @@ func (s *RecordingState) Save(
 			backend_id,
 			state,
 			updated_at,
-			synced_at,
+			synced_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT ON CONSTRAINT recordings_pkey DO UPDATE
 		  SET meeting_id          = EXCLUDED.meeting_id,
