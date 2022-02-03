@@ -19,6 +19,9 @@ import (
 const (
 	ParamMeetingID = "meetingID"
 	ParamChecksum  = "checksum"
+	ParamRecordID  = "recordID"
+	ParamPublish   = "publish"
+	ParamState     = "state"
 )
 
 var (
@@ -57,19 +60,35 @@ func (p Params) String() string {
 // value from the set of params.
 func (p Params) MeetingID() (string, bool) {
 	id, ok := p[ParamMeetingID]
+	return id, ok
+}
+
+// MeetingIDs interprets the MeetingsID parameter
+// as a comma separated set of meeting ids.
+func (p Params) MeetingIDs() ([]string, bool) {
+	val, ok := p.MeetingID()
 	if !ok {
-		return "", false
+		return []string{}, false
 	}
-	return id, true
+	ids := strings.Split(val, ",")
+	return ids, true
+}
+
+// RecordIDs retrieves the well known recordID param
+// It is always a list interally
+func (p Params) RecordIDs() ([]string, bool) {
+	val, ok := p[ParamRecordID]
+	if !ok {
+		return []string{}, false
+	}
+	ids := strings.Split(val, ",")
+	return ids, true
 }
 
 // Checksum retrievs the well known checksum param
 func (p Params) Checksum() (string, bool) {
 	checksum, ok := p[ParamChecksum]
-	if !ok {
-		return "", false
-	}
-	return checksum, true
+	return checksum, ok
 }
 
 // Request is a bbb request as decoded from the
