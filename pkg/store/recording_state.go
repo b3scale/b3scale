@@ -114,9 +114,10 @@ func (s *RecordingState) Save(
 	return err
 }
 
-// UpdateTextTracks will persist associated text tracks
-// without touching the rest.
-func (s *RecordingState) UpdateTextTracks(
+// SetTextTracks will persist associated text tracks
+// without touching the rest. The recording has to be
+// present in the database.
+func (s *RecordingState) SetTextTracks(
 	ctx context.Context,
 	tx pgx.Tx,
 	tracks []*bbb.TextTrack,
@@ -150,12 +151,11 @@ func GetRecordingTextTracks(
 	// TODO: maybe just forward this to the
 	// backend.
 	qry := `
-		SELECT recording_text_track_states
+		SELECT text_track_states
 		  FROM recordings
 		 WHERE record_id = $1
 	`
 	tracks := []*bbb.TextTrack{}
-	err := tx.QueryRow(ctx, qry, recordID).
-		Scan(&tracks)
+	err := tx.QueryRow(ctx, qry, recordID).Scan(&tracks)
 	return tracks, err
 }
