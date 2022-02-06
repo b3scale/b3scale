@@ -2,8 +2,11 @@
 
 0.15.0: `recordings` table requires an additional field `record_id`.
 
-    ALTER TABLE recordings DROP COLUMN id;
+    ALTER TABLE recordings DROP COLUMN id CASCADE;
     ALTER TABLE recordings ADD COLUMN record_id VARCHAR(255) NOT NULL PRIMARY KEY;
+
+    ALTER TABLE recordings ADD COLUMN frontend_id uuid NULL REFERENCES frontends(id) ON DELETE CASCADE;
+
 
     ALTER TABLE recordings DROP COLUMN internal_meeting_id;
     ALTER TABLE recordings ADD COLUMN internal_meeting_id VARCHAR(255);

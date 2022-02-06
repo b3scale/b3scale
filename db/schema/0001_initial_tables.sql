@@ -148,6 +148,10 @@ CREATE TABLE recordings (
                REFERENCES backends(id)
                ON DELETE CASCADE,
     
+    frontend_id uuid NULL
+                REFERENCES frontends(id)
+                ON DELETE CASCADE,
+
     meeting_id          VARCHAR(255) NOT NULL,
     internal_meeting_id VARCHAR(255) NOT NULL,
 

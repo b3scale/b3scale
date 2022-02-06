@@ -303,8 +303,8 @@ func GetRecordingsRequest(params Params) *Request {
 	}
 }
 
-// GetRecordingTextTracks creates a new getRecordingTextTracks request
-func GetRecordingTextTracks(params Params) *Request {
+// GetRecordingTextTracksRequest creates a new getRecordingTextTracks request
+func GetRecordingTextTracksRequest(params Params) *Request {
 	return &Request{
 		Request: &http.Request{
 			Method: http.MethodGet,

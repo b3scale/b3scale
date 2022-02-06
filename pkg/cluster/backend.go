@@ -377,15 +377,15 @@ func (b *Backend) refreshRecordings(ctx context.Context) error {
 	}
 
 	for _, rec := range recordings {
-		req := bbb.GetRecordingTextTrackRequest(bbb.Params{
+		req := bbb.GetRecordingTextTracksRequest(bbb.Params{
 			bbb.ParamRecordID: rec.RecordID,
 		}).WithBackend(b.state.Backend)
 		rep, err := b.client.Do(ctx, req)
 		if err != nil {
 			return err
 		}
-		res := rep.(*bbb.GetRecordingTextTrackResponse)
-		if res.XMLResponse.Returncode != "SUCCESS" {
+		res := rep.(*bbb.GetRecordingTextTracksResponse)
+		if res.Returncode != "SUCCESS" {
 			log.Error().
 				Msg("return not success for getTextTrack")
 			/// Maybe delete recording? let's see...
@@ -396,7 +396,7 @@ func (b *Backend) refreshRecordings(ctx context.Context) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	return tx.Commit(ctx)
 }
 
 // BBB API Implementation

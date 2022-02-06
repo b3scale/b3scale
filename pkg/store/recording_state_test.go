@@ -112,3 +112,54 @@ func TestSetGetTextTracks(t *testing.T) {
 		t.Error("unexpected text track", tracks[0])
 	}
 }
+
+func TestRecordingSetFrontend(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
+	b := backendStateFactory()
+	if err := b.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+	m, err := meetingStateFactory(ctx, tx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	state := &RecordingState{
+		RecordID:          "record42",
+		MeetingID:         m.ID,
+		InternalMeetingID: m.InternalID,
+		BackendID:         b.ID,
+		Recording: &bbb.Recording{
+			RecordID:          "record42",
+			MeetingID:         m.ID,
+			InternalMeetingID: m.InternalID,
+			Name:              "recording42",
+		},
+	}
+
+	if err := state.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+
+	frontend := frontendStateFactory()
+	if err := frontend.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := state.SetFrontend(ctx, tx, frontend); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := GetRecordingStates(ctx, tx, Q().Where(
+		"frontend_id = ?", frontend.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if *res[0].FrontendID != frontend.ID {
+		t.Error("unexpected name:", res[0])
+	}
+}

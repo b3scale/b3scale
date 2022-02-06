@@ -56,8 +56,8 @@ func RecordingsRequestHandler(
 	}
 }
 
-// GetRecordings will lookup a backend for the request
-// and will invoke the backend.
+// Get Recordings will retrieve all recordings for
+// the given frontend instance...
 func (h *RecordingsHandler) GetRecordings(
 	ctx context.Context,
 	req *bbb.Request,

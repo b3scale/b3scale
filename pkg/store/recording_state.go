@@ -20,7 +20,8 @@ type RecordingState struct {
 	MeetingID         string
 	InternalMeetingID string
 
-	BackendID string
+	BackendID  string
+	FrontendID *string
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -65,6 +66,7 @@ func GetRecordingStates(
 		"meeting_id",
 		"internal_meeting_id",
 		"backend_id",
+		"frontend_id",
 		"state",
 	).From("recordings").ToSql()
 
@@ -84,6 +86,7 @@ func GetRecordingStates(
 			&state.MeetingID,
 			&state.InternalMeetingID,
 			&state.BackendID,
+			&state.FrontendID,
 			&state.Recording,
 		)
 		if err != nil {
@@ -109,7 +112,7 @@ func (s *RecordingState) Save(
 			updated_at,
 			synced_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT ON CONSTRAINT recordings_pkey DO UPDATE
+		  ON CONFLICT ON CONSTRAINT recordings_pkey DO UPDATE
 		  SET meeting_id          = EXCLUDED.meeting_id,
 		      internal_meeting_id = EXCLUDED.internal_meeting_id,
 			  backend_id          = EXCLUDED.backend_id,
@@ -131,6 +134,22 @@ func (s *RecordingState) Save(
 		s.UpdatedAt,
 		s.SyncedAt,
 	)
+	return err
+}
+
+// SetFrontend will set the frontend_id attribute of
+// the recording state.
+func (s *RecordingState) SetFrontend(
+	ctx context.Context,
+	tx pgx.Tx,
+	frontend *FrontendState,
+) error {
+	qry := `UPDATE recordings
+		       SET frontend_id = $2,
+			       updated_at  = $3
+			 WHERE record_id   = $1
+	`
+	_, err := tx.Exec(ctx, qry, s.RecordID, frontend.ID, time.Now().UTC())
 	return err
 }
 
