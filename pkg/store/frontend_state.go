@@ -45,14 +45,14 @@ func GetFrontendStates(
 	q sq.SelectBuilder,
 ) ([]*FrontendState, error) {
 	qry, params, _ := q.Columns(
-		"id",
-		"key",
-		"secret",
-		"active",
-		"settings",
-		"account_ref",
-		"created_at",
-		"updated_at").
+		"frontends.id",
+		"frontends.key",
+		"frontends.secret",
+		"frontends.active",
+		"frontends.settings",
+		"frontends.account_ref",
+		"frontends.created_at",
+		"frontends.updated_at").
 		From("frontends").
 		ToSql()
 	rows, err := tx.Query(ctx, qry, params...)
