@@ -6,6 +6,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 )
@@ -62,13 +63,15 @@ func GetRecordingStates(
 	q sq.SelectBuilder,
 ) ([]*RecordingState, error) {
 	qry, params, _ := q.Columns(
-		"record_id",
-		"meeting_id",
-		"internal_meeting_id",
-		"backend_id",
-		"frontend_id",
-		"state",
+		"recordings.record_id",
+		"recordings.meeting_id",
+		"recordings.internal_meeting_id",
+		"recordings.backend_id",
+		"recordings.frontend_id",
+		"recordings.state",
 	).From("recordings").ToSql()
+
+	log.Debug().Str("sql", qry).Msg("GetRecordingStates query")
 
 	rows, err := tx.Query(ctx, qry, params...)
 	if err != nil {

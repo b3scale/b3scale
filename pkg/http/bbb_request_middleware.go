@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
+
 	//	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
@@ -88,6 +90,8 @@ func BBBRequestMiddleware(
 				Body:     body,
 				Checksum: checksum,
 			}
+
+			log.Debug().Stringer("req", bbbReq).Msg("inbound request")
 
 			// Authenticate request
 			if err := bbbReq.Verify(); err != nil {

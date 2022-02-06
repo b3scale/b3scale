@@ -1,14 +1,12 @@
 package bbb
 
-import (
-	"encoding/xml"
-	"time"
-)
-
 // Timestamp is the milliseconds passed since beginning
 // of the epoch.
-type Timestamp time.Time
+type Timestamp uint64
 
+// time.Time
+
+/*
 // UnmarshalXML decodes the timestamp from XML data
 func (t *Timestamp) UnmarshalXML(
 	d *xml.Decoder,
@@ -32,7 +30,7 @@ func (t Timestamp) MarshalXML(
 	e *xml.Encoder,
 	start xml.StartElement,
 ) error {
-	timestamp := int64(time.Time(t).UnixNano() / 1000000)
+	timestamp := uint64(time.Time(t).UnixNano() / 1000000)
 	return e.EncodeElement(timestamp, start)
 }
 
@@ -40,3 +38,4 @@ func (t Timestamp) MarshalXML(
 func (t Timestamp) String() string {
 	return time.Time(t).String()
 }
+*/

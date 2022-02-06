@@ -108,6 +108,11 @@ type Request struct {
 	Frontend *Frontend
 }
 
+// String creates a representation of the request
+func (req *Request) String() string {
+	return fmt.Sprintf("%s: %s %s", req.Resource, req.Params, req.Checksum)
+}
+
 // HasBody checks for the presence of a request body
 func (req *Request) HasBody() bool {
 	if req.Body != nil && len(req.Body) > 0 {

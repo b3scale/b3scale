@@ -1045,6 +1045,7 @@ type Image struct {
 	Alt     string   `xml:"alt,attr"`
 	Height  int      `xml:"height,attr"`
 	Width   int      `xml:"width,attr"`
+	URL     string   `xml:",chardata"`
 }
 
 // TextTrack of a Recording
