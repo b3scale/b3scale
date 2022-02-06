@@ -4,8 +4,11 @@ import (
 	"context"
 	"net/http"
 
+	sq "github.com/Masterminds/squirrel"
+
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
 // RecordingsHandlerOptions has configuration options for
@@ -56,34 +59,80 @@ func RecordingsRequestHandler(
 	}
 }
 
-// Get Recordings will retrieve all recordings for
-// the given frontend instance...
+// GetRecordings will retrieve all recordings for
+// the given frontend instance.
 func (h *RecordingsHandler) GetRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	noRecordingsRes := &bbb.GetRecordingsResponse{
-		XMLResponse: &bbb.XMLResponse{
-			Returncode: bbb.RetSuccess,
-		},
-	}
-	noRecordingsRes.SetStatus(http.StatusOK)
-
-	backend, err := h.router.LookupBackend(ctx, req)
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if backend == nil {
-		return noRecordingsRes, nil
+	defer tx.Rollback(ctx)
+
+	meetingIDs, hasMeetingIDs := req.Params.MeetingIDs()
+
+	qry := store.Q().
+		Join("frontends ON frontends.id = recordings.frontend_id").
+		Where("recordings.frontend_id IS NOT NULL").
+		Where("frontends.key = ?", req.Frontend.Key)
+
+	if hasMeetingIDs {
+		filterMIDs := sq.Or{}
+		for _, mid := range meetingIDs {
+			filterMIDs = append(filterMIDs, sq.Eq{
+				"recordings.meeting_id": mid,
+			})
+		}
+		qry = qry.Where(filterMIDs)
 	}
 
-	res, err := backend.GetRecordings(ctx, req)
+	recordingStates, err := store.GetRecordingStates(ctx, tx, qry)
 	if err != nil {
-		// Return failed successfully response
-		return noRecordingsRes, nil
+		return nil, err
+	}
+	tx.Rollback(ctx)
+
+	recordings := make([]*bbb.Recording, 0, len(recordingStates))
+	for _, state := range recordingStates {
+		recordings = append(recordings, state.Recording)
 	}
 
+	// Create response with all meetings
+	res := &bbb.GetRecordingsResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: "SUCCESS",
+		},
+		Recordings: recordings,
+	}
+	res.SetStatus(http.StatusOK)
 	return res, nil
+
+	/*
+		noRecordingsRes := &bbb.GetRecordingsResponse{
+			XMLResponse: &bbb.XMLResponse{
+				Returncode: bbb.RetSuccess,
+			},
+		}
+		noRecordingsRes.SetStatus(http.StatusOK)
+
+		backend, err := h.router.LookupBackend(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if backend == nil {
+			return noRecordingsRes, nil
+		}
+
+		res, err := backend.GetRecordings(ctx, req)
+		if err != nil {
+			// Return failed successfully response
+			return noRecordingsRes, nil
+		}
+
+		return res, nil
+	*/
 }
 
 // PublishRecordings will lookup a backend for the request
