@@ -329,6 +329,76 @@ func (b *Backend) refreshMeetingState(
 	return tx.Commit(ctx)
 }
 
+// Recordings state sync: refreshRecordings will retrieve
+// all recordings on the backend.
+// Afterwards for each known recording for the backend
+// getRecordingTextTracks will be called. In case this
+// fails, it is assumed that the recording got removed
+// from the backend.
+func (b *Backend) refreshRecordings(ctx context.Context) error {
+	conn := store.ConnectionFromContext(ctx)
+	req := bbb.GetRecordingsRequest(bbb.Params{}).
+		WithBackend(b.state.Backend)
+	rep, err := b.client.Do(ctx, req)
+	if err != nil {
+		return err
+	}
+	res := rep.(*bbb.GetRecordingsResponse)
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Persist all recordings
+	for _, rec := range res.Recordings {
+		rs := store.StateFromRecording(b.state, rec)
+		if err := rs.Save(ctx, tx); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Retrieve text tracks for recordings, if not successful,
+	// remove recording as it is not present on the backend.
+	tx, err = conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	recordings, err := store.GetRecordingStates(ctx, tx, store.Q().
+		Where("backend_id = ?", b.state.ID))
+	if err != nil {
+		return err
+	}
+
+	for _, rec := range recordings {
+		req := bbb.GetRecordingTextTrackRequest(bbb.Params{
+			bbb.ParamRecordID: rec.RecordID,
+		}).WithBackend(b.state.Backend)
+		rep, err := b.client.Do(ctx, req)
+		if err != nil {
+			return err
+		}
+		res := rep.(*bbb.GetRecordingTextTrackResponse)
+		if res.XMLResponse.Returncode != "SUCCESS" {
+			log.Error().
+				Msg("return not success for getTextTrack")
+			/// Maybe delete recording? let's see...
+			fmt.Println("getTextTrack:", rec.RecordID, "res:", res)
+		}
+
+		if err := rec.SetTextTracks(ctx, tx, res.Tracks); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 // BBB API Implementation
 
 func meetingStateFromRequest(
@@ -340,10 +410,8 @@ func meetingStateFromRequest(
 	if !ok {
 		return nil, fmt.Errorf("meetingID required")
 	}
-
 	meetingState, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("id = ?", meetingID))
-
 	return meetingState, err
 }
 

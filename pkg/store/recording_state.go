@@ -33,6 +33,26 @@ func InitRecordingState(init *RecordingState) *RecordingState {
 	return init
 }
 
+// StateFromRecording will initialize a recording state
+// with a recording.
+func StateFromRecording(
+	backend *BackendState,
+	recording *bbb.Recording,
+) *RecordingState {
+	return InitRecordingState(&RecordingState{
+		RecordID:          recording.RecordID,
+		MeetingID:         recording.MeetingID,
+		InternalMeetingID: recording.InternalMeetingID,
+		BackendID:         backend.ID,
+
+		Recording: recording,
+
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		SyncedAt:  time.Now().UTC(),
+	})
+}
+
 // GetRecordingStates retrieves a list of recordings
 // filtered by criteria in the select builder
 func GetRecordingStates(

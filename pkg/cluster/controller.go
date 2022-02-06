@@ -237,8 +237,11 @@ func (c *Controller) handleUpdateNodeState(
 		return false, fmt.Errorf("backend not found: %s", req.ID)
 	}
 
-	err = backend.refreshNodeState(ctx)
-	if err != nil {
+	if err := backend.refreshNodeState(ctx); err != nil {
+		return false, err
+	}
+
+	if err := backend.refreshRecordings(ctx); err != nil {
 		return false, err
 	}
 

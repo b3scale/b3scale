@@ -292,6 +292,28 @@ func IsMeetingRunningRequest(params Params) *Request {
 	}
 }
 
+// GetRecordingsRequest creates a new getRecordings request
+func GetRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceGetRecordings,
+		Params:   params,
+	}
+}
+
+// GetRecordingTextTracks creates a new getRecordingTextTracks request
+func GetRecordingTextTracks(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceGetRecordingTextTracks,
+		Params:   params,
+	}
+}
+
 // Internal calculate checksum with a given secret.
 func (req *Request) calculateChecksumSHA1(query, secret string) []byte {
 	// Calculate checksum with server secret

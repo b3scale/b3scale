@@ -7,18 +7,18 @@ const (
 	ResourceIndex                  = ""
 	ResourceJoin                   = "join"
 	ResourceCreate                 = "create"
-	ResourceIsMeetingRunning       = "isMeetingRunning"
 	ResourceEnd                    = "end"
+	ResourceIsMeetingRunning       = "isMeetingRunning"
 	ResourceGetMeetingInfo         = "getMeetingInfo"
 	ResourceGetMeetings            = "getMeetings"
-	ResourceGetRecordings          = "getRecordings"
-	ResourcePublishRecordings      = "publishRecordings"
-	ResourceDeleteRecordings       = "deleteRecordings"
 	ResourceUpdateRecordings       = "updateRecordings"
 	ResourceGetDefaultConfigXML    = "getDefaultConfigXML"
 	ResourceSetConfigXML           = "setConfigXML"
+	ResourceGetRecordings          = "getRecordings"
 	ResourceGetRecordingTextTracks = "getRecordingTextTracks"
 	ResourcePutRecordingTextTrack  = "putRecordingTextTrack"
+	ResourceDeleteRecordings       = "deleteRecordings"
+	ResourcePublishRecordings      = "publishRecordings"
 )
 
 // API is the bbb api interface
