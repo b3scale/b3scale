@@ -42,7 +42,7 @@ func getBackendByHost(
 	ctx context.Context, c v1.Client, key string,
 ) (*store.BackendState, error) {
 	backends, err := c.BackendsList(ctx, url.Values{
-		"key": []string{key},
+		"host": []string{key},
 	})
 	if err != nil {
 		return nil, err
