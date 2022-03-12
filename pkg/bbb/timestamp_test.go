@@ -15,11 +15,11 @@ func TestTimestampUnmarshalXML(t *testing.T) {
 		t.Error(err)
 	}
 
-	cTime := time.Time(res.CreateTime)
+	cTime := time.UnixMilli(int64(res.CreateTime))
 	if cTime.Minute() != 3 {
 		t.Error("Unexpected minute:", cTime.Minute())
 	}
-	if cTime.Hour() != 17 {
+	if cTime.Hour() != 19 {
 		t.Error("Unexpected hour:", cTime.Hour())
 	}
 	if cTime.Second() != 29 {
@@ -38,7 +38,7 @@ func TestTimestampMarshalXML(t *testing.T) {
 		XMLName xml.Name  `xml:"Time"`
 		T       Timestamp `xml:"Ts"`
 	}{
-		T: Timestamp(time.Date(2018, 7, 9, 17, 3, 29, 613000000, time.UTC)),
+		T: Timestamp(time.Date(2018, 7, 9, 17, 3, 29, 613000000, time.UTC).UnixMilli()),
 	}
 	data, err := xml.Marshal(repr)
 	if err != nil {

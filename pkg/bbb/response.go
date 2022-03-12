@@ -41,6 +41,8 @@ type Response interface {
 
 	Status() int
 	SetStatus(int)
+
+	IsSuccess() bool
 }
 
 // A XMLResponse from the server
@@ -115,6 +117,12 @@ func (res *XMLResponse) Status() int {
 // SetStatus sets the HTTP response status code
 func (res *XMLResponse) SetStatus(s int) {
 	res.status = s
+}
+
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *XMLResponse) IsSuccess() bool {
+	return res.Returncode == RetSuccess
 }
 
 // CreateResponse is the resonse for the `create` API resource.
@@ -712,6 +720,12 @@ func (res *GetDefaultConfigXMLResponse) SetStatus(s int) {
 	res.SetStatus(s)
 }
 
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *GetDefaultConfigXMLResponse) IsSuccess() bool {
+	return true
+}
+
 // SetConfigXMLResponse encodes the result of setting the config
 type SetConfigXMLResponse struct {
 	*XMLResponse
@@ -834,6 +848,12 @@ func (res *GetRecordingTextTracksResponse) SetStatus(s int) {
 	res.status = s
 }
 
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *GetRecordingTextTracksResponse) IsSuccess() bool {
+	return res.Returncode == RetSuccess
+}
+
 // PutRecordingTextTrackResponse is the response when uploading
 // a text track. Response is in JSON.
 type PutRecordingTextTrackResponse struct {
@@ -886,6 +906,12 @@ func (res *PutRecordingTextTrackResponse) Status() int {
 // SetStatus sets the HTTP response status code
 func (res *PutRecordingTextTrackResponse) SetStatus(s int) {
 	res.status = s
+}
+
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *PutRecordingTextTrackResponse) IsSuccess() bool {
+	return res.Returncode == RetSuccess
 }
 
 // Breakout info
