@@ -201,14 +201,20 @@ func (s *RecordingState) SetTextTracks(
 	return err
 }
 
-// Delete will remove a recording from the database.
-// This cascades to associated text tracks.
-func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
+// DeleteRecordingByID will delete a recording
+// identified by its id.
+func DeleteRecordingByID(ctx context.Context, tx pgx.Tx, recordID string) error {
 	qry := `
 		DELETE FROM recordings WHERE record_id = $1
 	`
-	_, err := tx.Exec(ctx, qry, s.RecordID)
+	_, err := tx.Exec(ctx, qry, recordID)
 	return err
+}
+
+// Delete will remove a recording from the database.
+// This cascades to associated text tracks.
+func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
+	return DeleteRecordingByID(ctx, tx, s.RecordID)
 }
 
 // GetRecordingTextTracks retrieves the text tracks from
