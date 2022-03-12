@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -24,6 +25,12 @@ const (
 	BackendStateError          = "error"
 	BackendStateStopped        = "stopped"
 	BackendStateDecommissioned = "decommissioned"
+)
+
+var (
+	// ErrRecordingNotFound indicates, that the recording
+	// state could not retrieved.
+	ErrRecordingNotFound = errors.New("recording could not be found")
 )
 
 // A Backend is a BigBlueButton instance in the cluster.
@@ -401,17 +408,101 @@ func (b *Backend) refreshRecordings(ctx context.Context) error {
 			return err
 		}
 		res := rep.(*bbb.GetRecordingTextTracksResponse)
-		if res.Returncode != "SUCCESS" {
+		if !rep.IsSuccess() {
 			log.Error().
+				Str("recordID", rec.RecordID).
 				Msg("return not success for getTextTrack")
-			/// Maybe delete recording? let's see...
-			fmt.Println("getTextTrack:", rec.RecordID, "res:", res)
+
+			// Maybe delete recording? let's see...
+			continue
 		}
 
 		if err := rec.SetTextTracks(ctx, tx, res.Tracks); err != nil {
 			return err
 		}
 	}
+	return tx.Commit(ctx)
+}
+
+// RefreshRecording updates the recording state for a known
+// recordID.
+func (b *Backend) RefreshRecording(
+	ctx context.Context,
+	recordID string,
+) error {
+	req := bbb.GetRecordingsRequest(bbb.Params{
+		bbb.ParamRecordID: recordID,
+	}).WithBackend(b.state.Backend)
+	rep, err := b.client.Do(ctx, req)
+
+	if err != nil {
+		return err
+	}
+	res := rep.(*bbb.GetRecordingsResponse)
+
+	conn := store.ConnectionFromContext(ctx)
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Update state
+	for _, rec := range res.Recordings {
+		rs := store.StateFromRecording(b.state, rec)
+		if err := rs.Save(ctx, tx); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RefreshRecordingTextTracks updates only the text
+// tracks of a recording from the backend.
+func (b *Backend) RefreshRecordingTextTracks(
+	ctx context.Context,
+	recordID string,
+) error {
+	conn := store.ConnectionFromContext(ctx)
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	rec, err := store.GetRecordingStateByID(ctx, tx, recordID)
+	if err != nil {
+		return err
+	}
+	if rec == nil {
+		return ErrRecordingNotFound
+	}
+
+	// Get text tracks from backend
+	req := bbb.GetRecordingTextTracksRequest(bbb.Params{
+		bbb.ParamRecordID: recordID,
+	}).WithBackend(b.state.Backend)
+	rep, err := b.client.Do(ctx, req)
+	if err != nil {
+		return err
+	}
+	if !rep.IsSuccess() {
+		log.Error().
+			Str("recordID", recordID).
+			Msg("return not success for getTextTrack")
+		fmt.Println("error response:", rep)
+		return ErrRecordingNotFound
+	}
+	res := rep.(*bbb.GetRecordingTextTracksResponse)
+
+	if err := rec.SetTextTracks(ctx, tx, res.Tracks); err != nil {
+		return err
+	}
+
 	return tx.Commit(ctx)
 }
 
