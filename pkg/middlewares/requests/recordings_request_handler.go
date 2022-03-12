@@ -207,14 +207,48 @@ func (h *RecordingsHandler) DeleteRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := h.router.LookupBackend(ctx, req)
+	var beRes bbb.Response
+
+	recordIDs, hasRecordIDs := req.Params.RecordIDs()
+	if !hasRecordIDs {
+		return unknownRecordingResponse(), nil
+	}
+
+	tx, err := store.ConnectionFromContext(ctx).Begin()
 	if err != nil {
 		return nil, err
 	}
-	if backend != nil {
-		return backend.GetRecordings(ctx, req)
+	defer tx.Rollback()
+
+	for _, recordID := range recordIDs {
+		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
+		if err != nil {
+			return nil, err
+		}
+
+		// Request delete on backend
+		beReq := bbb.DeleteRecordingRequest(recordID, req.Params)
+		res, err := backend.DeleteRecordings(ctx, beReq)
+		if err != nil {
+			return nil, err
+		}
+		if !res.IsSuccess() {
+			return res, nil
+		}
+
+		// Delete recording state
+		if err := store.DeleteRecordingByID(ctx, tx, recordID); err != nil {
+			return nil, err
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+
+		beRes = res
 	}
-	return unknownMeetingResponse(), nil
+
+	return beRes, nil
 }
 
 // GetRecordingTextTracks will lookup a backend for the request

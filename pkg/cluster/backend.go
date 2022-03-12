@@ -453,9 +453,9 @@ func (b *Backend) RefreshRecording(
 		if err := rs.Save(ctx, tx); err != nil {
 			return err
 		}
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return err
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
 	}
 
 	return nil
