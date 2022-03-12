@@ -100,6 +100,34 @@ func GetRecordingStates(
 	return recordings, nil
 }
 
+// GetRecordingState retrieves a single state from the
+// database.
+func GetRecordingState(
+	ctx context.Context,
+	tx pgx.Tx,
+	q sq.SelectBuilder,
+) (*RecordingState, error) {
+	states, err := GetRecordingStates(ctx, tx, q)
+	if err != nil {
+		return nil, err
+	}
+	if len(states) == 0 {
+		return nil, nil // Should be an error
+	}
+	return states[0], nil
+}
+
+// GetRecordingStateByID retrievs a single state
+// identified by recordID.
+func GetRecordingStateByID(
+	ctx context.Context,
+	tx pgx.Tx,
+	recordID string,
+) (*RecordingState, error) {
+	q := Q().Where("record_id = ?", recordID)
+	return GetRecordingState(ctx, tx, q)
+}
+
 // Save the recording state
 func (s *RecordingState) Save(
 	ctx context.Context,
