@@ -223,16 +223,29 @@ func (h *RecordingsHandler) GetRecordingTextTracks(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	/*
-		backend, err := h.router.LookupBackend(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		if backend != nil {
-			return backend.GetRecordingTextTracks(ctx, req)
-		}
-		return unknownMeetingResponse(), nil
-	*/
+	recordID, ok := req.Params.RecordID()
+	if !ok {
+		return unknownRecordingResponse()
+	}
+
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	tracks, err := store.GetRecordingTextTracks(ctx, tx, recordID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &bbb.GetRecordingTextTracksResponse{
+		Returncode: bbb.RetSuccess,
+		Tracks:     tracks,
+	}
+	res.SetStatus(http.StatusOK)
+
+	return res, nil
 }
 
 // PutRecordingTextTrack will lookup a backend for the request
