@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -214,11 +215,11 @@ func (h *RecordingsHandler) DeleteRecordings(
 		return unknownRecordingResponse(), nil
 	}
 
-	tx, err := store.ConnectionFromContext(ctx).Begin()
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	for _, recordID := range recordIDs {
 		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
@@ -288,12 +289,30 @@ func (h *RecordingsHandler) PutRecordingTextTrack(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := h.router.LookupBackend(ctx, req)
+	recordID, ok := req.Params.RecordID()
+	if !ok {
+		return unknownRecordingResponse(), nil
+	}
+
+	backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
 	if err != nil {
 		return nil, err
 	}
-	if backend != nil {
-		return backend.PutRecordingTextTrack(ctx, req)
+
+	res, err := backend.PutRecordingTextTrack(ctx, req)
+	if err != nil {
+		return nil, err
 	}
-	return unknownMeetingResponse(), nil
+
+	if res.IsSuccess() {
+		err := backend.RefreshRecordingTextTracks(
+			ctx, recordID)
+		if err != nil {
+			log.Error().
+				Err(err).
+				Msg("could not refresh recording text tracks")
+		}
+	}
+
+	return res, nil
 }
