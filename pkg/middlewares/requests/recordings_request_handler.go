@@ -24,6 +24,21 @@ type RecordingsHandler struct {
 	router *cluster.Router
 }
 
+// unknownRecordingResponse is a standard error response,
+// when a recording could not be found by a lookup.
+func unknownRecordingResponse() *bbb.XMLResponse {
+	res := &bbb.XMLResponse{
+		Returncode: bbb.RetFailed,
+		Message:    "The recording is not known to us.",
+		MessageKey: "invalidRecordingIdentifier",
+	}
+	res.SetStatus(http.StatusOK) // I'm pretty sure we need
+	// to respond with some success status code, otherwise
+	// greenlight and the like will assume incorrect credentials
+	// or something.
+	return res
+}
+
 // RecordingsRequestHandler creates a new request middleware for handling
 // all requests related to meetings.
 func RecordingsRequestHandler(
@@ -116,14 +131,36 @@ func (h *RecordingsHandler) PublishRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := h.router.LookupBackend(ctx, req)
-	if err != nil {
-		return nil, err
+	var beRes bbb.Response
+
+	recordIDs, hasRecordIDs := req.Params.RecordIDs()
+	if !hasRecordIDs {
+		return unknownRecordingResponse(), nil
 	}
-	if backend != nil {
-		return backend.PublishRecordings(ctx, req)
+
+	for _, recordID := range recordIDs {
+		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
+		if err != nil {
+			return nil, err
+		}
+
+		beReq := bbb.PublishRecordingRequest(recordID, req.Params)
+		res, err := backend.PublishRecordings(ctx, beReq)
+		if err != nil {
+			return nil, err
+		}
+		if !res.IsSuccess() {
+			return res, nil
+		}
+
+		err = backend.RefreshRecording(ctx, recordID)
+		if err != nil {
+			return nil, err
+		}
+
+		beRes = res
 	}
-	return unknownMeetingResponse(), nil
+	return beRes, nil
 }
 
 // UpdateRecordings will lookup a backend for the request
@@ -132,14 +169,36 @@ func (h *RecordingsHandler) UpdateRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := h.router.LookupBackend(ctx, req)
-	if err != nil {
-		return nil, err
+	var beRes bbb.Response
+
+	recordIDs, hasRecordIDs := req.Params.RecordIDs()
+	if !hasRecordIDs {
+		return unknownRecordingResponse(), nil
 	}
-	if backend != nil {
-		return backend.UpdateRecordings(ctx, req)
+
+	for _, recordID := range recordIDs {
+		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
+		if err != nil {
+			return nil, err
+		}
+
+		beReq := bbb.UpdateRecordingRequest(recordID, req.Params)
+		res, err := backend.UpdateRecordings(ctx, beReq)
+		if err != nil {
+			return nil, err
+		}
+		if !res.IsSuccess() {
+			return res, nil
+		}
+
+		err = backend.RefreshRecording(ctx, recordID)
+		if err != nil {
+			return nil, err
+		}
+
+		beRes = res
 	}
-	return unknownMeetingResponse(), nil
+	return beRes, nil
 }
 
 // DeleteRecordings will lookup a backend for the request
@@ -164,14 +223,16 @@ func (h *RecordingsHandler) GetRecordingTextTracks(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	backend, err := h.router.LookupBackend(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	if backend != nil {
-		return backend.GetRecordingTextTracks(ctx, req)
-	}
-	return unknownMeetingResponse(), nil
+	/*
+		backend, err := h.router.LookupBackend(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if backend != nil {
+			return backend.GetRecordingTextTracks(ctx, req)
+		}
+		return unknownMeetingResponse(), nil
+	*/
 }
 
 // PutRecordingTextTrack will lookup a backend for the request
