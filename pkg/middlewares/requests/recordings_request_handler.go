@@ -108,31 +108,6 @@ func (h *RecordingsHandler) GetRecordings(
 	}
 	res.SetStatus(http.StatusOK)
 	return res, nil
-
-	/*
-		noRecordingsRes := &bbb.GetRecordingsResponse{
-			XMLResponse: &bbb.XMLResponse{
-				Returncode: bbb.RetSuccess,
-			},
-		}
-		noRecordingsRes.SetStatus(http.StatusOK)
-
-		backend, err := h.router.LookupBackend(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		if backend == nil {
-			return noRecordingsRes, nil
-		}
-
-		res, err := backend.GetRecordings(ctx, req)
-		if err != nil {
-			// Return failed successfully response
-			return noRecordingsRes, nil
-		}
-
-		return res, nil
-	*/
 }
 
 // PublishRecordings will lookup a backend for the request
