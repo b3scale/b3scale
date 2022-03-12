@@ -85,6 +85,15 @@ func (p Params) RecordIDs() ([]string, bool) {
 	return ids, true
 }
 
+// RecordID retrievs a single recordID
+func (p Params) RecordID() (string, bool) {
+	id, ok := p[ParamRecordID]
+	if !ok {
+		return "", false
+	}
+	return id, true
+}
+
 // Checksum retrievs the well known checksum param
 func (p Params) Checksum() (string, bool) {
 	checksum, ok := p[ParamChecksum]
