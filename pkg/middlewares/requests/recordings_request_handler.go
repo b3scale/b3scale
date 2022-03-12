@@ -225,7 +225,7 @@ func (h *RecordingsHandler) GetRecordingTextTracks(
 ) (bbb.Response, error) {
 	recordID, ok := req.Params.RecordID()
 	if !ok {
-		return unknownRecordingResponse()
+		return unknownRecordingResponse(), nil
 	}
 
 	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
