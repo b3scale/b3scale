@@ -319,6 +319,65 @@ func GetRecordingTextTracksRequest(params Params) *Request {
 	}
 }
 
+// UpdateRecordingsRequest creates a new request for updating
+// a recording.
+func UpdateRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceUpdateRecordings,
+		Params:   params,
+	}
+}
+
+// UpdateRecordingRequest creates a request for updating
+// a single recording. CAVEAT: It updates the recordID in params.
+func UpdateRecordingRequest(recordID string, params Params) *Request {
+	params[ParamRecordID] = recordID
+	return UpdateRecordingsRequest(params)
+}
+
+// PublishRecordingsRequest creates a new request for
+// publishing recordings on a backend.
+func PublishRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourcePublishRecordings,
+		Params:   params,
+	}
+}
+
+// PublishRecordingRequest creates a single publish
+// request for a recording.
+// CAVEAT: Mutates the parameters by asserting the recordID is
+// set to the given recordID.
+func PublishRecordingRequest(recordID string, params Params) *Request {
+	params[ParamRecordID] = recordID
+	return PublishRecordingsRequest(params)
+}
+
+// DeleteRecordingsRequest creates a request deleting recordings
+// from a backend.
+func DeleteRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceDeleteRecordings,
+		Params:   params,
+	}
+}
+
+// DeleteRecordingRequest creates a request for deleting a
+// single recording. CAVEAT: Updates the params's recordID.
+func DeleteRecordingRequest(recordID string, params Params) *Request {
+	params[ParamRecordID] = recordID
+	return DeleteRecordingsRequest(params)
+}
+
 // Internal calculate checksum with a given secret.
 func (req *Request) calculateChecksumSHA1(query, secret string) []byte {
 	// Calculate checksum with server secret
