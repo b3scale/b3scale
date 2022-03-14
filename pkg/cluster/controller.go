@@ -123,6 +123,11 @@ func (c *Controller) StartBackground() {
 		log.Error().Err(err).Msg("requestBackendDecommissions")
 	}
 
+	// Do some cleaning like removing old state
+	if err := c.requestGarbageCollect(ctx); err != nil {
+		log.Error().Err(err).Msg("requestGarbageCollect")
+	}
+
 	// Check if there are backends where the noded is
 	// not present.
 	if err := c.warnOfflineBackends(ctx); err != nil {
