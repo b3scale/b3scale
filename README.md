@@ -4,8 +4,8 @@ An efficient multi tenant load balancer for BigBlueButton.
 
 ## About
 
-`b3scale` is a load balancer designed to be used instead of scalite. Work was started in
-2020 to provide multiple features not possible with Scalite:
+`b3scale` is a load balancer designed to be used instead of scalite. Work was started
+in 2020 to provide multiple features not possible with Scalite:
 
   * *API driven*: REST API allows integrating b3scale straight to your CRM
     and/or user portal
@@ -32,9 +32,9 @@ To discuss the principal design of b3scale, consider the following schematic:
 
 ![b3scale architecture](docs/b3scale-architecture.png)
 
-b3scale services different *frontends*. Those can be Standard apps such as
-Greenlight, Nextcloud or Moodle, but can be anything that implements the
-BigBlueButton API, even custom web apps.
+b3scale services different *frontends*. Those can be standard apps such as
+Greenlight, Nextcloud or Moodle, but can also really be anything that implements
+the BigBlueButton API, even custom web apps.
 
 A frontend can initiate a new meeting via b3scale, which will assign it to a
 *backend* node and will keep track of the assignment. Users joining will thus
@@ -201,7 +201,7 @@ Metrics are exported in a `prometheus` compatible format under `/metrics`.
 
 ## Bug reports and Contributions
 
-If you find a problem with b3scale or have a feature request, please open a
+If you discover a problem with b3scale or have a feature request, please open a
 [bug report](https://gitlab.com/infra.run/public/b3scale/-/issues/new). Please
 check the [existing
 issues](https://gitlab.com/infra.run/public/b3scale/-/issues) before reporting
