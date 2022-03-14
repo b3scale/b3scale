@@ -223,3 +223,18 @@ func LookupFrontendIDByMeetingID(
 
 	return frontendID, true, nil
 }
+
+// RemoveStaleFrontendMeetings removes all frontend
+// meetings older than a threshold.
+func RemoveStaleFrontendMeetings(
+	ctx context.Context,
+	tx pgx.Tx,
+	t time.Time,
+) error {
+	qry := `
+		DELETE FROM frontend_meetings
+		 WHERE seen_at < $1
+	`
+	_, err := tx.Exec(ctx, qry, t)
+	return err
+}
