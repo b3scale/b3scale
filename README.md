@@ -4,8 +4,8 @@ An efficient multi tenant load balancer for BigBlueButton.
 
 ## About
 
-`b3scale` is a load balancer designed to be used instead of scalelite. Work was
-started in 2020 to provide multiple features not possible with Scalite:
+`b3scale` is a load balancer designed to be used in place of scalelite. Work was
+started in 2020 to provide multiple features not possible before:
 
   * *API driven*: REST API allows integrating b3scale straight to your CRM
     and/or user portal
