@@ -242,11 +242,11 @@ func (h *RecordingsHandler) DeleteRecordings(
 			return nil, err
 		}
 
-		if err := tx.Commit(ctx); err != nil {
-			return nil, err
-		}
-
 		beRes = res
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 
 	return beRes, nil
