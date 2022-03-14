@@ -168,19 +168,19 @@ func (s *RecordingState) Save(
 	return err
 }
 
-// SetFrontend will set the frontend_id attribute of
+// SetFrontendID will set the frontend_id attribute of
 // the recording state.
-func (s *RecordingState) SetFrontend(
+func (s *RecordingState) SetFrontendID(
 	ctx context.Context,
 	tx pgx.Tx,
-	frontend *FrontendState,
+	frontendID string,
 ) error {
 	qry := `UPDATE recordings
 		       SET frontend_id = $2,
 			       updated_at  = $3
 			 WHERE record_id   = $1
 	`
-	_, err := tx.Exec(ctx, qry, s.RecordID, frontend.ID, time.Now().UTC())
+	_, err := tx.Exec(ctx, qry, s.RecordID, frontendID, time.Now().UTC())
 	return err
 }
 

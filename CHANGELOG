@@ -17,7 +17,16 @@
     CREATE INDEX idx_recordings_meeting_id ON recordings (meeting_id);
     CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_id);
 
-    DROP TABLE recordings_text_tracks;
+    DROP TABLE recording_text_tracks;
+
+    -- A frontend meetings table is required
+    CREATE TABLE frontend_meetings (
+        frontend_id uuid NOT NULL REFERENCES frontends(id) ON DELETE CASCADE,
+        meeting_id  VARCHAR(255) NOT NULL UNIQUE,
+        seen_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+
 
 0.1.0 Initial Release
 

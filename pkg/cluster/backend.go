@@ -385,17 +385,15 @@ func (b *Backend) refreshRecordings(ctx context.Context) error {
 
 	for _, rec := range recordings {
 		if rec.FrontendID == nil {
-			// Bin to frontend by correlating internal meeting id.
-			frontend, err := store.GetFrontendState(ctx, tx, store.Q().
-				Join("meetings ON meetings.frontend_id = frontends.id").
-				Where("meetings.id = ?", rec.MeetingID))
+			frontendID, ok, err := store.LookupFrontendIDByMeetingID(
+				ctx, tx, rec.MeetingID)
 			if err != nil {
-				log.Error().Err(err).Msg("db error when getting frontend")
 				return err
 			}
-			if frontend != nil {
-				if err := rec.SetFrontend(ctx, tx, frontend); err != nil {
+			if ok {
+				if err := rec.SetFrontendID(ctx, tx, frontendID); err != nil {
 					log.Error().Err(err).Msg("could not bind recording to frontend")
+					return err
 				}
 			}
 		}

@@ -113,7 +113,7 @@ func TestSetGetTextTracks(t *testing.T) {
 	}
 }
 
-func TestRecordingSetFrontend(t *testing.T) {
+func TestRecordingSetFrontendID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
 	defer tx.Rollback(ctx)
@@ -149,7 +149,7 @@ func TestRecordingSetFrontend(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := state.SetFrontend(ctx, tx, frontend); err != nil {
+	if err := state.SetFrontendID(ctx, tx, frontend.ID); err != nil {
 		t.Fatal(err)
 	}
 

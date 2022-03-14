@@ -317,6 +317,11 @@ func (s *MeetingState) Save(ctx context.Context, tx pgx.Tx) error {
 		}
 	}
 
+	// Refresh frontend binding
+	if err := s.updateFrontendMeetingMapping(ctx, tx); err != nil {
+		return err
+	}
+
 	return s.Refresh(ctx, tx)
 }
 
@@ -367,6 +372,29 @@ func (s *MeetingState) update(ctx context.Context, tx pgx.Tx) error {
 		s.BackendID,
 		s.SyncedAt,
 		s.UpdatedAt)
+	return err
+}
+
+// Private updateFrontendMeetingMapping updates the `frontend_meetings`
+// mapping table. This table does not hold any state, but persists the
+// association between frontend and meetingID for identifiying recordings.
+func (s *MeetingState) updateFrontendMeetingMapping(
+	ctx context.Context,
+	tx pgx.Tx,
+) error {
+	if s.FrontendID == nil {
+		return nil // nothing to do here
+	}
+	qry := `
+		INSERT INTO frontend_meetings (
+			frontend_id,
+			meeting_id
+		) VALUES (
+			$1, $2
+		) ON CONFLICT (meeting_id) DO UPDATE
+		  SET seen_at = CURRENT_TIMESTAMP
+	`
+	_, err := tx.Exec(ctx, qry, *s.FrontendID, s.ID)
 	return err
 }
 

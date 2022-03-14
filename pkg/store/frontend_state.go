@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -195,4 +196,30 @@ func (s *FrontendState) Validate() ValidationError {
 		return err
 	}
 	return nil
+}
+
+// LookupFrontendIDByMeetingID queries the frontend_meetings
+// mapping and returns the frontendID for a given meetingID.
+// The function name might be a hint.
+func LookupFrontendIDByMeetingID(
+	ctx context.Context,
+	tx pgx.Tx,
+	meetingID string,
+) (string, bool, error) {
+	var frontendID string
+
+	qry := `
+		SELECT frontend_id FROM frontend_meetings
+		 WHERE meeting_id = $1
+	`
+
+	err := tx.QueryRow(ctx, qry, meetingID).Scan(&frontendID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+
+	return frontendID, true, nil
 }

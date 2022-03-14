@@ -97,8 +97,26 @@ CREATE INDEX idx_frontends_account_ref ON frontends
  USING HASH ( account_ref );
   
 
--- The store tables: `meetings`, `recordings`,
--- `recording_text_tracks` hold the shared state
+-- Frontend Meetings:
+-- We need to keep track of meeting IDs associated with
+-- a frontend for associating recordings with the proper
+-- frontend even after the meeting (state) is already gone
+-- and not longer present on a backend.
+CREATE TABLE frontend_meetings (
+    frontend_id uuid         NOT NULL
+                REFERENCES   frontends(id)
+                ON DELETE    CASCADE,
+
+    meeting_id  VARCHAR(255) NOT NULL UNIQUE,
+
+    -- For housekeeping we should track if this
+    -- is recent data or can maybe be deleted.
+    seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Meetings:
+-- The store tables: `meetings`, `recordings`, the shared state
 -- between instances. 
 --
 -- Please note that the primary source of truth
