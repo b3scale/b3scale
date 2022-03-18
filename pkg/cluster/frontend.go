@@ -29,6 +29,14 @@ func (f *Frontend) ID() string {
 	return f.state.ID
 }
 
+// Key retrieves the frontend key
+func (f *Frontend) Key() string {
+	if f.state.Frontend == nil {
+		return ""
+	}
+	return f.state.Frontend.Key
+}
+
 // Frontend gets the states BBB frontend
 func (f *Frontend) Frontend() *bbb.Frontend {
 	return f.state.Frontend

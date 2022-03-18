@@ -56,6 +56,12 @@ func (p Params) String() string {
 	return strings.Join(q, "&")
 }
 
+// MetaParam creates a meta parameter. In practice
+// this is prefixing `meta_`.
+func MetaParam(name string) string {
+	return "meta_" + name
+}
+
 // MeetingID retrievs the well known meeting id
 // value from the set of params.
 func (p Params) MeetingID() (string, bool) {
