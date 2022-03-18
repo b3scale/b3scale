@@ -88,6 +88,7 @@ func main() {
 			UseReverseProxy: revProxyEnabled,
 		}))
 
+	gateway.Use(requests.SetMetaFrontend())
 	gateway.Use(requests.SetDefaultPresentation())
 	gateway.Use(requests.BindMeetingFrontend())
 	gateway.Use(requests.RewriteUniqueMeetingID())
