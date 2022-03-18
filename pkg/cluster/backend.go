@@ -397,27 +397,6 @@ func (b *Backend) refreshRecordings(ctx context.Context) error {
 				}
 			}
 		}
-
-		req := bbb.GetRecordingTextTracksRequest(bbb.Params{
-			bbb.ParamRecordID: rec.RecordID,
-		}).WithBackend(b.state.Backend)
-		rep, err := b.client.Do(ctx, req)
-		if err != nil {
-			return err
-		}
-		res := rep.(*bbb.GetRecordingTextTracksResponse)
-		if !rep.IsSuccess() {
-			log.Error().
-				Str("recordID", rec.RecordID).
-				Msg("return not success for getTextTrack")
-
-			// Maybe delete recording? let's see...
-			continue
-		}
-
-		if err := rec.SetTextTracks(ctx, tx, res.Tracks); err != nil {
-			return err
-		}
 	}
 	return tx.Commit(ctx)
 }
@@ -458,51 +437,6 @@ func (b *Backend) RefreshRecording(
 	}
 
 	return nil
-}
-
-// RefreshRecordingTextTracks updates only the text
-// tracks of a recording from the backend.
-func (b *Backend) RefreshRecordingTextTracks(
-	ctx context.Context,
-	recordID string,
-) error {
-	conn := store.ConnectionFromContext(ctx)
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	rec, err := store.GetRecordingStateByID(ctx, tx, recordID)
-	if err != nil {
-		return err
-	}
-	if rec == nil {
-		return ErrRecordingNotFound
-	}
-
-	// Get text tracks from backend
-	req := bbb.GetRecordingTextTracksRequest(bbb.Params{
-		bbb.ParamRecordID: recordID,
-	}).WithBackend(b.state.Backend)
-	rep, err := b.client.Do(ctx, req)
-	if err != nil {
-		return err
-	}
-	if !rep.IsSuccess() {
-		log.Error().
-			Str("recordID", recordID).
-			Msg("return not success for getTextTrack")
-		fmt.Println("error response:", rep)
-		return ErrRecordingNotFound
-	}
-	res := rep.(*bbb.GetRecordingTextTracksResponse)
-
-	if err := rec.SetTextTracks(ctx, tx, res.Tracks); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
 }
 
 // BBB API Implementation
@@ -810,18 +744,6 @@ func (b *Backend) SetConfigXML(
 	return res.(*bbb.SetConfigXMLResponse), nil
 }
 
-// GetRecordingTextTracks retrievs all text tracks
-func (b *Backend) GetRecordingTextTracks(
-	ctx context.Context,
-	req *bbb.Request,
-) (*bbb.GetRecordingTextTracksResponse, error) {
-	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
-	if err != nil {
-		return nil, err
-	}
-	return res.(*bbb.GetRecordingTextTracksResponse), nil
-}
-
 // PutRecordingTextTrack adds a text track
 func (b *Backend) PutRecordingTextTrack(
 	ctx context.Context,
@@ -832,6 +754,18 @@ func (b *Backend) PutRecordingTextTrack(
 		return nil, err
 	}
 	return res.(*bbb.PutRecordingTextTrackResponse), nil
+}
+
+// GetRecordingTextTracks retrieves the text tracks from a recording
+func (b *Backend) GetRecordingTextTracks(
+	ctx context.Context,
+	req *bbb.Request,
+) (*bbb.GetRecordingTextTracksResponse, error) {
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.GetRecordingTextTracksResponse), nil
 }
 
 // String stringifies the Backend

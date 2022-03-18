@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/rs/zerolog/log"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
@@ -144,6 +143,9 @@ func (h *RecordingsHandler) PublishRecordings(
 		if err != nil {
 			return nil, err
 		}
+		if backend == nil {
+			return unknownRecordingResponse(), nil
+		}
 
 		beReq := bbb.PublishRecordingRequest(recordID, req.Params)
 		res, err := backend.PublishRecordings(ctx, beReq)
@@ -181,6 +183,9 @@ func (h *RecordingsHandler) UpdateRecordings(
 		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
 		if err != nil {
 			return nil, err
+		}
+		if backend == nil {
+			return unknownRecordingResponse(), nil
 		}
 
 		beReq := bbb.UpdateRecordingRequest(recordID, req.Params)
@@ -226,6 +231,9 @@ func (h *RecordingsHandler) DeleteRecordings(
 		if err != nil {
 			return nil, err
 		}
+		if backend == nil {
+			return unknownRecordingResponse(), nil
+		}
 
 		// Request delete on backend
 		beReq := bbb.DeleteRecordingRequest(recordID, req.Params)
@@ -252,8 +260,7 @@ func (h *RecordingsHandler) DeleteRecordings(
 	return beRes, nil
 }
 
-// GetRecordingTextTracks will lookup a backend for the request
-// and will invoke the backend.
+// GetRecordingTextTracks will be passed through to the backend
 func (h *RecordingsHandler) GetRecordingTextTracks(
 	ctx context.Context,
 	req *bbb.Request,
@@ -263,28 +270,23 @@ func (h *RecordingsHandler) GetRecordingTextTracks(
 		return unknownRecordingResponse(), nil
 	}
 
-	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	if backend == nil {
+		return unknownRecordingResponse(), nil
+	}
 
-	tracks, err := store.GetRecordingTextTracks(ctx, tx, recordID)
+	res, err := backend.GetRecordingTextTracks(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-
-	res := &bbb.GetRecordingTextTracksResponse{
-		Returncode: bbb.RetSuccess,
-		Tracks:     tracks,
-	}
-	res.SetStatus(http.StatusOK)
 
 	return res, nil
 }
 
-// PutRecordingTextTrack will lookup a backend for the request
-// and will invoke the backend.
+// PutRecordingTextTrack will be passed through to the backend
 func (h *RecordingsHandler) PutRecordingTextTrack(
 	ctx context.Context,
 	req *bbb.Request,
@@ -298,20 +300,13 @@ func (h *RecordingsHandler) PutRecordingTextTrack(
 	if err != nil {
 		return nil, err
 	}
+	if backend == nil {
+		return unknownRecordingResponse(), nil
+	}
 
 	res, err := backend.PutRecordingTextTrack(ctx, req)
 	if err != nil {
 		return nil, err
-	}
-
-	if res.IsSuccess() {
-		err := backend.RefreshRecordingTextTracks(
-			ctx, recordID)
-		if err != nil {
-			log.Error().
-				Err(err).
-				Msg("could not refresh recording text tracks")
-		}
 	}
 
 	return res, nil

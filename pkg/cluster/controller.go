@@ -448,6 +448,7 @@ func (c *Controller) requestSyncStaleNodes(ctx context.Context) error {
 	return nil
 }
 
+/*
 // requestSyncStaleMeetings triggers a background sync
 // for meetings that have not been synced in a while.
 func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
@@ -487,6 +488,7 @@ func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
 
 	return nil
 }
+*/
 
 // requestBackendDecommissions will request a decommissioning
 // of a backend for all backends, which admin state is marked
