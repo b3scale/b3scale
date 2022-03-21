@@ -162,11 +162,7 @@ CREATE TABLE recordings (
     record_id  VARCHAR(255) NOT NULL PRIMARY KEY,
 
     -- Relations
-    backend_id uuid NOT NULL
-               REFERENCES backends(id)
-               ON DELETE CASCADE,
-    
-    frontend_id uuid NULL
+    frontend_id uuid NOT NULL
                 REFERENCES frontends(id)
                 ON DELETE CASCADE,
 
