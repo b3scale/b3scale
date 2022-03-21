@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"os"
+	"path/filepath"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
@@ -41,14 +42,27 @@ func NewRecordingStorageFromEnv() (*RecordingsStorage, error) {
 	return s, nil
 }
 
+// PublishedRecordingPath returns the joined filepath
+// for an "id" (this will be the internal meeting id).
+func (s *RecordingsStorage) PublishedRecordingPath(id string) string {
+	return filepath.Join(s.PublishedPath, id)
+}
+
+// UnpublishedRecordingPath returns the joined filepath
+// for an "id" (this will be the internal meeting id).
+func (s *RecordingsStorage) UnpublishedRecordingPath(id string) string {
+	return filepath.Join(s.UnpublishedPath, id)
+}
+
 // Check will test if we can access and manipulate the
 // recordings storage.
 func (s *RecordingsStorage) Check() error {
-	// Test: Can read
-	if err := checkPath(s.PublishedPath); err != nil {
+	p := s.PublishedRecordingPath(".rwtest.b3scale")
+	if err := checkPath(p); err != nil {
 		return err
 	}
-	if err := checkPath(s.UnpublishedPath); err != nil {
+	p = s.UnpublishedRecordingPath(".rwtest.b3scale")
+	if err := checkPath(p); err != nil {
 		return err
 	}
 	return nil
@@ -57,10 +71,15 @@ func (s *RecordingsStorage) Check() error {
 // private checkPath will test if the path is
 // read and writable.
 func checkPath(path string) error {
-	f, err := os.Open(path)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	return nil
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil {
+		return err
+	}
+	return nil // yay
 }
