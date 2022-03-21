@@ -6,6 +6,7 @@
     ALTER TABLE recordings ADD COLUMN record_id VARCHAR(255) NOT NULL PRIMARY KEY;
 
     ALTER TABLE recordings ADD COLUMN frontend_id uuid NULL REFERENCES frontends(id) ON DELETE CASCADE;
+    ALTER TABLE recordings DROP COLUMN backend_id CASCADE;
 
 
     ALTER TABLE recordings DROP COLUMN internal_meeting_id;
