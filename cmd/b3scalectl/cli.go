@@ -13,7 +13,7 @@ import (
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
+	v1 "gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -329,6 +329,8 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 	key := ctx.Args().Get(0)
 	secret := ctx.String("secret")
 
+	fmt.Println("getting frontend:", key)
+
 	// Get or create frontend
 	state, err := getFrontendByKey(ctx.Context, c.client, key)
 	if err != nil {
@@ -336,6 +338,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 	}
 
 	if state == nil {
+		fmt.Println("creating frontend")
 		// Create frontend
 		if secret == "" {
 			return fmt.Errorf("secret may not be empty")
@@ -366,7 +369,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 		changes := false
 		if ctx.IsSet("secret") {
 			if secret == "" {
-				return fmt.Errorf("secret may not be empty")
+				return fmt.Errorf("secret may not be empty for update")
 			}
 			changes = true
 			state.Frontend.Secret = secret
