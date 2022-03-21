@@ -117,6 +117,16 @@ func GetRecordingState(
 	return states[0], nil
 }
 
+// QueryRecordingsByFrontendKey creates a query
+// selecting recordings by frontend key. The query can
+// be extended e.g. for filtering by recordingID.
+func QueryRecordingsByFrontendKey(frontendKey string) sq.SelectBuilder {
+	return Q().
+		Join("frontends ON frontends.id = recordings.frontend_id").
+		Where("recordings.frontend_id IS NOT NULL").
+		Where("frontends.key = ?", frontendKey)
+}
+
 // GetRecordingStateByID retrievs a single state
 // identified by recordID.
 func GetRecordingStateByID(

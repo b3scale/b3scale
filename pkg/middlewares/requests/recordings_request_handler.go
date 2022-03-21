@@ -24,6 +24,17 @@ type RecordingsHandler struct {
 	router *cluster.Router
 }
 
+// notImplementedResponse is a placeholder error
+func notImplementedResponse() *bbb.XMLResponse {
+	res := &bbb.XMLResponse{
+		Returncode: bbb.RetFailed,
+		Message:    "The api endpoint is not yet implemented",
+		MessageKey: "notImplemented",
+	}
+	res.SetStatus(http.StatusOK) // Prevent auth error...
+	return res
+}
+
 // unknownRecordingResponse is a standard error response,
 // when a recording could not be found by a lookup.
 func unknownRecordingResponse() *bbb.XMLResponse {
@@ -88,10 +99,7 @@ func (h *RecordingsHandler) GetRecordings(
 
 	meetingIDs, hasMeetingIDs := req.Params.MeetingIDs()
 
-	qry := store.Q().
-		Join("frontends ON frontends.id = recordings.frontend_id").
-		Where("recordings.frontend_id IS NOT NULL").
-		Where("frontends.key = ?", req.Frontend.Key)
+	qry := store.QueryRecordingsByFrontendKey(req.Frontend.Key)
 
 	if hasMeetingIDs {
 		filterMIDs := sq.Or{}
@@ -138,32 +146,7 @@ func (h *RecordingsHandler) PublishRecordings(
 		return unknownRecordingResponse(), nil
 	}
 
-	for _, recordID := range recordIDs {
-		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
-		if err != nil {
-			return nil, err
-		}
-		if backend == nil {
-			return unknownRecordingResponse(), nil
-		}
-
-		beReq := bbb.PublishRecordingRequest(recordID, req.Params)
-		res, err := backend.PublishRecordings(ctx, beReq)
-		if err != nil {
-			return nil, err
-		}
-		if !res.IsSuccess() {
-			return res, nil
-		}
-
-		err = backend.RefreshRecording(ctx, recordID)
-		if err != nil {
-			return nil, err
-		}
-
-		beRes = res
-	}
-	return beRes, nil
+	return notImplementedResponse(), nil
 }
 
 // UpdateRecordings will lookup a backend for the request
@@ -180,31 +163,10 @@ func (h *RecordingsHandler) UpdateRecordings(
 	}
 
 	for _, recordID := range recordIDs {
-		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
-		if err != nil {
-			return nil, err
-		}
-		if backend == nil {
-			return unknownRecordingResponse(), nil
-		}
 
-		beReq := bbb.UpdateRecordingRequest(recordID, req.Params)
-		res, err := backend.UpdateRecordings(ctx, beReq)
-		if err != nil {
-			return nil, err
-		}
-		if !res.IsSuccess() {
-			return res, nil
-		}
-
-		err = backend.RefreshRecording(ctx, recordID)
-		if err != nil {
-			return nil, err
-		}
-
-		beRes = res
 	}
-	return beRes, nil
+
+	return notImplementedResponse(), nil
 }
 
 // DeleteRecordings will lookup a backend for the request
@@ -227,29 +189,21 @@ func (h *RecordingsHandler) DeleteRecordings(
 	defer tx.Rollback(ctx)
 
 	for _, recordID := range recordIDs {
-		backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
+		rec, err := store.GetRecordingState(
+			ctx, tx, store.QueryRecordingsByFrontendKey(req.Frontend.Key).
+				Where("recordings.record_id = ?", recordID))
 		if err != nil {
 			return nil, err
 		}
-		if backend == nil {
+		if rec == nil {
 			return unknownRecordingResponse(), nil
 		}
 
-		// Request delete on backend
-		beReq := bbb.DeleteRecordingRequest(recordID, req.Params)
-		res, err := backend.DeleteRecordings(ctx, beReq)
-		if err != nil {
-			return nil, err
-		}
-		if !res.IsSuccess() {
-			return res, nil
-		}
-
-		// Delete recording state
+		// Delete recording state. This will also remove the recording
+		// from the filesystem.
 		if err := store.DeleteRecordingByID(ctx, tx, recordID); err != nil {
 			return nil, err
 		}
-
 		beRes = res
 	}
 
@@ -265,24 +219,8 @@ func (h *RecordingsHandler) GetRecordingTextTracks(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	recordID, ok := req.Params.RecordID()
-	if !ok {
-		return unknownRecordingResponse(), nil
-	}
-
-	backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
-	if err != nil {
-		return nil, err
-	}
-	if backend == nil {
-		return unknownRecordingResponse(), nil
-	}
-
-	res, err := backend.GetRecordingTextTracks(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
+	recordID, _ := req.Params.RecordID()
+	res := notImplementedResponse()
 	return res, nil
 }
 
@@ -291,23 +229,7 @@ func (h *RecordingsHandler) PutRecordingTextTrack(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	recordID, ok := req.Params.RecordID()
-	if !ok {
-		return unknownRecordingResponse(), nil
-	}
-
-	backend, err := h.router.LookupBackendForRecordID(ctx, recordID)
-	if err != nil {
-		return nil, err
-	}
-	if backend == nil {
-		return unknownRecordingResponse(), nil
-	}
-
-	res, err := backend.PutRecordingTextTrack(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
+	recordID, _ := req.Params.RecordID()
+	res := notImplementedResponse()
 	return res, nil
 }
