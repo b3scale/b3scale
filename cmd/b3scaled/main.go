@@ -67,6 +67,16 @@ func main() {
 		Int("maxConnections", dbPoolSize).
 		Msg("database pool")
 
+	// Recordings are an optional feature, so we will treat errors
+	// as warnings.
+	recordingsStorage, err := store.NewRecordingsStorageFromEnv()
+	if err != nil {
+		log.Error().Err(err).Msg("could not initialize recordings storage")
+	}
+	if err := recordingsStorage.Check(); err != nil {
+		log.Error().Err(err).Msg("recordings storage error")
+	}
+
 	// Initialize cluster
 	ctrl := cluster.NewController()
 

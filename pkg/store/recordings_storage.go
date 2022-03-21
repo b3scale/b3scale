@@ -24,9 +24,9 @@ type RecordingsStorage struct {
 	UnpublishedPath string
 }
 
-// NewRecordingStorageFromEnv creates a new recordings storage
+// NewRecordingsStorageFromEnv creates a new recordings storage
 // instance and configures it through well known environment variables.
-func NewRecordingStorageFromEnv() (*RecordingsStorage, error) {
+func NewRecordingsStorageFromEnv() (*RecordingsStorage, error) {
 	publishedPath, ok := config.GetEnvOpt(config.EnvPublishedRecordingsPath)
 	if !ok {
 		return nil, ErrRecordingsStorageUnconfigured
