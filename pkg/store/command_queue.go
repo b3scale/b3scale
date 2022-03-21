@@ -20,8 +20,6 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-const cmdQueue = "commands_queue"
-
 // CommandHandler is a callback function for handling
 // commands. The command was successful if no error was
 // returned.
@@ -58,8 +56,6 @@ func (cmd *Command) FetchParams(
 // The CommandQueue is connected to the database and
 // provides methods for queuing and dequeuing commands.
 type CommandQueue struct {
-	subscription *pgxpool.Conn
-	trigger      chan bool
 }
 
 // NewCommandQueue initializes a new command queue
@@ -73,6 +69,10 @@ func QueueCommand(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 	deadline := time.Now().UTC().Add(120 * time.Second)
 	// Marshal payload
 	params, err := json.Marshal(cmd.Params)
+	if err != nil {
+		return err
+	}
+
 	// Add command to queue and notify instances
 	qry := `
 	  INSERT INTO commands (

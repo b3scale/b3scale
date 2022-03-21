@@ -12,15 +12,17 @@ import (
 
 // Well Known Environment Keys
 const (
-	EnvDbURL        = "B3SCALE_DB_URL"
-	EnvDbPoolSize   = "B3SCALE_DB_POOL_SIZE"
-	EnvLogLevel     = "B3SCALE_LOG_LEVEL"
-	EnvLogFormat    = "B3SCALE_LOG_FORMAT"
-	EnvListenHTTP   = "B3SCALE_LISTEN_HTTP"
-	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
-	EnvLoadFactor   = "B3SCALE_LOAD_FACTOR"
-	EnvJWTSecret    = "B3SCALE_API_JWT_SECRET"
-	EnvBBBConfig    = "BBB_CONFIG"
+	EnvDbURL                     = "B3SCALE_DB_URL"
+	EnvDbPoolSize                = "B3SCALE_DB_POOL_SIZE"
+	EnvLogLevel                  = "B3SCALE_LOG_LEVEL"
+	EnvLogFormat                 = "B3SCALE_LOG_FORMAT"
+	EnvListenHTTP                = "B3SCALE_LISTEN_HTTP"
+	EnvReverseProxy              = "B3SCALE_REVERSE_PROXY_MODE"
+	EnvLoadFactor                = "B3SCALE_LOAD_FACTOR"
+	EnvJWTSecret                 = "B3SCALE_API_JWT_SECRET"
+	EnvBBBConfig                 = "BBB_CONFIG"
+	EnvPublishedRecordingsPath   = "B3SCALE_PUBLISHED_RECORDINGS_PATH"
+	EnvUnpublishedRecordingsPath = "B3SCALE_UNPUBLISHED_RECORDINGS_PATH"
 )
 
 // Defaults
@@ -74,11 +76,21 @@ func loadEnvFile(filename string) {
 // EnvOpt gets a configuration from the environment
 // with a default fallback.
 func EnvOpt(key, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
+	value, ok := GetEnvOpt(key)
+	if !ok {
 		return fallback
 	}
 	return value
+}
+
+// GetEnvOpt gets a configuration from the environment,
+// but will fail if the variable is not present.
+func GetEnvOpt(key string) (string, bool) {
+	value := os.Getenv(key)
+	if value == "" {
+		return "", false
+	}
+	return value, true
 }
 
 // IsEnabled returns true if the input is trueish

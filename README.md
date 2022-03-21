@@ -67,8 +67,14 @@ The load factor of the backend can be set through:
     You can set the jwt claim `scope` to `b3scale:admin` to create
     an admin token.
 
+    TOKEN=`pyjwt --key=$B3SCALE_API_JWT_SECRET encode sub="123456789" scope="b3scale b3scale:admin b3scale:node"`
+ 
+ * `B3SCALE_PUBLISHED_RECORDINGS_PATH` required if recordings are supported: This points to
+    the shared path where published recordings are.
 
-    TOKEN=`pyjwt --key=fooo encode sub="123456789" scope="b3scale b3scale:admin"`
+ * `B3SCALE_UNPUBLISHED_RECORDINGS_PATH` not sure. I guess unpublished recordings. whatever.
+
+
 
 ## Adding Backends
 

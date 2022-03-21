@@ -21,8 +21,7 @@ type RecordingState struct {
 	MeetingID         string
 	InternalMeetingID string
 
-	BackendID  string
-	FrontendID *string
+	FrontendID string
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -38,14 +37,12 @@ func InitRecordingState(init *RecordingState) *RecordingState {
 // StateFromRecording will initialize a recording state
 // with a recording.
 func StateFromRecording(
-	backend *BackendState,
 	recording *bbb.Recording,
 ) *RecordingState {
 	return InitRecordingState(&RecordingState{
 		RecordID:          recording.RecordID,
 		MeetingID:         recording.MeetingID,
 		InternalMeetingID: recording.InternalMeetingID,
-		BackendID:         backend.ID,
 
 		Recording: recording,
 
@@ -66,7 +63,6 @@ func GetRecordingStates(
 		"recordings.record_id",
 		"recordings.meeting_id",
 		"recordings.internal_meeting_id",
-		"recordings.backend_id",
 		"recordings.frontend_id",
 		"recordings.state",
 	).From("recordings").ToSql()
@@ -88,7 +84,6 @@ func GetRecordingStates(
 			&state.RecordID,
 			&state.MeetingID,
 			&state.InternalMeetingID,
-			&state.BackendID,
 			&state.FrontendID,
 			&state.Recording,
 		)
@@ -148,7 +143,7 @@ func (s *RecordingState) Save(
 			record_id,
 			meeting_id,
 			internal_meeting_id,
-			backend_id,
+			frontend_id,
 			state,
 			updated_at,
 			synced_at
@@ -156,13 +151,10 @@ func (s *RecordingState) Save(
 		  ON CONFLICT ON CONSTRAINT recordings_pkey DO UPDATE
 		  SET meeting_id          = EXCLUDED.meeting_id,
 		      internal_meeting_id = EXCLUDED.internal_meeting_id,
-			  backend_id          = EXCLUDED.backend_id,
 			  state               = EXCLUDED.state,
 			  updated_at          = EXCLUDED.updated_at,
 			  synced_at           = EXCLUDED.synced_at
-		  	  
 	`
-
 	s.UpdatedAt = time.Now().UTC()
 
 	// Upsert recording
@@ -170,7 +162,7 @@ func (s *RecordingState) Save(
 		s.RecordID,
 		s.MeetingID,
 		s.InternalMeetingID,
-		s.BackendID,
+		s.FrontendID,
 		s.Recording,
 		s.UpdatedAt,
 		s.SyncedAt,
@@ -224,6 +216,8 @@ func DeleteRecordingByID(ctx context.Context, tx pgx.Tx, recordID string) error 
 // Delete will remove a recording from the database.
 // This cascades to associated text tracks.
 func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
+	// Remove from filesystem
+
 	return DeleteRecordingByID(ctx, tx, s.RecordID)
 }
 

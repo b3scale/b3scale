@@ -23,12 +23,16 @@ func TestInsertAndUpdateRecording(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	frontend := frontendStateFactory()
+	if err := frontend.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
 
 	state := &RecordingState{
 		RecordID:          "record42",
 		MeetingID:         m.ID,
 		InternalMeetingID: m.InternalID,
-		BackendID:         b.ID,
+		FrontendID:        frontend.ID,
 		Recording: &bbb.Recording{
 			RecordID:          "record42",
 			MeetingID:         m.ID,
@@ -69,11 +73,16 @@ func TestSetGetTextTracks(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	frontend := frontendStateFactory()
+	if err := frontend.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+
 	state := &RecordingState{
 		RecordID:          "record42",
 		MeetingID:         "meeting23",
 		InternalMeetingID: "meeting23INT",
-		BackendID:         b.ID,
+		FrontendID:        frontend.ID,
 		Recording: &bbb.Recording{
 			RecordID:          "record42",
 			MeetingID:         "meeting23",
@@ -127,11 +136,16 @@ func TestRecordingSetFrontendID(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	frontend := frontendStateFactory()
+	if err := frontend.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+
 	state := &RecordingState{
 		RecordID:          "record42",
 		MeetingID:         m.ID,
+		FrontendID:        frontend.ID,
 		InternalMeetingID: m.InternalID,
-		BackendID:         b.ID,
 		Recording: &bbb.Recording{
 			RecordID:          "record42",
 			MeetingID:         m.ID,
@@ -144,7 +158,7 @@ func TestRecordingSetFrontendID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	frontend := frontendStateFactory()
+	frontend = frontendStateFactory()
 	if err := frontend.Save(ctx, tx); err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +173,7 @@ func TestRecordingSetFrontendID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if *res[0].FrontendID != frontend.ID {
+	if res[0].FrontendID != frontend.ID {
 		t.Error("unexpected name:", res[0])
 	}
 }
