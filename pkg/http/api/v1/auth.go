@@ -14,6 +14,7 @@ import (
 const (
 	ScopeUser  = "b3scale"
 	ScopeAdmin = "b3scale:admin"
+	ScopeNode  = "b3scale:node"
 )
 
 // APIAuthClaims extends the JWT standard claims
