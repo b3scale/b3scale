@@ -249,10 +249,6 @@ func (c *Controller) handleUpdateNodeState(
 		return false, err
 	}
 
-	if err := backend.refreshRecordings(ctx); err != nil {
-		return false, err
-	}
-
 	return true, nil
 }
 
