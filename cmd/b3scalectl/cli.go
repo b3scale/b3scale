@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"syscall"
 
@@ -57,7 +58,6 @@ func getBackendByHost(
 type Cli struct {
 	app        *cli.App
 	returnCode int
-	client     v1.Client
 }
 
 // NewCli initializes the CLI application
@@ -66,7 +66,6 @@ func NewCli() *Cli {
 	c.app = &cli.App{
 		Usage:                "manage the b3scale cluster",
 		EnableBashCompletion: true,
-		Before:               c.init,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "api",
@@ -225,88 +224,75 @@ func NewCli() *Cli {
 				Name:   "version",
 				Action: c.showVersion,
 			},
+			{
+				Name: "auth",
+				Subcommands: []*cli.Command{
+					{
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "sub",
+								Usage:    "userID or other identifier",
+								Required: true,
+							},
+							&cli.StringFlag{
+								Name:     "scopes",
+								Usage:    "a comma separated list of scopes",
+								Required: true,
+							},
+						},
+						Name:   "create_access_token",
+						Usage:  "Create an access token for interacting with the API",
+						Action: c.createAccessToken,
+					},
+				},
+			},
 		},
 	}
 	return c
 }
 
-// init initializes the app
-func (c *Cli) init(ctx *cli.Context) error {
-	apiHost := ctx.String("api")
-	tokenFilename := apiHost + ".access_token"
+// Auth: create access token. Scopes can be passed through
+// options. A "sub" (user id) is required.
+func (c *Cli) createAccessToken(ctx *cli.Context) error {
+	sub := ctx.String("sub")
+	scopes := ctx.String("scopes")
+	scopes = strings.Join(strings.Split(scopes, ","), " ")
 
-	var (
-		token string
-		err   error
-	)
-
-	// Check if we have an access token, otherwise acquire
-	// one by requesting the shared JWT secret.
-	token, _ = config.UserDirGetString(tokenFilename)
-	if token == "" {
-		token, err = c.acquireToken(ctx)
-		if err != nil {
-			return err
-		}
-		if err := config.UserDirPut(tokenFilename, []byte(token)); err != nil {
-			return err
-		}
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "** Creating access token **")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "     Sub:", sub)
+	fmt.Fprintln(os.Stderr, "  Scopes:", scopes)
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Please paste your shared secret.")
+	fmt.Fprintf(os.Stderr, "Secret: ")
+	secret, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return err
 	}
+	fmt.Fprintln(os.Stderr, "") // add missing newline
 
-	// Initialize client and test connection
-	c.client = v1.NewJWTClient(apiHost, token)
-
-	status, err := c.client.Status(ctx.Context)
+	token, err := v1.SignAdminAccessToken(sub, secret)
 	if err != nil {
 		return err
 	}
 
-	if !status.IsAdmin {
-		return fmt.Errorf("authorization failed")
-	}
+	fmt.Println(token)
 
 	return nil
 }
 
-// Create an access token
-func (c *Cli) acquireToken(ctx *cli.Context) (string, error) {
-	apiHost := ctx.String("api")
-
-	// Check if we have an access token, otherwise acquire
-	// one by requesting the shared JWT secret.
-	tokenFullPath, err := config.UserDirPath(apiHost + ".access_token")
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Println("")
-	fmt.Println("** Authorization required for", apiHost, "**")
-	fmt.Println("")
-	fmt.Println("Please paste your shared secret here. The generated")
-	fmt.Println("access token will be stored in:")
-	fmt.Println("")
-	fmt.Println("  ", tokenFullPath)
-	fmt.Println("")
-	fmt.Print("Secret: ")
-	secret, err := term.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		return "", err
-	}
-	fmt.Println("") // add missing newline
-
-	if len(secret) == 0 {
-		return "", fmt.Errorf("secret should not be empty")
-	}
-
-	return v1.SignAdminAccessToken("b3scalectl", secret)
-}
-
 func (c *Cli) showStatus(ctx *cli.Context) error {
-	apiHost := ctx.String("api")
-	status, err := c.client.Status(ctx.Context)
+	client, err := apiClient(ctx)
 	if err != nil {
 		return err
 	}
+	status, err := client.Status(ctx.Context)
+	if err != nil {
+		return err
+	}
+
+	apiHost := ctx.String("api")
 
 	// Print server info
 	fmt.Println("b3scale @", apiHost)
@@ -314,6 +300,7 @@ func (c *Cli) showStatus(ctx *cli.Context) error {
 	fmt.Println("server version:", status.Version, "\tbuild:", status.Build)
 	fmt.Println("   api version:", status.API)
 	fmt.Println("")
+
 	return nil
 }
 
@@ -331,8 +318,13 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 
 	fmt.Println("getting frontend:", key)
 
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Get or create frontend
-	state, err := getFrontendByKey(ctx.Context, c.client, key)
+	state, err := getFrontendByKey(ctx.Context, client, key)
 	if err != nil {
 		return err
 	}
@@ -356,7 +348,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			}
 		}
 		if !dry {
-			state, err = c.client.FrontendCreate(ctx.Context, state)
+			state, err = client.FrontendCreate(ctx.Context, state)
 			if err != nil {
 				return err
 			}
@@ -389,7 +381,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			c.returnCode = RetNoChange
 		} else {
 			if !dry {
-				_, err := c.client.FrontendUpdate(ctx.Context, state)
+				_, err := client.FrontendUpdate(ctx.Context, state)
 				if err != nil {
 					return err
 				}
@@ -413,7 +405,11 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 		return fmt.Errorf("need frontend key for delete")
 	}
 
-	state, err := getFrontendByKey(ctx.Context, c.client, key)
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+	state, err := getFrontendByKey(ctx.Context, client, key)
 	if err != nil {
 		return err
 	}
@@ -427,7 +423,7 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("delete frontend:", state.ID)
-	_, err = c.client.FrontendDelete(ctx.Context, state)
+	_, err = client.FrontendDelete(ctx.Context, state)
 	return err
 }
 
@@ -438,7 +434,12 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 		return fmt.Errorf("need frontend key for showing info")
 	}
 
-	state, err := getFrontendByKey(ctx.Context, c.client, key)
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	state, err := getFrontendByKey(ctx.Context, client, key)
 	if err != nil {
 		return err
 	}
@@ -455,7 +456,11 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 
 // show a list of all frontends
 func (c *Cli) showFrontends(ctx *cli.Context) error {
-	frontends, err := c.client.FrontendsList(ctx.Context, nil)
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+	frontends, err := client.FrontendsList(ctx.Context, nil)
 	if err != nil {
 		return err
 	}
@@ -481,8 +486,13 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 		host += "/"
 	}
 
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Check if backend exists
-	state, err := getBackendByHost(ctx.Context, c.client, host)
+	state, err := getBackendByHost(ctx.Context, client, host)
 	if err != nil {
 		return err
 	}
@@ -505,7 +515,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			}
 		}
 		if !dry {
-			state, err = c.client.BackendCreate(ctx.Context, state)
+			state, err = client.BackendCreate(ctx.Context, state)
 			if err != nil {
 				return err
 			}
@@ -541,7 +551,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 		}
 		if changes {
 			if !dry {
-				state, err = c.client.BackendUpdate(ctx.Context, state)
+				state, err = client.BackendUpdate(ctx.Context, state)
 				if err != nil {
 					return err
 				}
@@ -564,8 +574,12 @@ func (c *Cli) showBackend(ctx *cli.Context) error {
 		return fmt.Errorf("need host for showing backend info")
 	}
 
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
 	// Check if backend exists
-	backend, err := getBackendByHost(ctx.Context, c.client, host)
+	backend, err := getBackendByHost(ctx.Context, client, host)
 	if err != nil {
 		return err
 	}
@@ -583,8 +597,12 @@ func (c *Cli) showBackend(ctx *cli.Context) error {
 
 // showBackends displays a list of our backends
 func (c *Cli) showBackends(ctx *cli.Context) error {
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
 	// Check if backend exists
-	backends, err := c.client.BackendsList(ctx.Context, nil)
+	backends, err := client.BackendsList(ctx.Context, nil)
 	if err != nil {
 		return err
 	}
@@ -622,7 +640,7 @@ func (c *Cli) enableBackend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-	return c.setBackendAdminState(ctx.Context, host, dry, "ready")
+	return c.setBackendAdminState(ctx, host, dry, "ready")
 }
 
 func (c *Cli) disableBackend(ctx *cli.Context) error {
@@ -632,11 +650,11 @@ func (c *Cli) disableBackend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 	host := ctx.Args().Get(0)
-	return c.setBackendAdminState(ctx.Context, host, dry, "stopped")
+	return c.setBackendAdminState(ctx, host, dry, "stopped")
 }
 
 func (c *Cli) setBackendAdminState(
-	ctx context.Context,
+	ctx *cli.Context,
 	host string,
 	dry bool,
 	adminState string,
@@ -648,7 +666,12 @@ func (c *Cli) setBackendAdminState(
 		host += "/"
 	}
 
-	state, err := getBackendByHost(ctx, c.client, host)
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	state, err := getBackendByHost(ctx.Context, client, host)
 	if err != nil {
 		return err
 	}
@@ -663,7 +686,7 @@ func (c *Cli) setBackendAdminState(
 	}
 	if changes {
 		if !dry {
-			state, err = c.client.BackendUpdate(ctx, state)
+			state, err = client.BackendUpdate(ctx.Context, state)
 			if err != nil {
 				return err
 			}
@@ -680,6 +703,7 @@ func (c *Cli) setBackendAdminState(
 
 // delete backend removes a backend from the store
 func (c *Cli) deleteBackend(ctx *cli.Context) error {
+
 	dry := ctx.Bool("dry")
 	force := ctx.Bool("force")
 	// Args should be host
@@ -687,8 +711,12 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 		return fmt.Errorf("require: <host>")
 	}
 
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
 	host := ctx.Args().Get(0)
-	state, err := getBackendByHost(ctx.Context, c.client, host)
+	state, err := getBackendByHost(ctx.Context, client, host)
 	if err != nil {
 		return err
 	}
@@ -709,7 +737,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 			return nil
 		}
 		fmt.Println("deleting backend")
-		state, err = c.client.BackendDelete(
+		state, err = client.BackendDelete(
 			ctx.Context, state, url.Values{
 				"force": []string{"true"},
 			})
@@ -723,7 +751,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 			fmt.Println("skipping decommissioning backend (dry run)")
 			return nil
 		}
-		state, err = c.client.BackendUpdate(ctx.Context, state)
+		state, err = client.BackendUpdate(ctx.Context, state)
 		if err != nil {
 			return err
 		}
@@ -738,8 +766,12 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
 		return fmt.Errorf("require: <host>")
 	}
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
 	host := ctx.Args().Get(0)
-	state, err := getBackendByHost(ctx.Context, c.client, host)
+	state, err := getBackendByHost(ctx.Context, client, host)
 	if err != nil {
 		return err
 	}
@@ -747,7 +779,7 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 		return fmt.Errorf("no such backend")
 	}
 
-	cmd, err := c.client.BackendMeetingsEnd(ctx.Context, state.ID)
+	cmd, err := client.BackendMeetingsEnd(ctx.Context, state.ID)
 	if err != nil {
 		return err
 	}
@@ -761,7 +793,11 @@ func (c *Cli) showVersion(ctx *cli.Context) error {
 	fmt.Printf("b3scalectl v.%s\t%s\n",
 		config.Version,
 		config.Build)
-	status, err := c.client.Status(ctx.Context)
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+	status, err := client.Status(ctx.Context)
 	if err != nil {
 		return err
 	}
