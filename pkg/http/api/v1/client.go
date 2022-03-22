@@ -84,7 +84,7 @@ type JWTClient struct {
 	Host        string
 	AccessToken string
 
-	Client *http.Client
+	*http.Client
 }
 
 // APIError will return the decoded json body

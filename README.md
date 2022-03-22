@@ -74,6 +74,8 @@ The load factor of the backend can be set through:
 
  * `B3SCALE_UNPUBLISHED_RECORDINGS_PATH` not sure. I guess unpublished recordings. whatever.
 
+ * `B3SCALE_RECORDINGS_PLAYBACK_URL` path to the player script.
+   For example: https://playback.mycluster.example.bbb/2.3/
 
 
 ## Adding Backends

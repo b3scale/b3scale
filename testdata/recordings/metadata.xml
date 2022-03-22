@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<recording>
+  <id>record-2342</id>
+  <state>published</state>
+  <published>true</published>
+  <start_time>1647181479536</start_time>
+  <end_time>1647181557090</end_time>
+  <participants>1</participants>
+  <meeting id="internal-2342"
+            externalId="meeting-2342" name="neuraum" breakout="false"/>
+  <meta>
+    <meetingName>neuraum</meetingName>
+    <isBreakout>false</isBreakout>
+    <meetingId>meeting-2342</meetingId>
+    <bbb-origin-server-name>greenlight1.foobar</bbb-origin-server-name>
+    <gl-listed>false</gl-listed>
+    <bbb-origin>Greenlight</bbb-origin>
+    <bbb-origin-version>2.11.1</bbb-origin-version>
+  </meta>
+  <playback>
+    <format>presentation</format>
+    <link>https://9000/playback/presentation/2.3/record-2342</link>
+    <processing_time>4882</processing_time>
+    <duration>32860</duration>
+    <size>248378</size>
+  </playback>
+  <raw_size>871354</raw_size>
+</recording>

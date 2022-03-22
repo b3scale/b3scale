@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 )
 
 var (
@@ -1041,6 +1042,15 @@ type Recording struct {
 	Participants      int       `xml:"participants"`
 	Metadata          Metadata  `xml:"metadata"`
 	Formats           []*Format `xml:"playback>format"`
+}
+
+// SetPlaybackBaseURL will update the link to the presentation
+// for each format.
+func (r *Recording) SetPlaybackBaseURL(url string) {
+	for _, f := range r.Formats {
+		_, id := path.Split(f.URL)
+		f.URL = path.Join(url, id)
+	}
 }
 
 // Format contains a link to the playable media

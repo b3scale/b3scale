@@ -44,8 +44,13 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 // SignAdminAccessToken creates a new authorized
 // JWT with an admin scope.
 func SignAdminAccessToken(sub string, secret []byte) (string, error) {
+	return SignAccessToken(sub, ScopeAdmin, secret)
+}
+
+// SignAccessToken creates an authorized JWT
+func SignAccessToken(sub string, scope string, secret []byte) (string, error) {
 	claims := &APIAuthClaims{
-		Scope: ScopeAdmin,
+		Scope: scope,
 		StandardClaims: jwt.StandardClaims{
 			Subject: sub,
 		},
