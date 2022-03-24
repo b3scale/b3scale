@@ -1,8 +1,19 @@
 package v1
 
 import (
+	"io/ioutil"
+	"net/http"
+
 	"github.com/labstack/echo/v4"
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
+)
+
+// Errors
+var (
+	ErrRequestBodyRequired = echo.NewHTTPError(
+		http.StatusBadRequest,
+		"the request must contain content of a metadata.xml")
 )
 
 // RecordingsImportMeta will accept the contents of a
@@ -10,8 +21,23 @@ import (
 // the state.
 // ! requires: `node`
 func RecordingsImportMeta(c echo.Context) error {
-	apiCtx := c.(*APIContext)
-	ctx := ctx.Ctx()
+	ctx := c.Request().Context()
+
+	// Parse request body, which should be the content of a
+	// metadata.xml
+	if c.Request().Body == nil { // Read
+		return ErrRequestBodyRequired
+	}
+
+	body, err := ioutil.ReadAll(c.Request().Body)
+	if err != nil {
+		return err
+	}
+	meta, err := bbb.UnmarshalRecordingMetadata(body)
+	if err != nil {
+		return err
+	}
+	rec := meta.ToRecording()
 
 	// Begin TX
 	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
@@ -20,7 +46,14 @@ func RecordingsImportMeta(c echo.Context) error {
 	}
 	defer tx.Rollback(ctx)
 
+	state := store.StateFromRecording(rec)
+	if err := state.Save(ctx, tx); err != nil {
+		return err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
+
+	return c.JSON(http.StatusOK, rec)
 }

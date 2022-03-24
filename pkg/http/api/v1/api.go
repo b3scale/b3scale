@@ -30,12 +30,6 @@ var (
 	// ErrMissingJWTSecret will be returned if a JWT secret
 	// could not be found in the environment.
 	ErrMissingJWTSecret = errors.New("missing JWT secret")
-
-	// ErrAdminScopeRequired will be returned if the token
-	// has insuficient rights.
-	ErrAdminScopeRequired = echo.NewHTTPError(
-		http.StatusForbidden,
-		"b3scale:admin scope required")
 )
 
 // APIContext extends the context and provides methods
@@ -100,19 +94,6 @@ func (ctx *APIContext) Ctx() context.Context {
 	return ctx.Request().Context()
 }
 
-// RequireAdminScope wraps a handler func and checks for
-// the presence of the AdminScope before invoking the
-// decorated function.
-func RequireAdminScope(fn echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		ctx := c.(*APIContext)
-		if !ctx.HasScope(ScopeAdmin) {
-			return ErrAdminScopeRequired
-		}
-		return fn(c)
-	}
-}
-
 // Init sets up a group with authentication
 // for a restful management interface.
 func Init(e *echo.Echo) error {
@@ -174,7 +155,7 @@ func Init(e *echo.Echo) error {
 	a.PATCH("/backends/:id", RequireAdminScope(BackendUpdate))
 
 	// Recordings
-	// TODO
+	a.POST("/recordings-import", RequireNodeScope(RecordingsImportMeta))
 
 	// Meetings at backend. The backend is required because
 	// the returned response set might be really big.

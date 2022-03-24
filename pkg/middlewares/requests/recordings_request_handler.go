@@ -139,12 +139,12 @@ func (h *RecordingsHandler) PublishRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	var beRes bbb.Response
-
-	recordIDs, hasRecordIDs := req.Params.RecordIDs()
-	if !hasRecordIDs {
-		return unknownRecordingResponse(), nil
-	}
+	/*
+		recordIDs, hasRecordIDs := req.Params.RecordIDs()
+		if !hasRecordIDs {
+			return unknownRecordingResponse(), nil
+		}
+	*/
 
 	return notImplementedResponse(), nil
 }
@@ -155,16 +155,18 @@ func (h *RecordingsHandler) UpdateRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	var beRes bbb.Response
+	/*
+		var beRes bbb.Response
 
-	recordIDs, hasRecordIDs := req.Params.RecordIDs()
-	if !hasRecordIDs {
-		return unknownRecordingResponse(), nil
-	}
+		recordIDs, hasRecordIDs := req.Params.RecordIDs()
+		if !hasRecordIDs {
+			return unknownRecordingResponse(), nil
+		}
 
-	for _, recordID := range recordIDs {
+		for _, recordID := range recordIDs {
 
-	}
+		}
+	*/
 
 	return notImplementedResponse(), nil
 }
@@ -175,8 +177,6 @@ func (h *RecordingsHandler) DeleteRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	var beRes bbb.Response
-
 	recordIDs, hasRecordIDs := req.Params.RecordIDs()
 	if !hasRecordIDs {
 		return unknownRecordingResponse(), nil
@@ -204,14 +204,18 @@ func (h *RecordingsHandler) DeleteRecordings(
 		if err := store.DeleteRecordingByID(ctx, tx, recordID); err != nil {
 			return nil, err
 		}
-		beRes = res
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
-	return beRes, nil
+	res := &bbb.DeleteRecordingsResponse{
+		Deleted: true,
+	}
+	res.SetStatus(http.StatusOK)
+
+	return res, nil
 }
 
 // GetRecordingTextTracks will be passed through to the backend
@@ -219,7 +223,7 @@ func (h *RecordingsHandler) GetRecordingTextTracks(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	recordID, _ := req.Params.RecordID()
+	// recordID, _ := req.Params.RecordID()
 	res := notImplementedResponse()
 	return res, nil
 }
@@ -229,7 +233,7 @@ func (h *RecordingsHandler) PutRecordingTextTrack(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	recordID, _ := req.Params.RecordID()
+	// recordID, _ := req.Params.RecordID()
 	res := notImplementedResponse()
 	return res, nil
 }
