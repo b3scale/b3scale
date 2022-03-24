@@ -87,6 +87,22 @@ func TestSign(t *testing.T) {
 	}
 }
 
+func TestParamToMetadata(t *testing.T) {
+	p := Params{
+		"meta_Foo":       "bar",
+		"meta_Presenter": "Pre Senter",
+		"recordID":       "record123",
+	}
+	m := p.ToMetadata()
+	if m["Foo"] != "bar" {
+		t.Error("unexpected:", m["Foo"])
+	}
+
+	if _, ok := m["recordID"]; ok {
+		t.Error("recordID is no meta param")
+	}
+}
+
 func TestVerify(t *testing.T) {
 	// We use the example from the api documentation, now
 	// for validating against a frontend secret.

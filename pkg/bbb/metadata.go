@@ -68,3 +68,15 @@ func (meta Metadata) MarshalXML(
 	}
 	return e.EncodeToken(start.End())
 }
+
+// Update will replace given metadata with new values.
+// If the value is empty, the key will be unset.
+func (meta Metadata) Update(m Metadata) {
+	for k, v := range m {
+		if v == "" {
+			delete(meta, k)
+		} else {
+			meta[k] = v
+		}
+	}
+}

@@ -43,3 +43,28 @@ func TestMetadataMarshalXML(t *testing.T) {
 		t.Error("Unexpected data:", string(data), len(data))
 	}
 }
+
+func TestMetadataUpdate(t *testing.T) {
+  m := Metadata{
+    "Presenter": "Dough Doe",
+    "category": "FINANCE",
+    "TERM": "Fall1994",
+  }
+  u := Metadata{
+    "category": "LEGAL",
+    "TERM": "",
+  }
+  m.Update(u)
+
+  if m["Presenter"] != "Dough Doe" {
+    t.Error("presenter should not have changed")
+  }
+  if m["category"] != "LEGAL" {
+    t.Error("category should have changed, is:", m["category"])
+  }
+  if _, ok := m["TERM"]; ok {
+    t.Error("TERM should have been unset")
+  }
+
+}
+

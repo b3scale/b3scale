@@ -106,6 +106,19 @@ func (p Params) Checksum() (string, bool) {
 	return checksum, ok
 }
 
+// ToMetadata converts meta_ params into Metadata
+func (p Params) ToMetadata() Metadata {
+	m := make(Metadata)
+	for k, v := range p {
+		if !strings.HasPrefix(k, "meta_") {
+			continue
+		}
+		// Strip prefix and set metadata
+		m[k[5:]] = v
+	}
+	return m
+}
+
 // Request is a bbb request as decoded from the
 // incoming url - but can be directly passed on to a
 // BigBlueButton server.
