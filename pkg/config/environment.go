@@ -23,6 +23,7 @@ const (
 	EnvBBBConfig                 = "BBB_CONFIG"
 	EnvPublishedRecordingsPath   = "B3SCALE_PUBLISHED_RECORDINGS_PATH"
 	EnvUnpublishedRecordingsPath = "B3SCALE_UNPUBLISHED_RECORDINGS_PATH"
+	EnvPlaybackBaseURL           = "B3SCALE_PLAYBACK_BASE_URL"
 )
 
 // Defaults

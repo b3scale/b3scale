@@ -195,13 +195,7 @@ func (s *RecordingState) SetTextTracks(
 	tx pgx.Tx,
 	tracks []*bbb.TextTrack,
 ) error {
-	qry := `UPDATE recordings
-		       SET text_track_states = $2,
-			       updated_at        = $3
-			 WHERE record_id         = $1
-	`
-	_, err := tx.Exec(ctx, qry, s.RecordID, tracks, time.Now().UTC())
-	return err
+	return SetRecordingTextTracks(ctx, tx, s.RecordID, tracks)
 }
 
 // DeleteRecordingByID will delete a recording
@@ -236,6 +230,26 @@ func (s *RecordingState) DeleteFiles() error {
 	return os.RemoveAll(path)
 }
 
+// PublishFiles will move the recording from the unpublished
+// directory to the published directory.
+func (s *RecordingState) PublishFiles() error {
+	storage, err := NewRecordingsStorageFromEnv()
+	if err != nil {
+		return err
+	}
+
+	publishedPath := storage.PublishedRecordingPath(s.RecordID)
+	unpublishedPath := storage.UnpublishedRecordingPath(s.RecordID)
+
+	// Check if we are published
+	if _, err := os.Stat(publishedPath); err == nil {
+		return nil // nothing to do here
+	}
+
+	// Move files
+	return os.Rename(unpublishedPath, publishedPath)
+}
+
 // GetRecordingTextTracks retrieves the text tracks from
 // a recording.
 func GetRecordingTextTracks(
@@ -253,4 +267,23 @@ func GetRecordingTextTracks(
 	tracks := []*bbb.TextTrack{}
 	err := tx.QueryRow(ctx, qry, recordID).Scan(&tracks)
 	return tracks, err
+}
+
+// SetRecordingTextTracks updates the text tracks attribute
+// of a recording.
+func SetRecordingTextTracks(
+	ctx context.Context,
+	tx pgx.Tx,
+	recordID string,
+	tracks []*bbb.TextTrack,
+) error {
+	qry := `
+    UPDATE recordings
+	     SET text_track_states = $2,
+	         updated_at        = $3
+     WHERE record_id         = $1
+	`
+	_, err := tx.Exec(
+		ctx, qry, recordID, tracks, time.Now().UTC())
+	return err
 }

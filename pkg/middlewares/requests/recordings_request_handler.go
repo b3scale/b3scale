@@ -2,12 +2,14 @@ package requests
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
 
 	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"gitlab.com/infra.run/public/b3scale/pkg/config"
 	"gitlab.com/infra.run/public/b3scale/pkg/store"
 )
 
@@ -97,6 +99,9 @@ func (h *RecordingsHandler) GetRecordings(
 	}
 	defer tx.Rollback(ctx)
 
+	playbackBaseURL, hasPlaybackBaseURL := config.GetEnvOpt(
+		config.EnvPlaybackBaseURL)
+
 	meetingIDs, hasMeetingIDs := req.Params.MeetingIDs()
 
 	qry := store.QueryRecordingsByFrontendKey(req.Frontend.Key)
@@ -119,6 +124,11 @@ func (h *RecordingsHandler) GetRecordings(
 
 	recordings := make([]*bbb.Recording, 0, len(recordingStates))
 	for _, state := range recordingStates {
+		rec := state.Recording
+		if hasPlaybackBaseURL {
+			rec.SetPlaybackBaseURL(playbackBaseURL)
+		}
+
 		recordings = append(recordings, state.Recording)
 	}
 
@@ -133,20 +143,60 @@ func (h *RecordingsHandler) GetRecordings(
 	return res, nil
 }
 
-// PublishRecordings will lookup a backend for the request
-// and will invoke the backend.
+// PublishRecordings will move recordings from the unpublished
+// directory into the published will update the state.
 func (h *RecordingsHandler) PublishRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	/*
-		recordIDs, hasRecordIDs := req.Params.RecordIDs()
-		if !hasRecordIDs {
+
+	recordIDs, hasRecordIDs := req.Params.RecordIDs()
+	if !hasRecordIDs {
+		return unknownRecordingResponse(), nil
+	}
+
+	conn := store.ConnectionFromContext(ctx)
+
+	for _, id := range recordIDs {
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback(ctx)
+
+		rec, err := store.GetRecordingStateByID(ctx, tx, id)
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
 			return unknownRecordingResponse(), nil
 		}
-	*/
 
-	return notImplementedResponse(), nil
+		if err := rec.PublishFiles(); err != nil {
+			return nil, err
+		}
+
+		// Update state
+		rec.Recording.Published = true
+		if err := rec.Save(ctx, tx); err != nil {
+			return nil, err
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+
+	}
+
+	res := &bbb.PublishRecordingsResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: bbb.RetSuccess,
+		},
+		Published: true,
+	}
+	res.SetStatus(http.StatusOK)
+
+	return res, nil
 }
 
 // UpdateRecordings will lookup a backend for the request
@@ -167,6 +217,10 @@ func (h *RecordingsHandler) UpdateRecordings(
 
 		}
 	*/
+
+	fmt.Println("--------------------- UPDATE RECORDINGS -------------------------")
+	fmt.Println("req:", req.Params)
+	fmt.Println("-----------------------------------------------------------------")
 
 	return notImplementedResponse(), nil
 }
