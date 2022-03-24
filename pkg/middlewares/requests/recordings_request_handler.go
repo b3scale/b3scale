@@ -2,7 +2,6 @@ package requests
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -135,7 +134,7 @@ func (h *RecordingsHandler) GetRecordings(
 	// Create response with all meetings
 	res := &bbb.GetRecordingsResponse{
 		XMLResponse: &bbb.XMLResponse{
-			Returncode: "SUCCESS",
+			Returncode: bbb.RetSuccess,
 		},
 		Recordings: recordings,
 	}
@@ -205,24 +204,48 @@ func (h *RecordingsHandler) UpdateRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	/*
-		var beRes bbb.Response
+	recordIDs, hasRecordIDs := req.Params.RecordIDs()
+	if !hasRecordIDs {
+		return unknownRecordingResponse(), nil
+	}
+	conn := store.ConnectionFromContext(ctx)
+	meta := req.Params.ToMetadata()
 
-		recordIDs, hasRecordIDs := req.Params.RecordIDs()
-		if !hasRecordIDs {
+	for _, recordID := range recordIDs {
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback(ctx)
+
+		rec, err := store.GetRecordingStateByID(ctx, tx, recordID)
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
 			return unknownRecordingResponse(), nil
 		}
+		// Update metadata
+		rec.Recording.Metadata.Update(meta)
 
-		for _, recordID := range recordIDs {
-
+		if err := rec.Save(ctx, tx); err != nil {
+			return nil, err
 		}
-	*/
 
-	fmt.Println("--------------------- UPDATE RECORDINGS -------------------------")
-	fmt.Println("req:", req.Params)
-	fmt.Println("-----------------------------------------------------------------")
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+	}
 
-	return notImplementedResponse(), nil
+	// Create response with all meetings
+	res := &bbb.UpdateRecordingsResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: bbb.RetSuccess,
+		},
+		Updated: true,
+	}
+	res.SetStatus(http.StatusOK)
+	return res, nil
 }
 
 // DeleteRecordings will lookup a backend for the request
