@@ -217,22 +217,23 @@ func DeleteRecordingByID(ctx context.Context, tx pgx.Tx, recordID string) error 
 // Delete will remove a recording from the database.
 // This cascades to associated text tracks.
 func (s *RecordingState) Delete(ctx context.Context, tx pgx.Tx) error {
+	return DeleteRecordingByID(ctx, tx, s.RecordID)
+}
+
+// DeleteFiles will remove the recording from the
+// filesystem.
+func (s *RecordingState) DeleteFiles() error {
 	storage, err := NewRecordingsStorageFromEnv()
 	if err != nil {
 		return err
 	}
 
-	// Remove from filesystem
 	path := storage.PublishedRecordingPath(s.RecordID)
 	if !s.Recording.Published {
 		path = storage.UnpublishedRecordingPath(s.RecordID)
 	}
-	if err := os.RemoveAll(path); err != nil {
-		return err
-	}
 
-	// Remove state
-	return DeleteRecordingByID(ctx, tx, s.RecordID)
+	return os.RemoveAll(path)
 }
 
 // GetRecordingTextTracks retrieves the text tracks from

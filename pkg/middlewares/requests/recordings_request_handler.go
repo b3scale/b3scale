@@ -182,13 +182,15 @@ func (h *RecordingsHandler) DeleteRecordings(
 		return unknownRecordingResponse(), nil
 	}
 
-	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
+	conn := store.ConnectionFromContext(ctx)
 
 	for _, recordID := range recordIDs {
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback(ctx)
+
 		rec, err := store.GetRecordingState(
 			ctx, tx, store.QueryRecordingsByFrontendKey(req.Frontend.Key).
 				Where("recordings.record_id = ?", recordID))
@@ -199,15 +201,19 @@ func (h *RecordingsHandler) DeleteRecordings(
 			return unknownRecordingResponse(), nil
 		}
 
-		// Delete recording state. This will also remove the recording
-		// from the filesystem.
+		// Delete recording state.
 		if err := store.DeleteRecordingByID(ctx, tx, recordID); err != nil {
 			return nil, err
 		}
-	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
+		if err := tx.Commit(ctx); err != nil {
+			return nil, err
+		}
+
+		// Remove from FS
+		if err := rec.DeleteFiles(); err != nil {
+			return nil, err
+		}
 	}
 
 	res := &bbb.DeleteRecordingsResponse{
