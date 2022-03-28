@@ -47,7 +47,7 @@ func (m *RecordingMetadata) ToRecording() *Recording {
 				Type:           m.Playback.Format,
 				URL:            m.Playback.Link,
 				ProcessingTime: m.Playback.ProcessingTime,
-				Length:         m.Playback.Duration / 1000,
+				Length:         m.Playback.Duration / 1000 / 60,
 			},
 		},
 	}
