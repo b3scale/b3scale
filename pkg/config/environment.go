@@ -21,8 +21,9 @@ const (
 	EnvLoadFactor                = "B3SCALE_LOAD_FACTOR"
 	EnvJWTSecret                 = "B3SCALE_API_JWT_SECRET"
 	EnvBBBConfig                 = "BBB_CONFIG"
-	EnvRecordingsPublishedPath   = "B3SCALE_PUBLISHED_RECORDINGS_PATH"
-	EnvRecordingsUnpublishedPath = "B3SCALE_UNPUBLISHED_RECORDINGS_PATH"
+	EnvRecordingsPublishedPath   = "B3SCALE_RECORDINGS_PUBLISHED_PATH"
+	EnvRecordingsUnpublishedPath = "B3SCALE_RECORDINGS_UNPUBLISHED_PATH"
+	EnvRecordingsPlaybackHost    = "B3SCALE_RECORDINGS_PLAYBACK_HOST"
 )
 
 // Defaults
