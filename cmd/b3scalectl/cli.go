@@ -239,6 +239,10 @@ func NewCli() *Cli {
 								Usage:    "a comma separated list of scopes",
 								Required: true,
 							},
+							&cli.StringFlag{
+								Name:  "secret",
+								Usage: "shared secret, if not present read from STDIN",
+							},
 						},
 						Name:   "create_access_token",
 						Usage:  "Create an access token for interacting with the API",
@@ -254,6 +258,8 @@ func NewCli() *Cli {
 // Auth: create access token. Scopes can be passed through
 // options. A "sub" (user id) is required.
 func (c *Cli) createAccessToken(ctx *cli.Context) error {
+	var err error
+
 	sub := ctx.String("sub")
 	scopes := ctx.String("scopes")
 	scopes = strings.Join(strings.Split(scopes, ","), " ")
@@ -264,13 +270,18 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 	fmt.Fprintln(os.Stderr, "     Sub:", sub)
 	fmt.Fprintln(os.Stderr, "  Scopes:", scopes)
 	fmt.Fprintln(os.Stderr, "")
-	fmt.Fprintln(os.Stderr, "Please paste your shared secret.")
-	fmt.Fprintf(os.Stderr, "Secret: ")
-	secret, err := term.ReadPassword(int(syscall.Stdin))
-	if err != nil {
-		return err
+
+	secretStr := ctx.String("secret")
+	secret := []byte(secretStr)
+	if secretStr == "" {
+		fmt.Fprintln(os.Stderr, "Please paste your shared secret.")
+		fmt.Fprintf(os.Stderr, "Secret: ")
+		secret, err = term.ReadPassword(int(syscall.Stdin))
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(os.Stderr, "") // add missing newline
 	}
-	fmt.Fprintln(os.Stderr, "") // add missing newline
 
 	token, err := v1.SignAccessToken(sub, scopes, secret)
 	if err != nil {
