@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -240,4 +241,45 @@ func TestDecodeURLSafeRequest(t *testing.T) {
 	if req1.Request.URL.Query().Get("foo") != "42" {
 		t.Error("unexpected query")
 	}
+}
+
+func TestUpdateHostURL(t *testing.T) {
+	preview := "presentation/f8bedf660bfa3604f9b6c63fe37c8a85d46e8e90-1647280741542/presentation/d7c0bd2c86d5fcf83cdc78dcfbdfc0c83495d17e-1647280741542/thumbnails/thumb-1.png"
+	host := "https://play.bbb.cluster"
+
+	u := updateHostURL(preview, host)
+	if !strings.HasPrefix(u, host) {
+		t.Error("unexpected result:", u)
+	}
+}
+
+func TestSetPlaybackHost(t *testing.T) {
+	host := "https://play.bbb.cluster"
+	rec := &Recording{
+		Formats: []*Format{
+			{
+				URL: "https://9000.cluster.bbb/playback/presentation/2.3/recordingID",
+				Preview: &Preview{
+					Images: &Images{
+						All: []*Image{
+							{
+								URL: "https://9000.cluser.bbb/presentation/f8bedf660bfa3604f9b6c63fe37c8a85andsoforth",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	rec.SetPlaybackHost(host)
+
+	if !strings.HasPrefix(rec.Formats[0].URL, host) {
+		t.Error("unexpected host:", rec.Formats[0].URL)
+	}
+	t.Log("playback:", rec.Formats[0].URL)
+
+	if !strings.HasPrefix(rec.Formats[0].Preview.Images.All[0].URL, host) {
+		t.Error("unexpected host:", rec.Formats[0].Preview.Images.All[0].URL)
+	}
+	t.Log("preview:", rec.Formats[0].Preview.Images.All[0].URL)
 }

@@ -1106,9 +1106,9 @@ type Images struct {
 // Image is a preview image of the format
 type Image struct {
 	XMLName xml.Name `xml:"image"`
-	Alt     string   `xml:"alt,attr"`
-	Height  int      `xml:"height,attr"`
-	Width   int      `xml:"width,attr"`
+	Alt     string   `xml:"alt,attr,omitempty"`
+	Height  int      `xml:"height,attr,omitempty"`
+	Width   int      `xml:"width,attr,omitempty"`
 	URL     string   `xml:",chardata"`
 }
 
