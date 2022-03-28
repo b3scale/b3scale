@@ -39,7 +39,9 @@ func RecordingsImportMeta(c echo.Context) error {
 	}
 	rec := meta.ToRecording()
 
-	// Begin TX
+	// Import thumbnails
+
+	// Save to store
 	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
 	if err != nil {
 		return err

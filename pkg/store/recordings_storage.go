@@ -45,13 +45,13 @@ func NewRecordingsStorageFromEnv() (*RecordingsStorage, error) {
 // PublishedRecordingPath returns the joined filepath
 // for an "id" (this will be the internal meeting id).
 func (s *RecordingsStorage) PublishedRecordingPath(id string) string {
-	return filepath.Join(s.PublishedPath, id)
+	return filepath.Join(s.PublishedPath, "presentation", id)
 }
 
 // UnpublishedRecordingPath returns the joined filepath
 // for an "id" (this will be the internal meeting id).
 func (s *RecordingsStorage) UnpublishedRecordingPath(id string) string {
-	return filepath.Join(s.UnpublishedPath, id)
+	return filepath.Join(s.UnpublishedPath, "presentation", id)
 }
 
 // Check will test if we can access and manipulate the
@@ -82,4 +82,22 @@ func checkPath(path string) error {
 		return err
 	}
 	return nil // yay
+}
+
+// ListThumbnailFiles retrievs all thumbnail files from presentations
+// relative to the published path.
+func (s *RecordingsStorage) ListThumbnailFiles(recordID string) []string {
+	th, _ := filepath.Glob(
+		filepath.Join(
+			s.PublishedRecordingPath(recordID),
+			"presentation", "*", "thumbnails", "*.png"))
+
+	// Strip recording path
+	thumbnails := make([]string, 0, len(th))
+	prefix := s.PublishedRecordingPath(recordID)
+	for _, t := range th {
+		thumbnails = append(thumbnails, t[len(prefix)+1:])
+	}
+
+	return thumbnails
 }
