@@ -45,3 +45,14 @@ func TestRecordingStoreageListThumbnailFiles(t *testing.T) {
 		t.Error("there should be 6 thumbnails, found:", len(thumbnails), thumbnails)
 	}
 }
+
+func TestRecordingsStorageMakeRecordingPreview(t *testing.T) {
+	s := &RecordingsStorage{
+		PublishedPath:   "../../testdata/recordings/published",
+		UnpublishedPath: "../../testdata/recordings/unpublished",
+	}
+	id := "f8bedf660bfa3604f9b6c63fe37c8a85d46e8e90-1647280741542"
+	preview := s.MakeRecordingPreview(id)
+
+	t.Log(preview.Images.All[0].URL)
+}

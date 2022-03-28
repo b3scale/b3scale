@@ -2,9 +2,12 @@ package store
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 
+	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
 	"gitlab.com/infra.run/public/b3scale/pkg/config"
 )
 
@@ -100,4 +103,27 @@ func (s *RecordingsStorage) ListThumbnailFiles(recordID string) []string {
 	}
 
 	return thumbnails
+}
+
+// MakeRecordingPreview will use the thumbnails to create previews
+func (s *RecordingsStorage) MakeRecordingPreview(
+	recordID string,
+) *bbb.Preview {
+	thumbnails := s.ListThumbnailFiles(recordID)
+	images := make([]*bbb.Image, 0, len(thumbnails))
+
+	for i, th := range thumbnails {
+		img := &bbb.Image{
+			URL: path.Join("presentation", recordID, th),
+			Alt: fmt.Sprintf("Thumbnail %02d", i+1),
+		}
+		images = append(images, img)
+	}
+
+	p := &bbb.Preview{
+		Images: &bbb.Images{
+			All: images,
+		},
+	}
+	return p
 }

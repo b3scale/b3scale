@@ -98,8 +98,8 @@ func (h *RecordingsHandler) GetRecordings(
 	}
 	defer tx.Rollback(ctx)
 
-	playbackBaseURL, hasPlaybackBaseURL := config.GetEnvOpt(
-		config.EnvPlaybackBaseURL)
+	playbackHost, hasPlaybackHost := config.GetEnvOpt(
+		config.EnvRecordingsPlaybackHost)
 
 	meetingIDs, hasMeetingIDs := req.Params.MeetingIDs()
 
@@ -124,10 +124,9 @@ func (h *RecordingsHandler) GetRecordings(
 	recordings := make([]*bbb.Recording, 0, len(recordingStates))
 	for _, state := range recordingStates {
 		rec := state.Recording
-		if hasPlaybackBaseURL {
-			rec.SetPlaybackBaseURL(playbackBaseURL)
+		if hasPlaybackHost {
+			rec.SetPlaybackHost(playbackHost)
 		}
-
 		recordings = append(recordings, state.Recording)
 	}
 
