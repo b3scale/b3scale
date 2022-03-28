@@ -277,17 +277,18 @@ func (h *RecordingsHandler) DeleteRecordings(
 			return unknownRecordingResponse(), nil
 		}
 
+		// Remove from FS (this will fail more likely than deleting
+		// the database record, so we do this first in case this fails.
+		if err := rec.DeleteFiles(); err != nil {
+			return nil, err
+		}
+
 		// Delete recording state.
 		if err := store.DeleteRecordingByID(ctx, tx, recordID); err != nil {
 			return nil, err
 		}
 
 		if err := tx.Commit(ctx); err != nil {
-			return nil, err
-		}
-
-		// Remove from FS
-		if err := rec.DeleteFiles(); err != nil {
 			return nil, err
 		}
 	}
