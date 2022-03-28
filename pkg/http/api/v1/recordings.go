@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -40,7 +41,7 @@ func RecordingsImportMeta(c echo.Context) error {
 	}
 	rec := meta.ToRecording()
 
-	// Import thumbnails
+	// Create preview using the provided thumbnails
 	storage, err := store.NewRecordingsStorageFromEnv()
 	if err != nil {
 		log.Error().Err(err).Msg("could not use recordings storage")
@@ -60,6 +61,30 @@ func RecordingsImportMeta(c echo.Context) error {
 	defer tx.Rollback(ctx)
 
 	state := store.StateFromRecording(rec)
+
+	// Check if recording exists, to prevent overriding
+	// metadatachanges from the user.
+	present, err := state.Exists(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if present {
+		return c.JSON(http.StatusOK, rec)
+	}
+
+	// Lookup frontendID for this recording
+	frontendID, ok, err := store.LookupFrontendIDByMeetingID(
+		ctx, tx, state.MeetingID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf(
+			"could not find frontendID for meetingID: %s",
+			state.MeetingID)
+	}
+	state.FrontendID = frontendID
+
 	if err := state.Save(ctx, tx); err != nil {
 		return err
 	}

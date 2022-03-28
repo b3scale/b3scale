@@ -272,7 +272,7 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 	}
 	fmt.Fprintln(os.Stderr, "") // add missing newline
 
-	token, err := v1.SignAdminAccessToken(sub, secret)
+	token, err := v1.SignAccessToken(sub, scopes, secret)
 	if err != nil {
 		return err
 	}

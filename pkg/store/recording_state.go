@@ -134,6 +134,19 @@ func GetRecordingStateByID(
 	return GetRecordingState(ctx, tx, q)
 }
 
+// Exists checks if the recording is already present in
+// in the store.
+func (s *RecordingState) Exists(ctx context.Context, tx pgx.Tx) (bool, error) {
+	r, err := GetRecordingStateByID(ctx, tx, s.RecordID)
+	if err != nil {
+		return false, err
+	}
+	if r == nil {
+		return false, nil
+	}
+	return true, nil
+}
+
 // Save the recording state
 func (s *RecordingState) Save(
 	ctx context.Context,
