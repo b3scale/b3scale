@@ -28,5 +28,5 @@ func maybeSetMetaFrontend(ctx context.Context, req *bbb.Request) {
 	if req.Resource != bbb.ResourceCreate {
 		return // Nothing to do here.
 	}
-	req.Params[bbb.MetaParam("frontend")] = frontend.Key()
+	req.Params[bbb.MetaParam("b3s-frontend")] = frontend.Key()
 }

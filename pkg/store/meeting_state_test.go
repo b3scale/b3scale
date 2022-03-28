@@ -82,7 +82,6 @@ func TestGetMeetingStates(t *testing.T) {
 	if len(states) != 1 {
 		t.Error("expected meeting to be in result set")
 	}
-
 }
 
 func TestMeetingStateSave(t *testing.T) {
@@ -360,5 +359,49 @@ func TestMeetingStateUpsert(t *testing.T) {
 	}
 	if m0.Meeting.Running {
 		t.Error("unexpected meeting running:", m0.Meeting)
+	}
+}
+
+func TestMeetingStateUpdateFrontendMeetingMapping(t *testing.T) {
+	ctx := context.Background()
+	tx := beginTest(ctx, t)
+	defer tx.Rollback(ctx)
+
+	frontend := frontendStateFactory()
+	if err := frontend.Save(ctx, tx); err != nil {
+		t.Fatal(err)
+	}
+
+	m := &MeetingState{
+		ID:         "meeting23421",
+		FrontendID: &frontend.ID,
+	}
+	feID, ok, err := LookupFrontendIDByMeetingID(ctx, tx, m.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ok {
+		t.Error("did not expect meeting id associated with frontend")
+	}
+
+	if err := m.updateFrontendMeetingMapping(ctx, tx); err != nil {
+		t.Error(err)
+	}
+
+	feID, ok, err = LookupFrontendIDByMeetingID(ctx, tx, m.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Error("expected found frontend id")
+	}
+	if feID != frontend.ID {
+		t.Error("unexpected frontend id", feID)
+	}
+
+	// Should be idempotent and safe to call multiple times
+	if err := m.updateFrontendMeetingMapping(ctx, tx); err != nil {
+		t.Error(err)
 	}
 }

@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -24,6 +25,12 @@ const (
 	BackendStateError          = "error"
 	BackendStateStopped        = "stopped"
 	BackendStateDecommissioned = "decommissioned"
+)
+
+var (
+	// ErrRecordingNotFound indicates, that the recording
+	// state could not retrieved.
+	ErrRecordingNotFound = errors.New("recording could not be found")
 )
 
 // A Backend is a BigBlueButton instance in the cluster.
@@ -340,10 +347,8 @@ func meetingStateFromRequest(
 	if !ok {
 		return nil, fmt.Errorf("meetingID required")
 	}
-
 	meetingState, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("id = ?", meetingID))
-
 	return meetingState, err
 }
 
@@ -564,54 +569,6 @@ func (b *Backend) GetMeetings(
 	return res.(*bbb.GetMeetingsResponse), nil
 }
 
-// GetRecordings retrieves a list of recordings
-func (b *Backend) GetRecordings(
-	ctx context.Context,
-	req *bbb.Request,
-) (*bbb.GetRecordingsResponse, error) {
-	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
-	if err != nil {
-		return nil, err
-	}
-	return res.(*bbb.GetRecordingsResponse), nil
-}
-
-// PublishRecordings publishes a recording
-func (b *Backend) PublishRecordings(
-	ctx context.Context,
-	req *bbb.Request,
-) (*bbb.PublishRecordingsResponse, error) {
-	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
-	if err != nil {
-		return nil, err
-	}
-	return res.(*bbb.PublishRecordingsResponse), nil
-}
-
-// DeleteRecordings deletes recordings
-func (b *Backend) DeleteRecordings(
-	ctx context.Context,
-	req *bbb.Request,
-) (*bbb.DeleteRecordingsResponse, error) {
-	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
-	if err != nil {
-		return nil, err
-	}
-	return res.(*bbb.DeleteRecordingsResponse), nil
-}
-
-// UpdateRecordings updates recordings
-func (b *Backend) UpdateRecordings(
-	ctx context.Context,
-	req *bbb.Request,
-) (*bbb.UpdateRecordingsResponse, error) {
-	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
-	if err != nil {
-		return nil, err
-	}
-	return res.(*bbb.UpdateRecordingsResponse), nil
-}
-
 // GetDefaultConfigXML retrieves the default config xml
 func (b *Backend) GetDefaultConfigXML(
 	ctx context.Context,
@@ -636,18 +593,6 @@ func (b *Backend) SetConfigXML(
 	return res.(*bbb.SetConfigXMLResponse), nil
 }
 
-// GetRecordingTextTracks retrievs all text tracks
-func (b *Backend) GetRecordingTextTracks(
-	ctx context.Context,
-	req *bbb.Request,
-) (*bbb.GetRecordingTextTracksResponse, error) {
-	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
-	if err != nil {
-		return nil, err
-	}
-	return res.(*bbb.GetRecordingTextTracksResponse), nil
-}
-
 // PutRecordingTextTrack adds a text track
 func (b *Backend) PutRecordingTextTrack(
 	ctx context.Context,
@@ -658,6 +603,18 @@ func (b *Backend) PutRecordingTextTrack(
 		return nil, err
 	}
 	return res.(*bbb.PutRecordingTextTrackResponse), nil
+}
+
+// GetRecordingTextTracks retrieves the text tracks from a recording
+func (b *Backend) GetRecordingTextTracks(
+	ctx context.Context,
+	req *bbb.Request,
+) (*bbb.GetRecordingTextTracksResponse, error) {
+	res, err := b.client.Do(ctx, req.WithBackend(b.state.Backend))
+	if err != nil {
+		return nil, err
+	}
+	return res.(*bbb.GetRecordingTextTracksResponse), nil
 }
 
 // String stringifies the Backend

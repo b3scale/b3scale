@@ -84,7 +84,7 @@ func (c *Controller) StartBackground() {
 	defer c.mtx.Unlock()
 
 	// Debounce calls to this function
-	if time.Now().Sub(c.lastStartBackground) < 10*time.Second {
+	if time.Since(c.lastStartBackground) < 10*time.Second {
 		return
 	}
 
@@ -123,6 +123,11 @@ func (c *Controller) StartBackground() {
 		log.Error().Err(err).Msg("requestBackendDecommissions")
 	}
 
+	// Do some cleaning like removing old state
+	if err := c.requestCollectGarbage(ctx); err != nil {
+		log.Error().Err(err).Msg("requestCollectGarbage")
+	}
+
 	// Check if there are backends where the noded is
 	// not present.
 	if err := c.warnOfflineBackends(ctx); err != nil {
@@ -152,6 +157,9 @@ func (c *Controller) handleCommand(
 	case CmdEndAllMeetings:
 		log.Debug().Str("cmd", CmdEndAllMeetings).Msg("EXEC")
 		return c.handleEndAllMeetings(ctx, cmd)
+	case CmdCollectGarbage:
+		log.Debug().Str("cmd", CmdCollectGarbage).Msg("EXEC")
+		return c.handleCollectGarbage(ctx)
 	default:
 		return nil, ErrUnknownCommand
 	}
@@ -237,8 +245,7 @@ func (c *Controller) handleUpdateNodeState(
 		return false, fmt.Errorf("backend not found: %s", req.ID)
 	}
 
-	err = backend.refreshNodeState(ctx)
-	if err != nil {
+	if err := backend.refreshNodeState(ctx); err != nil {
 		return false, err
 	}
 
@@ -370,6 +377,30 @@ func (c *Controller) handleEndAllMeetings(
 	return true, nil
 }
 
+// handleCollectGarbage will do maintenance tasks
+// which include clearing stale data
+func (c *Controller) handleCollectGarbage(
+	ctx context.Context,
+) (interface{}, error) {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Clear stale frontend meeting mappings,
+	// older than a week.
+	timeAgo := 7 * 24 * time.Hour
+	th := time.Now().UTC().Add(-timeAgo)
+
+	if err := store.RemoveStaleFrontendMeetings(
+		ctx, tx, th); err != nil {
+		return nil, err
+	}
+
+	return true, nil
+}
+
 // Internal command generators
 
 // requestSyncStaleNodes triggers a background sync of the
@@ -413,6 +444,7 @@ func (c *Controller) requestSyncStaleNodes(ctx context.Context) error {
 	return nil
 }
 
+/*
 // requestSyncStaleMeetings triggers a background sync
 // for meetings that have not been synced in a while.
 func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
@@ -452,6 +484,7 @@ func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
 
 	return nil
 }
+*/
 
 // requestBackendDecommissions will request a decommissioning
 // of a backend for all backends, which admin state is marked
@@ -500,6 +533,28 @@ func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// requestCollectGarbage will dispatch a collect
+// garbage command.
+func (c *Controller) requestCollectGarbage(
+	ctx context.Context,
+) error {
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	log.Debug().
+		Str("cmd", "CollectGarbage").
+		Msg("DISPATCH")
+
+	if err := store.QueueCommand(ctx, tx, CollectGarbage()); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
 
 // warnOfflineBackends iterates through all unlocked

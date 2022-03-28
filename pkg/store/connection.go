@@ -60,13 +60,14 @@ func Connect(opts *ConnectOpts) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO: This should not be done here.
 	if err = AssertDatabaseVersion(p, 1); err != nil {
 		return err
 	}
 
 	// Use pool
 	pool = p
-
 	return nil
 }
 
@@ -98,21 +99,6 @@ func begin(ctx context.Context) (pgx.Tx, error) {
 		return nil, ErrNotInitialized
 	}
 	return pool.Begin(ctx)
-}
-
-// beginFunc executes a function with a transaction and
-// will forward the error. Rollbacks and commits will
-// be handled.
-func beginFunc(ctx context.Context, fn func(pgx.Tx) error) error {
-	tx, err := begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-	if err := fn(tx); err != nil {
-		return err
-	}
-	return tx.Commit(ctx)
 }
 
 // AssertDatabaseVersion tests if the current

@@ -18,6 +18,9 @@ const (
 	// Meetings
 	CmdUpdateMeetingState = "update_meeting_state"
 	CmdEndAllMeetings     = "end_all_meetings"
+
+	// Maintenance
+	CmdCollectGarbage = "collect_garbage"
 )
 
 var (
@@ -85,6 +88,14 @@ func EndAllMeetings(req *EndAllMeetingsRequest) *store.Command {
 	return &store.Command{
 		Action:   CmdEndAllMeetings,
 		Params:   req,
+		Deadline: store.NextDeadline(5 * time.Minute),
+	}
+}
+
+// CollectGarbage requests removing stale states.
+func CollectGarbage() *store.Command {
+	return &store.Command{
+		Action:   CmdCollectGarbage,
 		Deadline: store.NextDeadline(5 * time.Minute),
 	}
 }

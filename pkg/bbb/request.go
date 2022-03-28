@@ -19,6 +19,9 @@ import (
 const (
 	ParamMeetingID = "meetingID"
 	ParamChecksum  = "checksum"
+	ParamRecordID  = "recordID"
+	ParamPublish   = "publish"
+	ParamState     = "state"
 )
 
 var (
@@ -63,6 +66,34 @@ func MetaParam(name string) string {
 // value from the set of params.
 func (p Params) MeetingID() (string, bool) {
 	id, ok := p[ParamMeetingID]
+	return id, ok
+}
+
+// MeetingIDs interprets the MeetingsID parameter
+// as a comma separated set of meeting ids.
+func (p Params) MeetingIDs() ([]string, bool) {
+	val, ok := p.MeetingID()
+	if !ok {
+		return []string{}, false
+	}
+	ids := strings.Split(val, ",")
+	return ids, true
+}
+
+// RecordIDs retrieves the well known recordID param
+// It is always a list interally
+func (p Params) RecordIDs() ([]string, bool) {
+	val, ok := p[ParamRecordID]
+	if !ok {
+		return []string{}, false
+	}
+	ids := strings.Split(val, ",")
+	return ids, true
+}
+
+// RecordID retrievs a single recordID
+func (p Params) RecordID() (string, bool) {
+	id, ok := p[ParamRecordID]
 	if !ok {
 		return "", false
 	}
@@ -72,10 +103,20 @@ func (p Params) MeetingID() (string, bool) {
 // Checksum retrievs the well known checksum param
 func (p Params) Checksum() (string, bool) {
 	checksum, ok := p[ParamChecksum]
-	if !ok {
-		return "", false
+	return checksum, ok
+}
+
+// ToMetadata converts meta_ params into Metadata
+func (p Params) ToMetadata() Metadata {
+	m := make(Metadata)
+	for k, v := range p {
+		if !strings.HasPrefix(k, "meta_") {
+			continue
+		}
+		// Strip prefix and set metadata
+		m[k[5:]] = v
 	}
-	return checksum, true
+	return m
 }
 
 // Request is a bbb request as decoded from the
@@ -93,6 +134,11 @@ type Request struct {
 
 	Backend  *Backend
 	Frontend *Frontend
+}
+
+// String creates a representation of the request
+func (req *Request) String() string {
+	return fmt.Sprintf("%s: %s %s", req.Resource, req.Params, req.Checksum)
 }
 
 // HasBody checks for the presence of a request body
@@ -277,6 +323,87 @@ func IsMeetingRunningRequest(params Params) *Request {
 		Resource: ResourceIsMeetingRunning,
 		Params:   params,
 	}
+}
+
+// GetRecordingsRequest creates a new getRecordings request
+func GetRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceGetRecordings,
+		Params:   params,
+	}
+}
+
+// GetRecordingTextTracksRequest creates a new getRecordingTextTracks request
+func GetRecordingTextTracksRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceGetRecordingTextTracks,
+		Params:   params,
+	}
+}
+
+// UpdateRecordingsRequest creates a new request for updating
+// a recording.
+func UpdateRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceUpdateRecordings,
+		Params:   params,
+	}
+}
+
+// UpdateRecordingRequest creates a request for updating
+// a single recording. CAVEAT: It updates the recordID in params.
+func UpdateRecordingRequest(recordID string, params Params) *Request {
+	params[ParamRecordID] = recordID
+	return UpdateRecordingsRequest(params)
+}
+
+// PublishRecordingsRequest creates a new request for
+// publishing recordings on a backend.
+func PublishRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourcePublishRecordings,
+		Params:   params,
+	}
+}
+
+// PublishRecordingRequest creates a single publish
+// request for a recording.
+// CAVEAT: Mutates the parameters by asserting the recordID is
+// set to the given recordID.
+func PublishRecordingRequest(recordID string, params Params) *Request {
+	params[ParamRecordID] = recordID
+	return PublishRecordingsRequest(params)
+}
+
+// DeleteRecordingsRequest creates a request deleting recordings
+// from a backend.
+func DeleteRecordingsRequest(params Params) *Request {
+	return &Request{
+		Request: &http.Request{
+			Method: http.MethodGet,
+		},
+		Resource: ResourceDeleteRecordings,
+		Params:   params,
+	}
+}
+
+// DeleteRecordingRequest creates a request for deleting a
+// single recording. CAVEAT: Updates the params's recordID.
+func DeleteRecordingRequest(recordID string, params Params) *Request {
+	params[ParamRecordID] = recordID
+	return DeleteRecordingsRequest(params)
 }
 
 // Internal calculate checksum with a given secret.

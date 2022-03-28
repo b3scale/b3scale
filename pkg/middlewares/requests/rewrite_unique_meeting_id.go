@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 
@@ -128,16 +129,23 @@ func rewriteUniqueMeetingIDHandler(next cluster.RequestHandler) cluster.RequestH
 // Warning: this mutates the request. We'll change this
 // if it actually becomes a problem.
 func rewriteUniqueMeetingIDRequest(req *bbb.Request) *bbb.Request {
-	meetingID, ok := req.Params.MeetingID()
+	meetingID, _ := req.Params.MeetingID()
+	meetingIDs, ok := req.Params.MeetingIDs()
 	if !ok {
 		return req // nothing to do here.
 	}
 	frontendKey := req.Frontend.Key
 
-	// Encode key and secret
-	fkmid := (&FrontendKeyMeetingID{
-		FrontendKey: frontendKey,
-		MeetingID:   meetingID}).EncodeToString()
+	fkmids := make([]string, 0, len(meetingIDs))
+	for _, id := range meetingIDs {
+		// Encode key and secret
+		fkmid := (&FrontendKeyMeetingID{
+			FrontendKey: frontendKey,
+			MeetingID:   id}).EncodeToString()
+		fkmids = append(fkmids, fkmid)
+	}
+
+	fkmid := strings.Join(fkmids, ",")
 
 	log.Debug().
 		Str("frontendKey", frontendKey).

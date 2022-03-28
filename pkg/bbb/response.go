@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 var (
@@ -41,6 +42,8 @@ type Response interface {
 
 	Status() int
 	SetStatus(int)
+
+	IsSuccess() bool
 }
 
 // A XMLResponse from the server
@@ -115,6 +118,12 @@ func (res *XMLResponse) Status() int {
 // SetStatus sets the HTTP response status code
 func (res *XMLResponse) SetStatus(s int) {
 	res.status = s
+}
+
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *XMLResponse) IsSuccess() bool {
+	return res.Returncode == RetSuccess
 }
 
 // CreateResponse is the resonse for the `create` API resource.
@@ -712,6 +721,12 @@ func (res *GetDefaultConfigXMLResponse) SetStatus(s int) {
 	res.SetStatus(s)
 }
 
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *GetDefaultConfigXMLResponse) IsSuccess() bool {
+	return true
+}
+
 // SetConfigXMLResponse encodes the result of setting the config
 type SetConfigXMLResponse struct {
 	*XMLResponse
@@ -834,6 +849,12 @@ func (res *GetRecordingTextTracksResponse) SetStatus(s int) {
 	res.status = s
 }
 
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *GetRecordingTextTracksResponse) IsSuccess() bool {
+	return res.Returncode == RetSuccess
+}
+
 // PutRecordingTextTrackResponse is the response when uploading
 // a text track. Response is in JSON.
 type PutRecordingTextTrackResponse struct {
@@ -886,6 +907,12 @@ func (res *PutRecordingTextTrackResponse) Status() int {
 // SetStatus sets the HTTP response status code
 func (res *PutRecordingTextTrackResponse) SetStatus(s int) {
 	res.status = s
+}
+
+// IsSuccess checks if the returncode of the response
+// is 'SUCCESS'.
+func (res *PutRecordingTextTrackResponse) IsSuccess() bool {
+	return res.Returncode == RetSuccess
 }
 
 // Breakout info
@@ -1017,6 +1044,43 @@ type Recording struct {
 	Formats           []*Format `xml:"playback>format"`
 }
 
+// updateHostURL replaces the host and schema of a URL
+func updateHostURL(target, base string) string {
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return target // nothing we can do here
+	}
+
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		return target // same
+	}
+
+	targetURL.Scheme = baseURL.Scheme
+	targetURL.Host = baseURL.Host
+
+	return targetURL.String()
+}
+
+// SetPlaybackHost will update the link to the presentation
+// and preview thumbnails
+func (r *Recording) SetPlaybackHost(host string) {
+	for _, f := range r.Formats {
+
+		// Update recording host
+		f.URL = updateHostURL(f.URL, host)
+
+		if f.Preview == nil || f.Preview.Images == nil {
+			continue
+		}
+
+		// Update preview host
+		for _, img := range f.Preview.Images.All {
+			img.URL = updateHostURL(img.URL, host)
+		}
+	}
+}
+
 // Format contains a link to the playable media
 type Format struct {
 	XMLName        xml.Name `xml:"format"`
@@ -1042,9 +1106,10 @@ type Images struct {
 // Image is a preview image of the format
 type Image struct {
 	XMLName xml.Name `xml:"image"`
-	Alt     string   `xml:"alt,attr"`
-	Height  int      `xml:"height,attr"`
-	Width   int      `xml:"width,attr"`
+	Alt     string   `xml:"alt,attr,omitempty"`
+	Height  int      `xml:"height,attr,omitempty"`
+	Width   int      `xml:"width,attr,omitempty"`
+	URL     string   `xml:",chardata"`
 }
 
 // TextTrack of a Recording

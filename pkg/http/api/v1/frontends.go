@@ -13,13 +13,14 @@ import (
 // to the cluster or within the user scope.
 func FrontendsList(c echo.Context) error {
 	ctx := c.(*APIContext)
-	ref := ctx.FilterAccountRef()
+	ref := ctx.FilterAccountRef() // This will limit the scope to the `sub`
 	reqCtx := ctx.Ctx()
 
 	q := store.Q()
 
 	// Apply filters
 	if ref != nil {
+		// this should only be the case if admin
 		q = q.Where("account_ref = ?", *ref)
 	}
 	queryKey := c.QueryParam("key")

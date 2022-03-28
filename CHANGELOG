@@ -1,4 +1,34 @@
 
+
+0.15.0: `recordings` table requires an additional field `record_id`.
+
+    ALTER TABLE recordings DROP COLUMN id CASCADE;
+    ALTER TABLE recordings ADD COLUMN record_id VARCHAR(255) NOT NULL PRIMARY KEY;
+
+    ALTER TABLE recordings ADD COLUMN frontend_id uuid NOT NULL REFERENCES frontends(id) ON DELETE CASCADE;
+    ALTER TABLE recordings DROP COLUMN backend_id CASCADE;
+
+
+    ALTER TABLE recordings DROP COLUMN internal_meeting_id;
+    ALTER TABLE recordings ADD COLUMN internal_meeting_id VARCHAR(255);
+    ALTER TABLE recordings ADD COLUMN meeting_id VARCHAR(255);
+
+    ALTER TABLE recordings ADD COLUMN text_track_states jsonb NOT NULL DEFAULT '[]';
+
+    CREATE INDEX idx_recordings_meeting_id ON recordings (meeting_id);
+    CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_id);
+
+    DROP TABLE recording_text_tracks;
+
+    -- A frontend meetings table is required
+    CREATE TABLE frontend_meetings (
+        frontend_id uuid NOT NULL REFERENCES frontends(id) ON DELETE CASCADE,
+        meeting_id  VARCHAR(255) NOT NULL UNIQUE,
+        seen_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+
+
 0.1.0 Initial Release
 
 0.1.1 First Tag

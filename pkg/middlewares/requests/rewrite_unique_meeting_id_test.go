@@ -54,6 +54,25 @@ func TestRewriteUniqueMeetingIDRequest(t *testing.T) {
 	}
 }
 
+func TestRewriteUniqueMeetingIDsRequest(t *testing.T) {
+	req := &bbb.Request{
+		Params: bbb.Params{
+			bbb.ParamMeetingID: "meetingID23,meetingID42",
+		},
+		Frontend: &bbb.Frontend{
+			Key: "frontend42",
+		},
+	}
+
+	req1 := rewriteUniqueMeetingIDRequest(req)
+
+	mids, _ := req1.Params.MeetingIDs()
+	if mids[0] == "meetingID23" {
+		t.Error("expected a changed meeting ID")
+	}
+	t.Log(mids)
+}
+
 func TestMaybeDecodeMeetingID(t *testing.T) {
 	id := "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd"
 	id1 := maybeDecodeMeetingID(id)

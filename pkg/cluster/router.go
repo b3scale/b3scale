@@ -95,7 +95,7 @@ func (r *Router) SelectBackend(
 	return backends[0], nil
 }
 
-// LookupBackend will retriev a backend or will fail
+// LookupBackend will retrieve a backend or will fail
 // if the backend could not be found. Primary identifier
 // is the MeetingID of the request.
 // When no backend is found, this will not fail, however
@@ -132,5 +132,36 @@ func (r *Router) LookupBackend(
 		Str("meetingID", meetingID).
 		Str("backend", backend.state.Backend.Host).
 		Msg("found backend for meetingID")
+	return backend, nil
+}
+
+// LookupBackendForRecordID uses the recordID to identify
+// a backend via the recordings state table.
+func (r *Router) LookupBackendForRecordID(
+	ctx context.Context,
+	recordID string,
+) (*Backend, error) {
+	log.Debug().
+		Str("recordID", recordID).
+		Msg("lookupBackendForRecordID")
+
+	// Lookup backend for meeting in cluster, use backend
+	// if there is one associated.
+	backend, err := GetBackend(ctx, store.Q().
+		Join("recordings ON recordings.backend_id = backends.id").
+		Where("recordings.record_id = ?", recordID))
+	if err != nil {
+		return nil, err
+	}
+	if backend == nil {
+		log.Warn().
+			Str("recordID", recordID).
+			Msg("no backend for recordID")
+		return nil, nil
+	}
+	log.Debug().
+		Str("recordID", recordID).
+		Str("backend", backend.state.Backend.Host).
+		Msg("found backend for recordID")
 	return backend, nil
 }

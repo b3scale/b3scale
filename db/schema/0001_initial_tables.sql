@@ -97,8 +97,26 @@ CREATE INDEX idx_frontends_account_ref ON frontends
  USING HASH ( account_ref );
   
 
--- The store tables: `meetings`, `recordings`,
--- `recording_text_tracks` hold the shared state
+-- Frontend Meetings:
+-- We need to keep track of meeting IDs associated with
+-- a frontend for associating recordings with the proper
+-- frontend even after the meeting (state) is already gone
+-- and not longer present on a backend.
+CREATE TABLE frontend_meetings (
+    frontend_id uuid         NOT NULL
+                REFERENCES   frontends(id)
+                ON DELETE    CASCADE,
+
+    meeting_id  VARCHAR(255) NOT NULL UNIQUE,
+
+    -- For housekeeping we should track if this
+    -- is recent data or can maybe be deleted.
+    seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- Meetings:
+-- The store tables: `meetings`, `recordings`, the shared state
 -- between instances. 
 --
 -- Please note that the primary source of truth
@@ -137,41 +155,28 @@ CREATE TABLE meetings (
 -- a foreign key relation exists to improve querying.
 CREATE TABLE recordings (
     -- The BBB record ID
-    id      uuid    PRIMARY KEY,
     state   jsonb   NOT NULL,
 
-    -- Relations
-    backend_id uuid NOT NULL
-               REFERENCES backends(id)
-               ON DELETE CASCADE,
-    
-    internal_meeting_id VARCHAR(255) NOT NULL
-               REFERENCES meetings(internal_id)
-               ON DELETE CASCADE,
+    text_track_states jsonb NOT NULL DEFAULT '[]',
 
-    -- Timestamps
-    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- RecordingTextTracks are associated with recordings
--- meetings through a foreign key relation for querying.
-CREATE TABLE recording_text_tracks (
-    -- The BBB record ID
-    id      uuid                    PRIMARY KEY,
-    state   jsonb     NOT NULL,
+    record_id  VARCHAR(255) NOT NULL PRIMARY KEY,
 
     -- Relations
-    record_id   uuid  NOT NULL
-                REFERENCES recordings(id)
+    frontend_id uuid NOT NULL
+                REFERENCES frontends(id)
                 ON DELETE CASCADE,
 
+    meeting_id          VARCHAR(255) NOT NULL,
+    internal_meeting_id VARCHAR(255) NOT NULL,
+
     -- Timestamps
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     synced_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_recordings_meeting_id ON recordings (meeting_id);
+CREATE INDEX idx_recordings_internal_meeting_id ON recordings (internal_meeting_id);
 
 
 -- Commands state transition between requested

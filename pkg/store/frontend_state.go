@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -45,14 +46,14 @@ func GetFrontendStates(
 	q sq.SelectBuilder,
 ) ([]*FrontendState, error) {
 	qry, params, _ := q.Columns(
-		"id",
-		"key",
-		"secret",
-		"active",
-		"settings",
-		"account_ref",
-		"created_at",
-		"updated_at").
+		"frontends.id",
+		"frontends.key",
+		"frontends.secret",
+		"frontends.active",
+		"frontends.settings",
+		"frontends.account_ref",
+		"frontends.created_at",
+		"frontends.updated_at").
 		From("frontends").
 		ToSql()
 	rows, err := tx.Query(ctx, qry, params...)
@@ -195,4 +196,45 @@ func (s *FrontendState) Validate() ValidationError {
 		return err
 	}
 	return nil
+}
+
+// LookupFrontendIDByMeetingID queries the frontend_meetings
+// mapping and returns the frontendID for a given meetingID.
+// The function name might be a hint.
+func LookupFrontendIDByMeetingID(
+	ctx context.Context,
+	tx pgx.Tx,
+	meetingID string,
+) (string, bool, error) {
+	var frontendID string
+
+	qry := `
+		SELECT frontend_id FROM frontend_meetings
+		 WHERE meeting_id = $1
+	`
+
+	err := tx.QueryRow(ctx, qry, meetingID).Scan(&frontendID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+
+	return frontendID, true, nil
+}
+
+// RemoveStaleFrontendMeetings removes all frontend
+// meetings older than a threshold.
+func RemoveStaleFrontendMeetings(
+	ctx context.Context,
+	tx pgx.Tx,
+	t time.Time,
+) error {
+	qry := `
+		DELETE FROM frontend_meetings
+		 WHERE seen_at < $1
+	`
+	_, err := tx.Exec(ctx, qry, t)
+	return err
 }

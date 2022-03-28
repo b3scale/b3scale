@@ -30,7 +30,7 @@ started in 2020 to provide multiple features not possible before:
 
 To discuss the principal design of b3scale, consider the following schematic:
 
-![b3scale architecture](docs/b3scale-architecture.png)
+![b3scale architecture](doc/b3scale-architecture.png)
 
 b3scale services different *frontends*. Those can be standard apps such as
 Greenlight, Nextcloud or Moodle, but can also really be anything that implements
@@ -63,7 +63,7 @@ b3scale in an inexpensive, resource conserving fashion.
 
 ## API documentation
 
-Please find the API documentation in the [REST API](docs/rest_api.md) file.
+Please find the API documentation in the [REST API](doc/rest_api.md) file.
 
 ## Configuration
 
@@ -133,7 +133,24 @@ The load factor of the backend can be set through:
     You can set the jwt claim `scope` to `b3scale:admin` to create
     an admin token.
 
-    TOKEN=`pyjwt --key=fooo encode sub="123456789" scope="b3scale b3scale:admin"`
+    TOKEN=`pyjwt --key=$B3SCALE_API_JWT_SECRET encode sub="123456789" scope="b3scale b3scale:admin b3scale:node"`
+
+    For convenience you can generate an access token using `b3scalectl`:
+
+        b3scalectl auth create_access_token --sub node42 --scopes b3scale,b3scale:admin,b3scale:node
+
+    You are then prompted to paste the `B3SCALE_API_JWT_SECRET`.
+
+    You can pass the secret through the --secret longopt - however this is discouraged
+    because it might end up in the shell history. Be careful.
+ 
+ * `B3SCALE_RECORDINGS_PUBLISHED_PATH` required if recordings are supported: This points to
+    the shared path where published recordings are.
+
+ * `B3SCALE_RECORDINGS_UNPUBLISHED_PATH` not sure. I guess unpublished recordings. whatever.
+
+ * `B3SCALE_RECORDINGS_PLAYBACK_HOST` path to host with the player.
+   For example: https://playback.mycluster.example.bbb/
 
 ## Adding Backends
 
