@@ -13,8 +13,8 @@ var (
 	// the environment variables for the published and unpublished
 	// recording path are missing.
 	ErrRecordingsStorageUnconfigured = errors.New(
-		"environment for " + config.EnvPublishedRecordingsPath + " or " +
-			config.EnvUnpublishedRecordingsPath + " is not set")
+		"environment for " + config.EnvRecordingsPublishedPath + " or " +
+			config.EnvRecordingsUnpublishedPath + " is not set")
 )
 
 // RecordingsStorage is handleing the filesystem access
@@ -27,11 +27,11 @@ type RecordingsStorage struct {
 // NewRecordingsStorageFromEnv creates a new recordings storage
 // instance and configures it through well known environment variables.
 func NewRecordingsStorageFromEnv() (*RecordingsStorage, error) {
-	publishedPath, ok := config.GetEnvOpt(config.EnvPublishedRecordingsPath)
+	publishedPath, ok := config.GetEnvOpt(config.EnvRecordingsPublishedPath)
 	if !ok {
 		return nil, ErrRecordingsStorageUnconfigured
 	}
-	unpublishedPath, ok := config.GetEnvOpt(config.EnvUnpublishedRecordingsPath)
+	unpublishedPath, ok := config.GetEnvOpt(config.EnvRecordingsUnpublishedPath)
 	if !ok {
 		return nil, ErrRecordingsStorageUnconfigured
 	}
@@ -92,7 +92,7 @@ func (s *RecordingsStorage) ListThumbnailFiles(recordID string) []string {
 			s.PublishedRecordingPath(recordID),
 			"presentation", "*", "thumbnails", "*.png"))
 
-	// Strip recording path
+	// Strip base path
 	thumbnails := make([]string, 0, len(th))
 	prefix := s.PublishedRecordingPath(recordID)
 	for _, t := range th {

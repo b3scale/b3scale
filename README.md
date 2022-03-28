@@ -69,13 +69,13 @@ The load factor of the backend can be set through:
 
     TOKEN=`pyjwt --key=$B3SCALE_API_JWT_SECRET encode sub="123456789" scope="b3scale b3scale:admin b3scale:node"`
  
- * `B3SCALE_PUBLISHED_RECORDINGS_PATH` required if recordings are supported: This points to
+ * `B3SCALE_RECORDINGS_PUBLISHED_PATH` required if recordings are supported: This points to
     the shared path where published recordings are.
 
- * `B3SCALE_UNPUBLISHED_RECORDINGS_PATH` not sure. I guess unpublished recordings. whatever.
+ * `B3SCALE_RECORDINGS_UNPUBLISHED_PATH` not sure. I guess unpublished recordings. whatever.
 
- * `B3SCALE_RECORDINGS_PLAYBACK_URL` path to the player script.
-   For example: https://playback.mycluster.example.bbb/2.3/
+ * `B3SCALE_RECORDINGS_PLAYBACK_HOST` path to host with the player.
+   For example: https://playback.mycluster.example.bbb
 
 
 ## Adding Backends

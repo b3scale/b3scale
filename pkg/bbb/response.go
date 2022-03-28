@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path"
+	"net/url"
 )
 
 var (
@@ -1044,12 +1044,40 @@ type Recording struct {
 	Formats           []*Format `xml:"playback>format"`
 }
 
-// SetPlaybackBaseURL will update the link to the presentation
-// for each format.
-func (r *Recording) SetPlaybackBaseURL(url string) {
+// updateHostURL replaces the host and schema of a URL
+func updateHostURL(target, base string) string {
+	baseURL, err := url.Parse(base)
+	if err != nil {
+		return target // nothing we can do here
+	}
+
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		return target // same
+	}
+
+	targetURL.Scheme = baseURL.Scheme
+	targetURL.Host = baseURL.Host
+
+	return targetURL.String()
+}
+
+// SetPlaybackHost will update the link to the presentation
+// and preview thumbnails
+func (r *Recording) SetPlaybackHost(host string) {
 	for _, f := range r.Formats {
-		_, id := path.Split(f.URL)
-		f.URL = path.Join(url, id)
+
+		// Update recording host
+		f.URL = updateHostURL(f.URL, host)
+
+		if f.Preview == nil || f.Preview.Images == nil {
+			continue
+		}
+
+		// Update preview host
+		for _, img := range f.Preview.Images.All {
+			img.URL = updateHostURL(img.URL, host)
+		}
 	}
 }
 
