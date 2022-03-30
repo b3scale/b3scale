@@ -152,6 +152,7 @@ func (h *RecordingsHandler) PublishRecordings(
 	if !hasRecordIDs {
 		return unknownRecordingResponse(), nil
 	}
+	publish, _ := req.Params.Publish()
 
 	conn := store.ConnectionFromContext(ctx)
 
@@ -170,12 +171,18 @@ func (h *RecordingsHandler) PublishRecordings(
 			return unknownRecordingResponse(), nil
 		}
 
-		if err := rec.PublishFiles(); err != nil {
-			return nil, err
+		if publish {
+			if err := rec.PublishFiles(); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := rec.UnpublishFiles(); err != nil {
+				return nil, err
+			}
 		}
 
 		// Update state
-		rec.Recording.Published = true
+		rec.Recording.Published = publish
 		if err := rec.Save(ctx, tx); err != nil {
 			return nil, err
 		}

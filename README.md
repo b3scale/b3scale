@@ -145,9 +145,13 @@ The load factor of the backend can be set through:
     because it might end up in the shell history. Be careful.
  
  * `B3SCALE_RECORDINGS_PUBLISHED_PATH` required if recordings are supported: This points to
-    the shared path where published recordings are.
+   the shared path where published recordings are.
+   Example: `/ceph/recordings/published`
 
- * `B3SCALE_RECORDINGS_UNPUBLISHED_PATH` not sure. I guess unpublished recordings. whatever.
+ * `B3SCALE_RECORDINGS_UNPUBLISHED_PATH` recordings are moved here, when unpublished
+   Please note that in both directories the subfolder for the format should
+   be present. (e.g. `/ceph/recordings/unpublished/presentation`)
+   Example: `/ceph/recordings/unpublished`
 
  * `B3SCALE_RECORDINGS_PLAYBACK_HOST` path to host with the player.
    For example: https://playback.mycluster.example.bbb/

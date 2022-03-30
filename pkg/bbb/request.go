@@ -106,6 +106,18 @@ func (p Params) Checksum() (string, bool) {
 	return checksum, ok
 }
 
+// Publish retrieves the well known recording publish parameter
+func (p Params) Publish() (bool, bool) {
+	p, ok := p[ParamPublish]
+	if !ok {
+		return false, false
+	}
+	if p == "true" {
+		return true, true
+	}
+	return false, true
+}
+
 // ToMetadata converts meta_ params into Metadata
 func (p Params) ToMetadata() Metadata {
 	m := make(Metadata)
