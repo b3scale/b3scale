@@ -243,6 +243,17 @@ func (s *RecordingState) DeleteFiles() error {
 	return os.RemoveAll(path)
 }
 
+// Helper: move recording files
+func moveRecordingFiles(src, dst string) error {
+	// Check if we are already present
+	if _, err := os.Stat(dst); err == nil {
+		return nil // nothing to do here
+	}
+
+	// Move files
+	return os.Rename(src, dst)
+}
+
 // PublishFiles will move the recording from the unpublished
 // directory to the published directory.
 func (s *RecordingState) PublishFiles() error {
@@ -250,17 +261,21 @@ func (s *RecordingState) PublishFiles() error {
 	if err != nil {
 		return err
 	}
-
 	publishedPath := storage.PublishedRecordingPath(s.RecordID)
 	unpublishedPath := storage.UnpublishedRecordingPath(s.RecordID)
+	return moveRecordingFiles(unpublishedPath, publishedPath)
+}
 
-	// Check if we are published
-	if _, err := os.Stat(publishedPath); err == nil {
-		return nil // nothing to do here
+// UnpublishFiles will move the recording from the published
+// directory to the unpublished directory.
+func (s *RecordingState) UnpublishFiles() error {
+	storage, err := NewRecordingsStorageFromEnv()
+	if err != nil {
+		return err
 	}
-
-	// Move files
-	return os.Rename(unpublishedPath, publishedPath)
+	publishedPath := storage.PublishedRecordingPath(s.RecordID)
+	unpublishedPath := storage.UnpublishedRecordingPath(s.RecordID)
+	return moveRecordingFiles(publishedPath, unpublishedPath)
 }
 
 // GetRecordingTextTracks retrieves the text tracks from

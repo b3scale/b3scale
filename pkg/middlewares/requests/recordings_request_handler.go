@@ -102,9 +102,11 @@ func (h *RecordingsHandler) GetRecordings(
 		config.EnvRecordingsPlaybackHost)
 
 	meetingIDs, hasMeetingIDs := req.Params.MeetingIDs()
+	publishedStates, hasStatesFilter := req.Params.States()
 
 	qry := store.QueryRecordingsByFrontendKey(req.Frontend.Key)
 
+	// Filter recordings by set of meeting IDs
 	if hasMeetingIDs {
 		filterMIDs := sq.Or{}
 		for _, mid := range meetingIDs {
@@ -113,6 +115,34 @@ func (h *RecordingsHandler) GetRecordings(
 			})
 		}
 		qry = qry.Where(filterMIDs)
+	}
+
+	// Filter by states
+	if hasStatesFilter {
+		any := false
+		for _, s := range publishedStates {
+			if s == "any" { // I hate the api specs.
+				any = true
+			}
+		}
+		if !any {
+			filterStates := sq.Or{}
+			// this also kind of does not make sense...
+			for _, s := range publishedStates {
+				pub := false
+				if s == "published" {
+					pub = true
+				} else {
+					if s != "unpublished" {
+						continue // skip
+					}
+				}
+				filterStates = append(filterStates, sq.Eq{
+					"recordings.state -> 'published'": pub,
+				})
+			}
+			qry = qry.Where(filterStates)
+		}
 	}
 
 	recordingStates, err := store.GetRecordingStates(ctx, tx, qry)

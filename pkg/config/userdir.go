@@ -14,7 +14,7 @@ import (
 
 var (
 	// ReMatchUnsafe matches everything not a-z, A-Z, 0-9
-	// minus and underscore from a string.
+	// and '.' from a string.
 	ReMatchUnsafe = regexp.MustCompile(`[^a-zA-Z0-9.]`)
 
 	// ReMatchUnderscoreSeq matches underscore sequences

@@ -108,14 +108,26 @@ func (p Params) Checksum() (string, bool) {
 
 // Publish retrieves the well known recording publish parameter
 func (p Params) Publish() (bool, bool) {
-	p, ok := p[ParamPublish]
+	pub, ok := p[ParamPublish]
 	if !ok {
 		return false, false
 	}
-	if p == "true" {
+	if pub == "true" {
 		return true, true
 	}
 	return false, true
+}
+
+// States retrievs a set of states from the `state` param.
+// The parameter state can be used to filter results.
+// It can be a set of states separate by commas.
+func (p Params) States() ([]string, bool) {
+	val, ok := p[ParamRecordID]
+	if !ok {
+		return []string{}, false
+	}
+	ids := strings.Split(val, ",")
+	return ids, true
 }
 
 // ToMetadata converts meta_ params into Metadata
