@@ -1,8 +1,22 @@
 package store
 
 import (
+	"regexp"
+
 	sq "github.com/Masterminds/squirrel"
 )
+
+var (
+	// ReMatchParamSQLUnsafe will match anything
+	// NOT a-Z, 0-9 and '_'.
+	ReMatchParamSQLUnsafe = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+)
+
+// SQLSafeParam will remove any unsafe chars from
+// a param potentially used without parameter binding.
+func SQLSafeParam(p string) string {
+	return ReMatchParamSQLUnsafe.ReplaceAllString(p, "")
+}
 
 // NewQuery creates a new query
 func NewQuery() sq.SelectBuilder {
