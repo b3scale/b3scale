@@ -37,6 +37,10 @@ const (
 
 	// StateUnpublished is the state of an unpublished recording
 	StateUnpublished = "unpublished"
+
+	// StateAny indicates that a recording may be in any state.
+	// This is intended for querying.
+	StateAny = "any"
 )
 
 // Response interface

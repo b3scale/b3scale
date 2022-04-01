@@ -122,7 +122,7 @@ func (p Params) Publish() (bool, bool) {
 // The parameter state can be used to filter results.
 // It can be a set of states separate by commas.
 func (p Params) States() ([]string, bool) {
-	val, ok := p[ParamRecordID]
+	val, ok := p[ParamState]
 	if !ok {
 		return []string{}, false
 	}
