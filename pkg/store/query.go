@@ -8,8 +8,8 @@ import (
 
 var (
 	// ReMatchParamSQLUnsafe will match anything
-	// NOT a-Z, 0-9 and '_'.
-	ReMatchParamSQLUnsafe = regexp.MustCompile(`[^a-zA-Z0-9_]`)
+	// NOT a-Z, 0-9, '_' and '-'.
+	ReMatchParamSQLUnsafe = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 )
 
 // SQLSafeParam will remove any unsafe chars from
