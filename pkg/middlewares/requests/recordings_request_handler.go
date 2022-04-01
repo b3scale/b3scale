@@ -2,6 +2,7 @@ package requests
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	sq "github.com/Masterminds/squirrel"
@@ -86,8 +87,95 @@ func RecordingsRequestHandler(
 	}
 }
 
+// GetRecordings filters: filter by state
+func maybeFilterRecordingStates(
+	qry sq.SelectBuilder,
+	params bbb.Params,
+) sq.SelectBuilder {
+	states, ok := params.States()
+	if !ok {
+		return qry
+	}
+
+	filters := sq.Or{}
+	for _, s := range states {
+		if s == bbb.StateAny {
+			return qry // nothing to filter
+		}
+		filters = append(filters, sq.Eq{
+			"recordings.state -> 'state'": s,
+		})
+	}
+
+	return qry.Where(filters)
+}
+
+// GetRecordings filters: filter by meeting ids
+func maybeFilterRecordingMeetingIDs(
+	qry sq.SelectBuilder,
+	params bbb.Params,
+) sq.SelectBuilder {
+	meetingIDs, ok := params.MeetingIDs()
+	if !ok {
+		return qry // nothing to do here
+	}
+	filters := sq.Or{}
+	for _, mid := range meetingIDs {
+		filters = append(filters, sq.Eq{
+			"recordings.meeting_id": mid,
+		})
+	}
+	return qry.Where(filters)
+}
+
+// GetRecordings filters: filter by set of recordID.
+// The recordID can also be used as a wildcard by including
+// only the first characters in the string. I interpret this
+// as a 'LIKE' query...
+func maybeFilterRecordingIDs(
+	qry sq.SelectBuilder,
+	params bbb.Params,
+) sq.SelectBuilder {
+	recordIDs, ok := params.RecordIDs()
+	if !ok {
+		return qry
+	}
+	filters := sq.Or{}
+	for _, rid := range recordIDs {
+		filters = append(filters, sq.Like{
+			"recordings.record_id": rid + "%",
+		})
+	}
+	return qry.Where(filters)
+}
+
+// GetRecordings filters: filter by metadata
+func maybeFilterRecordingMeta(
+	qry sq.SelectBuilder,
+	params bbb.Params,
+) sq.SelectBuilder {
+	meta := params.ToMetadata()
+	if len(meta) == 0 {
+		return qry
+	}
+	filters := sq.And{}
+	for k, v := range meta {
+		filters = append(filters, sq.Eq{
+			fmt.Sprintf(
+				"recordings.state -> 'metadata' -> '%s'",
+				store.SQLSafeParam(k)): v,
+		})
+	}
+	return qry.Where(filters)
+}
+
 // GetRecordings will retrieve all recordings for
-// the given frontend instance.
+// the given frontend instance. The use of 'state' might be
+// a bit confusing here:
+// In the database, 'state' refers to the attribute holding the
+// acutual recording JSON object.
+// A recording itself can also have a state attribute
+// (like published, unpublished).
 func (h *RecordingsHandler) GetRecordings(
 	ctx context.Context,
 	req *bbb.Request,
@@ -101,55 +189,19 @@ func (h *RecordingsHandler) GetRecordings(
 	playbackHost, hasPlaybackHost := config.GetEnvOpt(
 		config.EnvRecordingsPlaybackHost)
 
-	meetingIDs, hasMeetingIDs := req.Params.MeetingIDs()
-	publishedStates, hasStatesFilter := req.Params.States()
-
 	qry := store.QueryRecordingsByFrontendKey(req.Frontend.Key)
 
-	// Filter recordings by set of meeting IDs
-	if hasMeetingIDs {
-		filterMIDs := sq.Or{}
-		for _, mid := range meetingIDs {
-			filterMIDs = append(filterMIDs, sq.Eq{
-				"recordings.meeting_id": mid,
-			})
-		}
-		qry = qry.Where(filterMIDs)
-	}
-
-	// Filter by states
-	if hasStatesFilter {
-		any := false
-		for _, s := range publishedStates {
-			if s == "any" { // I hate the api specs.
-				any = true
-			}
-		}
-		if !any {
-			filterStates := sq.Or{}
-			// this also kind of does not make sense...
-			for _, s := range publishedStates {
-				pub := false
-				if s == "published" {
-					pub = true
-				} else {
-					if s != "unpublished" {
-						continue // skip
-					}
-				}
-				filterStates = append(filterStates, sq.Eq{
-					"recordings.state -> 'published'": pub,
-				})
-			}
-			qry = qry.Where(filterStates)
-		}
-	}
+	// Apply filters to query: The API supports search by
+	// meetingIDs, states, recordIDs and metadata.
+	qry = maybeFilterRecordingIDs(qry, req.Params)
+	qry = maybeFilterRecordingMeetingIDs(qry, req.Params)
+	qry = maybeFilterRecordingStates(qry, req.Params)
+	qry = maybeFilterRecordingMeta(qry, req.Params)
 
 	recordingStates, err := store.GetRecordingStates(ctx, tx, qry)
 	if err != nil {
 		return nil, err
 	}
-	tx.Rollback(ctx)
 
 	recordings := make([]*bbb.Recording, 0, len(recordingStates))
 	for _, state := range recordingStates {
@@ -177,14 +229,13 @@ func (h *RecordingsHandler) PublishRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
+	conn := store.ConnectionFromContext(ctx)
 
 	recordIDs, hasRecordIDs := req.Params.RecordIDs()
 	if !hasRecordIDs {
 		return unknownRecordingResponse(), nil
 	}
 	publish, _ := req.Params.Publish()
-
-	conn := store.ConnectionFromContext(ctx)
 
 	for _, id := range recordIDs {
 		tx, err := conn.Begin(ctx)
@@ -205,29 +256,30 @@ func (h *RecordingsHandler) PublishRecordings(
 			if err := rec.PublishFiles(); err != nil {
 				return nil, err
 			}
+			rec.Recording.State = bbb.StatePublished
+			rec.Recording.Published = true
 		} else {
 			if err := rec.UnpublishFiles(); err != nil {
 				return nil, err
 			}
+			rec.Recording.State = bbb.StateUnpublished
+			rec.Recording.Published = false
 		}
 
-		// Update state
-		rec.Recording.Published = publish
+		// Persist changes
 		if err := rec.Save(ctx, tx); err != nil {
 			return nil, err
 		}
-
 		if err := tx.Commit(ctx); err != nil {
 			return nil, err
 		}
-
 	}
 
 	res := &bbb.PublishRecordingsResponse{
 		XMLResponse: &bbb.XMLResponse{
 			Returncode: bbb.RetSuccess,
 		},
-		Published: true,
+		Published: publish,
 	}
 	res.SetStatus(http.StatusOK)
 
@@ -290,12 +342,12 @@ func (h *RecordingsHandler) DeleteRecordings(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
+	conn := store.ConnectionFromContext(ctx)
+
 	recordIDs, hasRecordIDs := req.Params.RecordIDs()
 	if !hasRecordIDs {
 		return unknownRecordingResponse(), nil
 	}
-
-	conn := store.ConnectionFromContext(ctx)
 
 	for _, recordID := range recordIDs {
 		tx, err := conn.Begin(ctx)
@@ -334,26 +386,25 @@ func (h *RecordingsHandler) DeleteRecordings(
 		Deleted: true,
 	}
 	res.SetStatus(http.StatusOK)
-
 	return res, nil
 }
 
-// GetRecordingTextTracks will be passed through to the backend
+// GetRecordingTextTracks seems to be not implemented
+// currently in scalelite. We will try to figure out later
+// what is actually supposed to be going on here.
 func (h *RecordingsHandler) GetRecordingTextTracks(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	// recordID, _ := req.Params.RecordID()
 	res := notImplementedResponse()
 	return res, nil
 }
 
-// PutRecordingTextTrack will be passed through to the backend
+// PutRecordingTextTrack will also be implemented later.
 func (h *RecordingsHandler) PutRecordingTextTrack(
 	ctx context.Context,
 	req *bbb.Request,
 ) (bbb.Response, error) {
-	// recordID, _ := req.Params.RecordID()
 	res := notImplementedResponse()
 	return res, nil
 }
