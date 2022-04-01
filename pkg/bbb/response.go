@@ -24,12 +24,19 @@ var (
 )
 
 const (
-
 	// RetSuccess is the success return code
 	RetSuccess = "SUCCESS"
 
 	// RetFailed is the failure return code
 	RetFailed = "FAILED"
+)
+
+const (
+	// StatePublished is the state of recording, when published
+	StatePublished = "published"
+
+	// StateUnpublished is the state of an unpublished recording
+	StateUnpublished = "unpublished"
 )
 
 // Response interface
