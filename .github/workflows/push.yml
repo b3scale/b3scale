@@ -1,0 +1,53 @@
+
+#
+# Github Workflow for testing the application
+#
+
+name: Test
+
+on: [ push, workflow_dispatch ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # Install Go
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.16.x'
+
+      # Formatting
+      - name: Check formatting
+        run: |
+          test -z $(gofmt -l ./pkg)
+          test -z $(gofmt -l ./cmd)
+
+      # Vet
+      - name: Vet
+        run: |
+          go vet ./pkg/...
+          go vet ./cmd/...
+
+      # Lint
+      - name: Lint
+        run: |
+          go install golang.org/x/lint/golint@latest
+          golint -set_exit_status ./pkg/...
+          golint -set_exit_status ./cmd/...
+
+      # Setup test environment
+      - name: Setup Tests
+        working-directory: ./dev
+        run: |
+          docker-compose up -d
+          docker-compose exec -T postgres psql -U postgres -c 'DROP DATABASE IF EXISTS b3scale_test'
+          docker-compose exec -T postgres psql -U postgres -c 'CREATE DATABASE b3scale_test'
+          docker-compose exec -T postgres psql -U postgres -d b3scale_test < ../db/schema/*.sql
+
+      # Run Tests
+      - name: Tests
+        run: make test
