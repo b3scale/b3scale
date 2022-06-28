@@ -53,15 +53,7 @@ b3scalenoded_static:
 .PHONY: clean test
 
 test:
-	cd pkg/cluster && go test
-	cd pkg/config && go test
-	cd pkg/store && go test
-	cd pkg/bbb && go test
-	cd pkg/http && go test
-	cd pkg/http/api/v1 && go test
-	cd pkg/templates && go test
-	cd pkg/middlewares/requests && go test
-	cd pkg/middlewares/routing && go test
+	go test ./pkg/...
 
 clean:
 	rm -f cmd/b3scaled/b3scaled
