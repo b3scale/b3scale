@@ -58,6 +58,7 @@ jobs:
           PGHOST: localhost
           PGPORT: 5432
           PGUSER: postgres
+          PGPASSWORD: postgres
         run: |
           psql -c 'DROP DATABASE IF EXISTS b3scale_test'
           psql -c 'CREATE DATABASE b3scale_test'
