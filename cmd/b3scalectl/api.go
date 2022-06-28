@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/urfave/cli/v2"
 	"github.com/b3scale/b3scale/pkg/config"
 	v1 "github.com/b3scale/b3scale/pkg/http/api/v1"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
 )
 
