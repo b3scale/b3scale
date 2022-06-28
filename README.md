@@ -1,5 +1,9 @@
 # B3scale
 
+[![Test](https://github.com/b3scale/b3scale/actions/workflows/main.yml/badge.svg)](https://github.com/b3scale/b3scale/actions/workflows/main.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/b3scale/b3scale)](https://goreportcard.com/report/github.com/b3scale/b3scale)
+
+
 An efficient multi tenant load balancer for BigBlueButton.
 
 ## About
