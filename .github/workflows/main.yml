@@ -52,12 +52,16 @@ jobs:
           golint -set_exit_status ./pkg/...
           golint -set_exit_status ./cmd/...
 
-      # Setup test environment
-      - name: Setup Tests
+      # Test environment
+      - name: Setup Test Database
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
         run: |
-          psql -U postgres -c 'DROP DATABASE IF EXISTS b3scale_test'
-          psql -U postgres -c 'CREATE DATABASE b3scale_test'
-          psql -U postgres -d b3scale_test < ./db/schema/*.sql
+          psql -c 'DROP DATABASE IF EXISTS b3scale_test'
+          psql -c 'CREATE DATABASE b3scale_test'
+          psql -d b3scale_test < ./db/schema/*.sql
 
       # Run Tests
       - name: Tests
