@@ -11,6 +11,19 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v3
 
@@ -41,13 +54,16 @@ jobs:
 
       # Setup test environment
       - name: Setup Tests
-        working-directory: ./dev
         run: |
-          docker-compose up -d
-          docker-compose exec -T postgres psql -U postgres -c 'DROP DATABASE IF EXISTS b3scale_test'
-          docker-compose exec -T postgres psql -U postgres -c 'CREATE DATABASE b3scale_test'
-          docker-compose exec -T postgres psql -U postgres -d b3scale_test < ../db/schema/*.sql
+          psql -U postgres -c 'DROP DATABASE IF EXISTS b3scale_test'
+          psql -U postgres -c 'CREATE DATABASE b3scale_test'
+          psql -U postgres -d b3scale_test < ./db/schema/*.sql
 
       # Run Tests
       - name: Tests
         run: make test
+
+      # Cleanup
+      - name: Cleanup
+        run: docker-compose down
+        working-directory: ./dev
