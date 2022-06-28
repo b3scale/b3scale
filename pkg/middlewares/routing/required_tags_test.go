@@ -3,7 +3,7 @@ package routing
 import (
 	"testing"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/cluster"
 )
 
 func TestFilterRequiredTags(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/bbb"
 )
 
 // RecordingState holds a recording and its relation to a

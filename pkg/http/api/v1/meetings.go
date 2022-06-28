@@ -7,8 +7,8 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // The backend is either identified by ID or by

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/bbb"
 )
 
 // Tests for recording states

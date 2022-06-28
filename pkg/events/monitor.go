@@ -10,7 +10,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/bbb"
 )
 
 // Errors

@@ -7,9 +7,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // BackendsList will list all frontends known

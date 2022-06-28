@@ -14,12 +14,12 @@ import (
 	"github.com/ziflex/lecho/v2"
 	"golang.org/x/net/http2"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
-	"gitlab.com/infra.run/public/b3scale/pkg/metrics"
-	"gitlab.com/infra.run/public/b3scale/pkg/templates"
+	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http/api/v1"
+	"github.com/b3scale/b3scale/pkg/metrics"
+	"github.com/b3scale/b3scale/pkg/templates"
 )
 
 const (

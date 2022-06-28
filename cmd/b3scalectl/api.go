@@ -5,8 +5,8 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v2"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	v1 "gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
+	"github.com/b3scale/b3scale/pkg/config"
+	v1 "github.com/b3scale/b3scale/pkg/http/api/v1"
 	"golang.org/x/term"
 )
 

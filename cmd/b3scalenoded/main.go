@@ -9,11 +9,11 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/events"
-	"gitlab.com/infra.run/public/b3scale/pkg/logging"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/events"
+	"github.com/b3scale/b3scale/pkg/logging"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // Flags and parameters

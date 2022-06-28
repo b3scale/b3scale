@@ -7,8 +7,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/config"
 )
 
 var (

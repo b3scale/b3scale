@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/config"
 )
 
 func banner() {

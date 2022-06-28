@@ -22,8 +22,8 @@ ifneq ($(VENDOR), false)
   CFLAGS += -mod=vendor
 endif
 
-LDFLAGS := -X gitlab.com/infra.run/public/b3scale/pkg/config.Version=$(VERSION) \
-		   -X gitlab.com/infra.run/public/b3scale/pkg/config.Build=$(BUILD)
+LDFLAGS := -X github.com/b3scale/b3scale/pkg/config.Version=$(VERSION) \
+		   -X github.com/b3scale/b3scale/pkg/config.Build=$(BUILD)
 LDFLAGS_STATIC := $(LDFLAGS) -extldflags "-static"
 
 

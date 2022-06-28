@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 func TestSortBackendByLoad(t *testing.T) {

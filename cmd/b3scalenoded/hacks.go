@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // Errors

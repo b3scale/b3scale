@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/bbb"
 )
 
 func meetingStateFactory(

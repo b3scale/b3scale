@@ -11,7 +11,7 @@ import (
 	"path"
 	"strings"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // Client is an interface to the v1 API.

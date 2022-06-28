@@ -5,13 +5,13 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	"gitlab.com/infra.run/public/b3scale/pkg/http"
-	"gitlab.com/infra.run/public/b3scale/pkg/logging"
-	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/requests"
-	"gitlab.com/infra.run/public/b3scale/pkg/middlewares/routing"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http"
+	"github.com/b3scale/b3scale/pkg/logging"
+	"github.com/b3scale/b3scale/pkg/middlewares/requests"
+	"github.com/b3scale/b3scale/pkg/middlewares/routing"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 func main() {

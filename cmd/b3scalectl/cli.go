@@ -12,10 +12,10 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/config"
-	v1 "gitlab.com/infra.run/public/b3scale/pkg/http/api/v1"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/config"
+	v1 "github.com/b3scale/b3scale/pkg/http/api/v1"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // RetNoChange indicates the return code, that no

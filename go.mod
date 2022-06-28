@@ -1,4 +1,4 @@
-module gitlab.com/infra.run/public/b3scale
+module github.com/b3scale/b3scale
 
 go 1.16
 

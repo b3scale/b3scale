@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 func CreateTestMeeting(backend *store.BackendState) (*store.MeetingState, error) {

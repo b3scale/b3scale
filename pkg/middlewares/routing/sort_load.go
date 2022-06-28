@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"gitlab.com/infra.run/public/b3scale/pkg/bbb"
-	"gitlab.com/infra.run/public/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/cluster"
 )
 
 // BackendsByLoad wraps a backends collection for sorting
