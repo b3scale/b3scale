@@ -227,9 +227,9 @@ Metrics are exported in a `prometheus` compatible format under `/metrics`.
 ## Bug reports and Contributions
 
 If you discover a problem with b3scale or have a feature request, please open a
-[bug report](https://gitlab.com/infra.run/public/b3scale/-/issues/new). Please
+[bug report](https://github.com/b3scale/b3scale/issues/new). Please
 check the [existing
-issues](https://gitlab.com/infra.run/public/b3scale/-/issues) before reporting
+issues](https://github.com/b3scale/b3scale/issues) before reporting
 new ones. Do not start work on new features without prior discussion. This
 helps us to coordinate development efforts. Once your feature is discussed,
 please file a merge request for the `develop` branch. Merge requests to
