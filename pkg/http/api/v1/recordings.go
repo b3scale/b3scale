@@ -5,10 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
-	"github.com/rs/zerolog/log"
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/store"
+	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
 )
 
 // Errors
