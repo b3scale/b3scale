@@ -20,6 +20,7 @@ func main() {
 	if chk := config.EnvOpt(config.EnvDbURL, "unconfigured"); chk == "unconfigured" {
 		config.LoadEnv([]string{
 			".env",
+			"/etc/default/b3scale",
 			"/etc/sysconfig/b3scale",
 		})
 	}
