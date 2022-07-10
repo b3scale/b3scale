@@ -24,6 +24,6 @@ type FrontendSettings struct {
 	RequiredTags        Tags                         `json:"required_tags,omitempty"`
 	DefaultPresentation *DefaultPresentationSettings `json:"default_presentation,omitempty"`
 
-	CreateDefaultParams  bbb.Params `json:"create_default_params"`
-	CreateOverrideParams bbb.Params `json:"create_override_params"`
+	CreateDefaultParams  bbb.Params `json:"create_default_params,omitempty"`
+	CreateOverrideParams bbb.Params `json:"create_override_params,omitempty"`
 }
