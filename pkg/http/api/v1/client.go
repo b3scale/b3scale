@@ -30,6 +30,9 @@ type Client interface {
 	FrontendUpdate(
 		ctx context.Context, frontend *store.FrontendState,
 	) (*store.FrontendState, error)
+	FrontendUpdateRaw(
+		ctx context.Context, id string, payload []byte,
+	) (*store.FrontendState, error)
 	FrontendDelete(
 		ctx context.Context, frontend *store.FrontendState,
 	) (*store.FrontendState, error)
@@ -45,6 +48,9 @@ type Client interface {
 	) (*store.BackendState, error)
 	BackendUpdate(
 		ctx context.Context, backend *store.BackendState,
+	) (*store.BackendState, error)
+	BackendUpdateRaw(
+		ctx context.Context, id string, payload []byte,
 	) (*store.BackendState, error)
 	BackendDelete(
 		ctx context.Context, backend *store.BackendState,
@@ -240,17 +246,16 @@ func (c *JWTClient) FrontendCreate(
 	return frontend, err
 }
 
-// FrontendUpdate PATCHes an already existing frontend.
-func (c *JWTClient) FrontendUpdate(
-	ctx context.Context, frontend *store.FrontendState,
+// FrontendUpdateRaw PATCHes an already existing frontend
+// identified by ID using raw payload.
+func (c *JWTClient) FrontendUpdateRaw(
+	ctx context.Context,
+	id string,
+	payload []byte,
 ) (*store.FrontendState, error) {
-	payload, err := json.Marshal(frontend)
-	if err != nil {
-		return nil, err
-	}
 	body := bytes.NewBuffer(payload)
 	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPatch, c.apiURL("frontends/"+frontend.ID, nil), body)
+		ctx, http.MethodPatch, c.apiURL("frontends/"+id, nil), body)
 	if err != nil {
 		return nil, err
 	}
@@ -263,9 +268,20 @@ func (c *JWTClient) FrontendUpdate(
 	if !httpSuccess(res) {
 		return nil, APIErrorFromResponse(res)
 	}
-	frontend = &store.FrontendState{}
+	frontend := &store.FrontendState{}
 	err = readJSONResponse(res, frontend)
 	return frontend, err
+}
+
+// FrontendUpdate PATCHes an already existing frontend.
+func (c *JWTClient) FrontendUpdate(
+	ctx context.Context, frontend *store.FrontendState,
+) (*store.FrontendState, error) {
+	payload, err := json.Marshal(frontend)
+	if err != nil {
+		return nil, err
+	}
+	return c.FrontendUpdateRaw(ctx, frontend.ID, payload)
 }
 
 // FrontendDelete removes a frontend from the cluster.
@@ -362,17 +378,16 @@ func (c *JWTClient) BackendCreate(
 	return backend, err
 }
 
-// BackendUpdate updates the backend
-func (c *JWTClient) BackendUpdate(
-	ctx context.Context, backend *store.BackendState,
+// BackendUpdateRaw updates an existing backend
+// identified by ID with a raw JSON payload.
+func (c *JWTClient) BackendUpdateRaw(
+	ctx context.Context,
+	id string,
+	payload []byte,
 ) (*store.BackendState, error) {
-	payload, err := json.Marshal(backend)
-	if err != nil {
-		return nil, err
-	}
 	body := bytes.NewBuffer(payload)
 	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPatch, c.apiURL("backends/"+backend.ID, nil), body)
+		ctx, http.MethodPatch, c.apiURL("backends/"+id, nil), body)
 	if err != nil {
 		return nil, err
 	}
@@ -385,9 +400,20 @@ func (c *JWTClient) BackendUpdate(
 	if !httpSuccess(res) {
 		return nil, APIErrorFromResponse(res)
 	}
-	backend = &store.BackendState{}
+	backend := &store.BackendState{}
 	err = readJSONResponse(res, backend)
 	return backend, err
+}
+
+// BackendUpdate updates the backend
+func (c *JWTClient) BackendUpdate(
+	ctx context.Context, backend *store.BackendState,
+) (*store.BackendState, error) {
+	payload, err := json.Marshal(backend)
+	if err != nil {
+		return nil, err
+	}
+	return c.BackendUpdateRaw(ctx, backend.ID, payload)
 }
 
 // BackendDelete removes a backend from the cluster
