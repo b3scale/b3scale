@@ -73,9 +73,11 @@ func main() {
 	recordingsStorage, err := store.NewRecordingsStorageFromEnv()
 	if err != nil {
 		log.Error().Err(err).Msg("could not initialize recordings storage")
-	}
-	if err := recordingsStorage.Check(); err != nil {
-		log.Error().Err(err).Msg("recordings storage error")
+		log.Error().Msg("recording feature is not available")
+	} else {
+		if err := recordingsStorage.Check(); err != nil {
+			log.Error().Err(err).Msg("recordings storage error")
+		}
 	}
 
 	// Initialize cluster
