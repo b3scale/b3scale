@@ -147,6 +147,13 @@ The load factor of the backend can be set through:
 
     You can pass the secret through the --secret longopt - however this is discouraged
     because it might end up in the shell history. Be careful.
+
+    In case your `b3scalectl` responds with
+
+        3:43PM FTL this is fatal error="message: invalid or expired jwt"
+
+    remove the access token in `~/.config/b3scale/<host>.access_token`
+
  
  * `B3SCALE_RECORDINGS_PUBLISHED_PATH` required if recordings are supported: This points to
    the shared path where published recordings are.
