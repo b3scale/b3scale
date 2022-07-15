@@ -22,6 +22,8 @@ const (
 	ParamRecordID  = "recordID"
 	ParamPublish   = "publish"
 	ParamState     = "state"
+
+	ParamDisabledFeatures = "disabledFeatures"
 )
 
 var (
