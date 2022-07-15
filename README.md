@@ -265,7 +265,7 @@ Setting `create_default_params` or `create_override_params` is always
 a replacement of the current value. If `null` is provided, the configuration
 key will be unset.
 
-    b3scalectl set frontend -j '{"create_override_params": null, "create_default_params": null}' frontend1;
+    b3scalectl set frontend -j '{"create_override_params": null, "create_default_params": null}' frontend1
 
 ## Monitoring
 
