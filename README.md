@@ -214,10 +214,10 @@ It will be permanently deleted after the last session was closed.
 ## Middleware Configuration
 
 The middlewares can be configured using b3scalectl or via API calls.
-
-### Basic b3scalectl usage
-
 A property value will be interpreted as JSON.
+
+### Configure tagged routing
+
 
     b3scalectl set backend -j '{"tags": ["asdf", "foo", "bar"]}' https://backend23/
     b3scalectl set frontend -j '{"required_tags": ["asdf"]}' frontend1
@@ -232,16 +232,40 @@ Unset a value with explicit null:
 
 ### Configure create parameter *defaults* and *overrides*
 
-An *override* value will replace the parameter of the request.
+An *override* will replace the parameter of the request.
 
-A *default* value is added to the request parameters if not present.
+A *default* is added to the request parameters if not present.
 In case of `disabledFeatures`, the list coming from the request
-will be amended with the defaults, if not present.
+will be amended with the defaults. If no disabledFeatures are
+provided from the frontend, the defaults will be used.
 
-Overrides are applied before defaults, so you can clear
-the list of `disabledFeatures` before setting the defaults
-if required.
+All parameter values are strings and need to be encoded
+according to the specifications in 
+https://docs.bigbluebutton.org/dev/api.html#create
 
+Some examples:
+
+Set a default logo (if not present) and force some disabled features.
+Addional disabled features from the frontend will be preserved.
+
+    b3scalectl set frontend -j '{"create_default_params": {"logo": "logoURL", "disabledFeatures": "chat,captions"}}' frontend1
+
+
+Force disable recordings:
+
+    b3scalectl set frontend -j '{"create_override_params": {"allowStartStopRecording": "false", "autoStartRecording": "false"}}' frontend1
+
+
+Set disabledFeatures, ignoring requested disabled features from the frontend:
+
+    b3scalectl set frontend -j '{"create_override_params": {"disabledFeatures": "captions"}}' frontend1
+
+
+Setting `create_default_params` or `create_override_params` is always
+a replacement of the current value. If `null` is provided, the configuration
+key will be unset.
+
+    b3scalectl set frontend -j '{"create_override_params": null, "create_default_params": null}' frontend1;
 
 ## Monitoring
 
