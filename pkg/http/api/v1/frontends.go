@@ -181,6 +181,7 @@ func FrontendDestroy(c echo.Context) error {
 		}
 	}
 
+	// New transaction for deleting the frontend
 	tx, err = store.ConnectionFromContext(cctx).Begin(cctx)
 	if err := frontend.Delete(cctx, tx); err != nil {
 		return err
