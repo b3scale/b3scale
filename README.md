@@ -213,7 +213,10 @@ It will be permanently deleted after the last session was closed.
 
 ## Middleware Configuration
 
-The middlewares can be configured using b3scalectl:
+The middlewares can be configured using b3scalectl or via API calls.
+
+### Basic b3scalectl usage
+
 A property value will be interpreted as JSON.
 
     b3scalectl set backend -j '{"tags": ["asdf", "foo", "bar"]}' https://backend23/
@@ -223,9 +226,22 @@ Unset a value with explicit null:
 
     b3scalectl set frontend -j '{"required_tags": null}' frontend1
 
-Configure a default presentation:
+### Configure a default presentation
 
     b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
+
+### Configure create parameter *defaults* and *overrides*
+
+An *override* value will replace the parameter of the request.
+
+A *default* value is added to the request parameters if not present.
+In case of `disabledFeatures`, the list coming from the request
+will be amended with the defaults, if not present.
+
+Overrides are applied before defaults, so you can clear
+the list of `disabledFeatures` before setting the defaults
+if required.
+
 
 ## Monitoring
 
