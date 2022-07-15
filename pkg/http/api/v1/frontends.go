@@ -142,15 +142,49 @@ func FrontendDestroy(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-
 	if frontend == nil {
 		return echo.ErrNotFound
 	}
 
-	if err := frontend.Delete(cctx, tx); err != nil {
+	// Get all related recordings
+	recordings, err := store.GetRecordingStates(
+		cctx, tx, store.Q().Where("frontend_id = ?", id))
+	if err != nil {
 		return err
 	}
 
+	if err := tx.Commit(cctx); err != nil {
+		return err
+	}
+
+	// Delete recordings
+	for _, rec := range recordings {
+		tx, err := store.ConnectionFromContext(cctx).Begin(cctx)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback(cctx)
+
+		// Remove from FS (this will fail more likely than deleting
+		// the database record, so we do this first in case this fails.
+		if err := rec.DeleteFiles(); err != nil {
+			return err
+		}
+
+		// Delete recording state.
+		if err := rec.Delete(cctx, tx); err != nil {
+			return err
+		}
+
+		if err := tx.Commit(cctx); err != nil {
+			return err
+		}
+	}
+
+	tx, err = store.ConnectionFromContext(cctx).Begin(cctx)
+	if err := frontend.Delete(cctx, tx); err != nil {
+		return err
+	}
 	if err := tx.Commit(cctx); err != nil {
 		return err
 	}
