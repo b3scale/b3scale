@@ -84,13 +84,13 @@ func main() {
 	ctrl := cluster.NewController()
 
 	// Create router and configure middlewares.
-	// The middlewares are executes in reverse order.
+	// IMPORTANT: The middlewares are executed in reverse order.
 	router := cluster.NewRouter(ctrl)
 	router.Use(routing.SortLoad)
 	router.Use(routing.RequiredTags)
 
 	// Start cluster request handler, and apply middlewares.
-	// The middlewares are executes in reverse order.
+	// IMPORTANT: The middlewares are executed in reverse order.
 	gateway := cluster.NewGateway(ctrl, &cluster.GatewayOptions{})
 
 	gateway.Use(requests.AdminRequestHandler(router))
@@ -103,6 +103,7 @@ func main() {
 
 	gateway.Use(requests.SetMetaFrontend())
 	gateway.Use(requests.SetDefaultPresentation())
+	gateway.Use(requests.SetCreateParams())
 	gateway.Use(requests.BindMeetingFrontend())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 
