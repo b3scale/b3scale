@@ -1,25 +1,25 @@
 package v1
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
 
-	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // The backend is either identified by ID or by
 // hostname. The hostname must be an exact match.
 func backendFromRequest(
-	c echo.Context,
+	ctx context.Context,
+	api *APIContext,
 	tx pgx.Tx,
 ) (*store.BackendState, error) {
-	ctx := c.(*APIContext)
-	id := strings.TrimSpace(c.QueryParam("backend_id"))
-	host := strings.TrimSpace(c.QueryParam("backend_host"))
+	id := strings.TrimSpace(api.QueryParam("backend_id"))
+	host := strings.TrimSpace(api.QueryParam("backend_host"))
 
 	hasQuery := false
 	q := store.Q()
@@ -35,28 +35,27 @@ func backendFromRequest(
 		return nil, echo.ErrBadRequest
 	}
 
-	backend, err := store.GetBackendState(ctx.Ctx(), tx, q)
+	backend, err := store.GetBackendState(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
-
 	return backend, nil
 }
 
-// BackendMeetingsList will retrieve all meetings for a
-// given backend_id.
-func BackendMeetingsList(c echo.Context) error {
-	ctx := c.(*APIContext)
-	cctx := ctx.Ctx()
-
+// apiMeetingsList will retrieve all meetings within the scope
+// of a given backend identified by ID.
+func apiMeetingsList(
+	ctx context.Context,
+	api *APIContext,
+) error {
 	// Begin TX
-	tx, err := store.ConnectionFromContext(cctx).Begin(cctx)
+	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(cctx)
+	defer tx.Rollback(ctx)
 
-	backend, err := backendFromRequest(c, tx)
+	backend, err := backendFromRequest(ctx, api, tx)
 	if err != nil {
 		return err
 	}
@@ -67,8 +66,8 @@ func BackendMeetingsList(c echo.Context) error {
 
 	// Begin Query
 	q := store.Q().Where("backend_id = ?", backend.ID)
-	meetings, err := store.GetMeetingStates(cctx, tx, q)
-	return c.JSON(http.StatusOK, meetings)
+	meetings, err := store.GetMeetingStates(ctx, tx, q)
+	return api.JSON(http.StatusOK, meetings)
 }
 
 // BackendMeetingsEndResponse is the result of the end
@@ -78,6 +77,7 @@ func BackendMeetingsList(c echo.Context) error {
 
 // BackendMeetingsEnd will stop all meetings for a
 // given backend_id.
+/*
 func BackendMeetingsEnd(c echo.Context) error {
 	ctx := c.(*APIContext)
 	cctx := ctx.Ctx()
@@ -112,3 +112,4 @@ func BackendMeetingsEnd(c echo.Context) error {
 	// Make response
 	return c.JSON(http.StatusAccepted, cmd)
 }
+*/

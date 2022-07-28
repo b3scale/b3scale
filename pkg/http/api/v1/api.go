@@ -17,6 +17,7 @@ import (
 	// old repo of the jwt module.
 	// "github.com/golang-jwt/jwt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
@@ -35,26 +36,22 @@ var (
 // APIContext extends the context and provides methods
 // for handling the current user.
 type APIContext struct {
-	echo.Context
-}
+	// Authorization
+	Scopes []string
+	Ref    string
 
-// Release will free any acquired resources of this context
-func (ctx *APIContext) Release() {
-	conn := store.ConnectionFromContext(ctx.Ctx())
-	if conn != nil {
-		conn.Release()
-	}
+	// Database
+	Conn *pgxpool.Conn
+
+	echo.Context
 }
 
 // HasScope checks if the authentication scope claim
 // contains a scope by name.
 // The scope claim is a space separated list of scopes
 // according to RFC8693, Section 4.2, (OAuth 2).
-func (ctx *APIContext) HasScope(s string) (found bool) {
-	user := ctx.Get("user").(*jwt.Token)
-	claims := user.Claims.(*APIAuthClaims)
-	scopes := strings.Split(claims.Scope, " ")
-	for _, sc := range scopes {
+func (api *APIContext) HasScope(s string) (found bool) {
+	for _, sc := range api.Scopes {
 		if sc == s {
 			return true
 		}
@@ -62,36 +59,87 @@ func (ctx *APIContext) HasScope(s string) (found bool) {
 	return false
 }
 
-// AccountRef retrievs the subject from the JWT
-// as the account reference.
-func (ctx *APIContext) AccountRef() string {
-	user := ctx.Get("user").(*jwt.Token)
-	claims := user.Claims.(*APIAuthClaims)
-	return claims.StandardClaims.Subject
-}
-
-// FilterAccountRef when the b3scale:admin scope is
-// present, this function retrieves the value
-// of the query param `ref`. The value will be nil
-// in absence of the parameter.
-//
-// When the admin scope is not present, the requesting
-// subject will be used.
-func (ctx *APIContext) FilterAccountRef() *string {
-	if ctx.HasScope(ScopeAdmin) {
-		ref := ctx.Context.QueryParam("subject_ref")
-		if ref == "" {
-			return nil
-		}
-		return &ref
-	}
-	ref := ctx.AccountRef()
-	return &ref
-}
-
 // Ctx is a shortcut to access the request context
-func (ctx *APIContext) Ctx() context.Context {
-	return ctx.Request().Context()
+func (api *APIContext) Ctx() context.Context {
+	return api.Request().Context()
+}
+
+// APIContextSetup initializes the context with
+// auth information and a database connection.
+func APIContextSetup(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ctx := c.Request().Context()
+
+		// Add authorization to context
+		user := c.Get("user").(*jwt.Token)
+		claims := user.Claims.(*APIAuthClaims)
+		scopes := strings.Split(claims.Scope, " ")
+		ref := claims.StandardClaims.Subject
+
+		// Acquire connection
+		conn, err := store.Acquire(ctx)
+		if err != nil {
+			return err
+		}
+		defer conn.Release()
+
+		// Create API context
+		ac := &APIContext{
+			Scopes: scopes,
+			Ref:    ref,
+
+			Conn: conn,
+
+			Context: c,
+		}
+
+		return next(ac)
+	}
+}
+
+// RequireScope creates a middleware to ensure the presence of
+// at least one required scope.
+func RequireScope(scopes ...string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			api := c.(*APIContext)
+
+			hasScope := false
+			for _, sc := range scopes {
+				if api.HasScope(sc) {
+					hasScope = true
+					break
+				}
+			}
+			if !hasScope {
+				return ErrScopeRequired(scopes...)
+			}
+			return next(c) // We are good to go.
+		}
+	}
+}
+
+// APIResourceFrontends is a restful group for frontend endpoints
+var APIResourceFrontends = &APIResource{
+	List:    apiFrontendsList,
+	Create:  apiFrontendCreate,
+	Show:    apiFrontendShow,
+	Update:  apiFrontendUpdate,
+	Destroy: apiFrontendDestroy,
+}
+
+// APIResourceBackends is a restful group for backend endpoints
+var APIResourceBackends = &APIResource{
+	List:    apiBackendsList,
+	Create:  apiBackendCreate,
+	Show:    apiBackendShow,
+	Update:  apiBackendUpdate,
+	Destroy: apiBackendDestroy,
+}
+
+// APIResourceMeetings is a restful group for meetings
+var APIResourceMeetings = &APIResource{
+	List: apiMeetingsList,
 }
 
 // Init sets up a group with authentication
@@ -105,64 +153,43 @@ func Init(e *echo.Echo) error {
 
 	// Register routes
 	log.Info().Str("path", "/api/v1").Msg("initializing http api v1")
-	a := e.Group("/api/v1")
+	v1 := e.Group("/api/v1")
 
 	// API Auth and Context Middlewares
-	a.Use(middleware.JWTWithConfig(jwtConfig))
-	a.Use(APIErrorHandler)
-	a.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			ac := &APIContext{c}
-
-			// Check presence of required scopes
-			if !ac.HasScope(ScopeUser) && !ac.HasScope(ScopeAdmin) {
-				return ErrorInvalidCredentials(c)
-			}
-
-			req := c.Request()
-			ctx := req.Context()
-
-			// Acquire connection
-			conn, err := store.Acquire(ctx)
-			if err != nil {
-				return err
-			}
-			defer conn.Release()
-
-			ctx = store.ContextWithConnection(ctx, conn)
-			req = req.WithContext(ctx)
-			c.SetRequest(req)
-
-			return next(ac)
-		}
-	})
+	v1.Use(middleware.JWTWithConfig(jwtConfig))
+	v1.Use(APIErrorHandler)
+	v1.Use(APIContextSetup)
 
 	// Status
-	a.GET("", Status)
+	v1.GET("", APIEndpoint(apiStatusShow))
 
 	// Frontends
-	a.GET("/frontends", FrontendsList)
-	a.POST("/frontends", FrontendCreate)
-	a.GET("/frontends/:id", FrontendRetrieve)
-	a.DELETE("/frontends/:id", FrontendDestroy)
-	a.PATCH("/frontends/:id", FrontendUpdate)
+	APIResourceFrontends.Mount(v1, "/frontends", RequireScope(
+		ScopeAdmin,
+		ScopeUser,
+	))
 
 	// Backends
-	a.GET("/backends", RequireAdminScope(BackendsList))
-	a.POST("/backends", RequireAdminScope(BackendCreate))
-	a.GET("/backends/:id", RequireAdminScope(BackendRetrieve))
-	a.DELETE("/backends/:id", RequireAdminScope(BackendDestroy))
-	a.PATCH("/backends/:id", RequireAdminScope(BackendUpdate))
+	APIResourceBackends.Mount(v1, "/backends", RequireScope(
+		ScopeAdmin,
+	))
 
-	// Recordings
-	a.POST("/recordings-import", RequireNodeScope(RecordingsImportMeta))
+	// Meetings
+	APIResourceMeetings.Mount(v1, "/meetings", RequireScope(
+		ScopeAdmin,
+	))
 
-	// Meetings at backend. The backend is required because
-	// the returned response set might be really big.
-	// However, the backend might be specified either through
-	// the backend ID or by host.
-	a.GET("/meetings", RequireAdminScope(BackendMeetingsList))
-	a.DELETE("/meetings", RequireAdminScope(BackendMeetingsEnd))
+	/*
+		// Recordings
+		a.POST("/recordings-import", RequireNodeScope(RecordingsImportMeta))
+
+		// Meetings at backend. The backend is required because
+		// the returned response set might be really big.
+		// However, the backend might be specified either through
+		// the backend ID or by host.
+		a.GET("/meetings", RequireAdminScope(BackendMeetingsList))
+		a.DELETE("/meetings", RequireAdminScope(BackendMeetingsEnd))
+	*/
 
 	return nil
 }
@@ -177,16 +204,15 @@ type StatusResponse struct {
 	IsAdmin    bool   `json:"is_admin"`
 }
 
-// Status will respond with the api version and b3scale
+// apiStatusShow will respond with the api version and b3scale
 // version.
-func Status(c echo.Context) error {
-	ctx := c.(*APIContext)
+func apiStatusShow(ctx context.Context, api *APIContext) error {
 	status := &StatusResponse{
 		Version:    config.Version,
 		Build:      config.Build,
 		API:        "v1",
-		AccountRef: ctx.AccountRef(),
-		IsAdmin:    ctx.HasScope(ScopeAdmin),
+		AccountRef: api.Ref,
+		IsAdmin:    api.HasScope(ScopeAdmin),
 	}
-	return c.JSON(http.StatusOK, status)
+	return api.JSON(http.StatusOK, status)
 }

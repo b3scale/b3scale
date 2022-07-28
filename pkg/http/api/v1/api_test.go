@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -45,7 +44,9 @@ func MakeTestContext(req *http.Request) (*APIContext, *httptest.ResponseRecorder
 
 	ctx := e.NewContext(req, rec)
 
-	return &APIContext{ctx}, rec
+	return &APIContext{
+		Context: ctx,
+	}, rec
 }
 
 // AuthorizeTestContext authorizes the context
@@ -57,7 +58,9 @@ func AuthorizeTestContext(ctx echo.Context, sub string, scopes []string) *APICon
 		Scope: strings.Join(scopes, " "),
 	})
 	ctx.Set("user", token)
-	return &APIContext{ctx}
+	return &APIContext{
+		Context: ctx,
+	}
 }
 
 func TestAPIContextHasScope(t *testing.T) {
@@ -72,26 +75,8 @@ func TestAPIContextHasScope(t *testing.T) {
 	}
 }
 
-func TestAPIContextAccountRef(t *testing.T) {
-	ctx, _ := MakeTestContext(nil)
-	ctx = AuthorizeTestContext(ctx, "user42", []string{})
-	if ctx.AccountRef() != "user42" {
-		t.Error("unexpected account ref:", ctx.AccountRef())
-	}
-}
-
 func TestAPIStatus(t *testing.T) {
-	ctx, rec := MakeTestContext(nil)
-	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeUser})
-	if err := Status(ctx); err != nil {
-		t.Fatal(err)
-	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
-	}
-	body, _ := ioutil.ReadAll(res.Body)
-	t.Log(string(body))
+	t.Fatal("implement me")
 }
 
 func ClearState() error {

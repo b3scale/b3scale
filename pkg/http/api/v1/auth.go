@@ -5,6 +5,7 @@ import (
 	// old repo of the jwt module.
 	// "github.com/golang-jwt/jwt"
 	"net/http"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
@@ -13,6 +14,9 @@ import (
 	"github.com/b3scale/b3scale/pkg/config"
 )
 
+// Scopes is a list of scopes
+type Scopes []string
+
 // Scopes
 const (
 	ScopeUser  = "b3scale"
@@ -20,20 +24,14 @@ const (
 	ScopeNode  = "b3scale:node"
 )
 
-// Errors
-var (
-	// ErrAdminScopeRequired will be returned if the token
-	// has insuficient rights.
-	ErrAdminScopeRequired = echo.NewHTTPError(
+// ErrScopeRequired will be returned when a scope is missing
+// from the response.
+func ErrScopeRequired(scopes ...string) *echo.HTTPError {
+	scope := strings.Join(scopes, ", ")
+	return echo.NewHTTPError(
 		http.StatusForbidden,
-		ScopeAdmin+" scope required")
-
-	// ErrNodeScopeRequired will be returned if the token
-	// has insuficient rights.
-	ErrNodeScopeRequired = echo.NewHTTPError(
-		http.StatusForbidden,
-		ScopeNode+" scope required")
-)
+		scope+" scope required")
+}
 
 // APIAuthClaims extends the JWT standard claims
 // with a well-known `scope` claim.
@@ -75,29 +73,4 @@ func SignAccessToken(sub string, scope string, secret []byte) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS384, claims)
 	return token.SignedString(secret)
-}
-
-// RequireAdminScope wraps a handler func and checks for
-// the presence of the AdminScope before invoking the
-// decorated function.
-func RequireAdminScope(fn echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		ctx := c.(*APIContext)
-		if !ctx.HasScope(ScopeAdmin) {
-			return ErrAdminScopeRequired
-		}
-		return fn(c)
-	}
-}
-
-// RequireNodeScope checks if the node scope is present
-// and wraps a handler func.
-func RequireNodeScope(fn echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		ctx := c.(*APIContext)
-		if !ctx.HasScope(ScopeNode) {
-			return ErrNodeScopeRequired
-		}
-		return fn(c)
-	}
 }
