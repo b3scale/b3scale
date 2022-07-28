@@ -64,6 +64,17 @@ current user identified by the `sub` claim.
  /api/v1/meetings/<id>
 
     GET    :: Get the meeting state from the cluster
-    DELETE :: Force Stop a meeting
+
+ /api/v1/commands
+
+    GET  :: Retrive the command queue
+
+    POST :: Insert a new command into the queue:
+            EndAllMeetings := {
+              action: "end_all_meetings",
+              params: {
+                "backend_id": "<id>",
+              }  
+            }
 
 
