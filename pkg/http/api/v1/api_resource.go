@@ -6,6 +6,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// APIEndpointMiddleware is a function returning a HandlerFunction
+type APIEndpointMiddleware func(next APIEndpointHandler) APIEndpointHandler
+
 // APIEndpointHandler is a handler function for API endpoints
 type APIEndpointHandler func(context.Context, *APIContext) error
 
@@ -51,55 +54,3 @@ func (r *APIResource) Mount(
 		g.DELETE("/:id", APIEndpoint(r.Destroy))
 	}
 }
-
-// APIResource makes a new resource group
-/*
-func APIResource(g *echo.Group) *APIResourceGroup {
-	return &APIResourceGroup{g}
-}
-
-// APIResourceGroup is a restful endpoint group
-type APIResourceGroup struct {
-	*echo.Group
-}
-
-// List registers an API endpoint handler as the resource index
-func (res *APIResourceGroup) List(
-	handler APIEndpointHandler,
-) *APIResourceGroup {
-	res.GET("/", APIEndpoint(handler))
-	return res
-}
-
-// Create registers an API endpoint for posting a new resource
-func (res *APIResourceGroup) Create(
-	handler APIEndpointHandler,
-) *APIResourceGroup {
-	res.POST("/", APIEndpoint(handler))
-	return res
-}
-
-// Show retrieves an API resource
-func (res *APIResourceGroup) Show(
-	handler APIEndpointHandler,
-) *APIResourceGroup {
-	res.GET("/:id", APIEndpoint(handler))
-	return res
-}
-
-// Update registers a patch endpoint
-func (res *APIResourceGroup) Update(
-	handler APIEndpointHandler,
-) *APIResourceGroup {
-	res.PATCH("/:id", APIEndpoint(handler))
-	return res
-}
-
-// Destroy registers a DELETE endpoint
-func (res *APIResourceGroup) Destroy(
-	handler APIEndpointHandler,
-) *APIResourceGroup {
-	res.DELETE("/:id", APIEndpoint(handler))
-	return res
-}
-*/

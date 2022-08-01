@@ -4,6 +4,7 @@ import (
 	// Until the echo middleware is updated, we have to use the
 	// old repo of the jwt module.
 	// "github.com/golang-jwt/jwt"
+	"context"
 	"net/http"
 	"strings"
 
@@ -73,4 +74,24 @@ func SignAccessToken(sub string, scope string, secret []byte) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS384, claims)
 	return token.SignedString(secret)
+}
+
+// RequireScope creates a middleware to ensure the presence of
+// at least one required scope.
+func RequireScope(scopes ...string) APIEndpointMiddleware {
+	return func(next APIEndpointHandler) APIEndpointHandler {
+		return func(ctx context.Context, api *APIContext) error {
+			hasScope := false
+			for _, sc := range scopes {
+				if api.HasScope(sc) {
+					hasScope = true
+					break
+				}
+			}
+			if !hasScope {
+				return ErrScopeRequired(scopes...)
+			}
+			return next(ctx, api) // We are good to go.
+		}
+	}
 }

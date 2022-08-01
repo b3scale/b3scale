@@ -39,7 +39,6 @@ type APIContext struct {
 	// Authorization
 	Scopes []string
 	Ref    string
-
 	// Database
 	Conn *pgxpool.Conn
 
@@ -86,60 +85,14 @@ func APIContextSetup(next echo.HandlerFunc) echo.HandlerFunc {
 		// Create API context
 		ac := &APIContext{
 			Scopes: scopes,
+			Conn:   conn,
 			Ref:    ref,
-
-			Conn: conn,
 
 			Context: c,
 		}
 
 		return next(ac)
 	}
-}
-
-// RequireScope creates a middleware to ensure the presence of
-// at least one required scope.
-func RequireScope(scopes ...string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			api := c.(*APIContext)
-
-			hasScope := false
-			for _, sc := range scopes {
-				if api.HasScope(sc) {
-					hasScope = true
-					break
-				}
-			}
-			if !hasScope {
-				return ErrScopeRequired(scopes...)
-			}
-			return next(c) // We are good to go.
-		}
-	}
-}
-
-// APIResourceFrontends is a restful group for frontend endpoints
-var APIResourceFrontends = &APIResource{
-	List:    apiFrontendsList,
-	Create:  apiFrontendCreate,
-	Show:    apiFrontendShow,
-	Update:  apiFrontendUpdate,
-	Destroy: apiFrontendDestroy,
-}
-
-// APIResourceBackends is a restful group for backend endpoints
-var APIResourceBackends = &APIResource{
-	List:    apiBackendsList,
-	Create:  apiBackendCreate,
-	Show:    apiBackendShow,
-	Update:  apiBackendUpdate,
-	Destroy: apiBackendDestroy,
-}
-
-// APIResourceMeetings is a restful group for meetings
-var APIResourceMeetings = &APIResource{
-	List: apiMeetingsList,
 }
 
 // Init sets up a group with authentication
@@ -163,33 +116,12 @@ func Init(e *echo.Echo) error {
 	// Status
 	v1.GET("", APIEndpoint(apiStatusShow))
 
-	// Frontends
-	APIResourceFrontends.Mount(v1, "/frontends", RequireScope(
-		ScopeAdmin,
-		ScopeUser,
-	))
-
-	// Backends
-	APIResourceBackends.Mount(v1, "/backends", RequireScope(
-		ScopeAdmin,
-	))
-
-	// Meetings
-	APIResourceMeetings.Mount(v1, "/meetings", RequireScope(
-		ScopeAdmin,
-	))
-
-	/*
-		// Recordings
-		a.POST("/recordings-import", RequireNodeScope(RecordingsImportMeta))
-
-		// Meetings at backend. The backend is required because
-		// the returned response set might be really big.
-		// However, the backend might be specified either through
-		// the backend ID or by host.
-		a.GET("/meetings", RequireAdminScope(BackendMeetingsList))
-		a.DELETE("/meetings", RequireAdminScope(BackendMeetingsEnd))
-	*/
+	// API resources
+	APIResourceFrontends.Mount(v1, "/frontends")
+	APIResourceBackends.Mount(v1, "/backends")
+	APIResourceMeetings.Mount(v1, "/meetings")
+	APIResourceCommands.Mount(v1, "/commands")
+	APIResourceRecordingsImport.Mount(v1, "/recordings-import")
 
 	return nil
 }

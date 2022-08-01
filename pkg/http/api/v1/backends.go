@@ -13,6 +13,15 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
+// APIResourceBackends is a restful group for backend endpoints
+var APIResourceBackends = &APIResource{
+	List:    apiBackendsList,
+	Create:  apiBackendCreate,
+	Show:    apiBackendShow,
+	Update:  apiBackendUpdate,
+	Destroy: apiBackendDestroy,
+}
+
 // apiBackendsList will list all frontends known
 // to the cluster or within the user scope.
 // Admin scope is mandatory

@@ -10,9 +10,31 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-//		ref := ctx.Context.QueryParam("subject_ref")
-// FrontendsList will list all frontends known
-// to the cluster or within the user scope.
+// APIResourceFrontends is a restful group for frontend endpoints
+var APIResourceFrontends = &APIResource{
+	List: RequireScope(
+		ScopeAdmin,
+		ScopeUser,
+	)(apiFrontendsList),
+
+	Create: RequireScope(
+		ScopeAdmin,
+	)(apiFrontendCreate),
+
+	Show: RequireScope(
+		ScopeAdmin,
+		ScopeUser,
+	)(apiFrontendShow),
+
+	Update: RequireScope(
+		ScopeAdmin,
+		ScopeUser,
+	)(apiFrontendUpdate),
+
+	Destroy: RequireScope(
+		ScopeAdmin,
+	)(apiFrontendDestroy),
+}
 
 func apiFrontendsList(
 	ctx context.Context,

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,20 +19,24 @@ var (
 		"the request must contain content of a metadata.xml")
 )
 
+// APIResourceRecordingsImport is the recordings import api resource
+var APIResourceRecordingsImport = &APIResource{
+	Create: apiRecordingsImport,
+}
+
 // RecordingsImportMeta will accept the contents of a
 // metadata.xml from a published recording and will import
 // the state.
-// ! requires: `node`
-func RecordingsImportMeta(c echo.Context) error {
-	ctx := c.Request().Context()
-
+func apiRecordingsImport(
+	ctx context.Context,
+	api *APIContext,
+) error {
 	// Parse request body, which should be the content of a
 	// metadata.xml
-	if c.Request().Body == nil { // Read
+	if api.Request().Body == nil { // Read
 		return ErrRequestBodyRequired
 	}
-
-	body, err := ioutil.ReadAll(c.Request().Body)
+	body, err := ioutil.ReadAll(api.Request().Body)
 	if err != nil {
 		return err
 	}
@@ -69,7 +74,7 @@ func RecordingsImportMeta(c echo.Context) error {
 		return err
 	}
 	if present {
-		return c.JSON(http.StatusOK, rec)
+		return api.JSON(http.StatusOK, rec)
 	}
 
 	// Lookup frontendID for this recording
@@ -93,5 +98,5 @@ func RecordingsImportMeta(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, rec)
+	return api.JSON(http.StatusOK, rec)
 }
