@@ -1,24 +1,19 @@
 package v1
 
 import (
-	"bytes"
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-func CreateTestFrontend() (*store.FrontendState, error) {
-	ctx, _ := MakeTestContext(nil)
-	defer ctx.Release()
-	cctx := ctx.Ctx()
-	tx, err := store.ConnectionFromContext(cctx).Begin(cctx)
+func createTestFrontend(api *APIContext) (*store.FrontendState, error) {
+	ctx := api.Ctx()
+	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Rollback(ctx)
 
 	ref := "user23"
 	f := store.InitFrontendState(&store.FrontendState{
@@ -33,217 +28,171 @@ func CreateTestFrontend() (*store.FrontendState, error) {
 		AccountRef: &ref,
 	})
 
-	if err := f.Save(cctx, tx); err != nil {
+	if err := f.Save(ctx, tx); err != nil {
 		return nil, err
 	}
-
-	return f, tx.Commit(cctx)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return f, nil
 }
 
 func TestFrontendsList(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := CreateTestFrontend(); err != nil {
+	api, res := NewTestRequest().
+		Authorize("user42", ScopeAdmin).
+		Context()
+	defer api.Release()
+
+	if _, err := createTestFrontend(api); err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, rec := MakeTestContext(nil)
-	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
-	defer ctx.Release()
-
-	if err := FrontendsList(ctx); err != nil {
+	if err := api.Handle(APIResourceFrontends.List); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("list:", string(resBody))
+	t.Log("list:", res.Body())
 }
 
 func TestFrontendsRetrieve(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
-	f, err := CreateTestFrontend()
+	api, res := NewTestRequest().
+		Authorize("user42", ScopeAdmin).
+		Context()
+	defer api.Release()
+
+	f, err := createTestFrontend(api)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ctx, rec := MakeTestContext(nil)
-	ctx = AuthorizeTestContext(ctx, "user42", []string{ScopeAdmin})
-	defer ctx.Release()
+	api.SetParamNames("id")
+	api.SetParamValues(f.ID)
 
-	ctx.Context.SetParamNames("id")
-	ctx.Context.SetParamValues(f.ID)
-
-	if err := FrontendRetrieve(ctx); err != nil {
+	if err := api.Handle(APIResourceFrontends.Show); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("list:", string(resBody))
+	t.Log("show:", res.Body())
 }
 
 func TestFrontendCreateAdmin(t *testing.T) {
-	if err := ClearState(); err != nil {
+	api, res := NewTestRequest().
+		Authorize("user42", ScopeAdmin).
+		JSON(map[string]interface{}{
+			"bbb": map[string]interface{}{
+				"key":    "newfrontendkey",
+				"secret": "testsec",
+			},
+			"account_ref": "user:32421",
+		}).
+		Context()
+	defer api.Release()
+
+	if err := api.Handle(APIResourceFrontends.Create); err != nil {
 		t.Fatal(err)
 	}
-
-	// Create backend request
-	body, _ := json.Marshal(map[string]interface{}{
-		"bbb": map[string]interface{}{
-			"key":    "newfrontendkey",
-			"secret": "testsec",
-		},
-		"account_ref": "user:32421",
-	})
-	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
-	req.Header.Set("content-type", "application/json")
-
-	ctx, rec := MakeTestContext(req)
-	defer ctx.Release()
-
-	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
-	if err := FrontendCreate(ctx); err != nil {
-		t.Fatal(err)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
-	}
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("create:", string(resBody))
+	t.Log("create:", res.Body())
 }
 
 func TestFrontendCreateUser(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
-
 	// Create backend request
-	body, _ := json.Marshal(map[string]interface{}{
-		"bbb": map[string]interface{}{
-			"key":    "newfrontendkey",
-			"secret": "testsec",
-		},
-		"account_ref": "admin42",
-	})
-	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
-	req.Header.Set("content-type", "application/json")
+	api, res := NewTestRequest().
+		Authorize("user42", ScopeUser).
+		JSON(map[string]interface{}{
+			"bbb": map[string]interface{}{
+				"key":    "newfrontendkey",
+				"secret": "testsec",
+			},
+			"account_ref": "admin42",
+		}).
+		Context()
+	defer api.Release()
 
-	ctx, rec := MakeTestContext(req)
-	defer ctx.Release()
-
-	ctx = AuthorizeTestContext(ctx, "user23", []string{})
-	if err := FrontendCreate(ctx); err != nil {
+	if err := api.Handle(APIResourceFrontends.Create); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("create:", string(resBody))
-	data := map[string]interface{}{}
-	json.Unmarshal(resBody, &data)
 
+	data := res.JSON()
 	if data["account_ref"] != "user23" {
 		t.Error("unexpected account_ref", data["account_ref"])
 	}
 }
 
 func TestFrontendUpdateAdmin(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
+	api, res := NewTestRequest().
+		Authorize("admin23", ScopeAdmin).
+		JSON(map[string]interface{}{
+			"bbb": map[string]interface{}{
+				"key":    "newkey23",
+				"secret": "changedsecret",
+			},
+			"account_ref": "new_user_ref",
+		}).
+		Context()
+	defer api.Release()
 
-	f, err := CreateTestFrontend()
+	// Create frontend
+	f, err := createTestFrontend(api)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create backend request
-	body, _ := json.Marshal(map[string]interface{}{
-		"bbb": map[string]interface{}{
-			"key":    "newkey23",
-			"secret": "changedsecret",
-		},
-		"account_ref": "new_user_ref",
-	})
-	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
-	req.Header.Set("content-type", "application/json")
-	ctx, rec := MakeTestContext(req)
-	defer ctx.Release()
-	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+	api.SetParamNames("id")
+	api.SetParamValues(f.ID)
 
-	ctx.Context.SetParamNames("id")
-	ctx.Context.SetParamValues(f.ID)
-
-	if err := FrontendUpdate(ctx); err != nil {
+	if err := api.Handle(APIResourceFrontends.Update); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("update:", string(resBody))
-	data := map[string]interface{}{}
-	json.Unmarshal(resBody, &data)
 
+	data := res.JSON()
 	if data["account_ref"] != "new_user_ref" {
 		t.Error("unexpected account_ref", data["account_ref"])
 	}
 }
 
 func TestFrontendUpdateUser(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
+	api, res := NewTestRequest().
+		Authorize("user23", ScopeUser).
+		JSON(map[string]interface{}{
+			"bbb": map[string]interface{}{
+				"key":    "newkey23",
+				"secret": "changedsecret",
+			},
+			"active":      false,
+			"account_ref": "new_user_ref",
+		}).
+		Context()
+	defer api.Release()
 
-	f, err := CreateTestFrontend()
+	f, err := createTestFrontend(api)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create backend request
-	body, _ := json.Marshal(map[string]interface{}{
-		"bbb": map[string]interface{}{
-			"key":    "newkey23",
-			"secret": "changedsecret",
-		},
-		"active":      false,
-		"account_ref": "new_user_ref",
-	})
-	req, _ := http.NewRequest("POST", "http:///", bytes.NewBuffer(body))
-	req.Header.Set("content-type", "application/json")
-	ctx, rec := MakeTestContext(req)
-	defer ctx.Release()
-	ctx = AuthorizeTestContext(ctx, "user23", []string{})
+	api.SetParamNames("id")
+	api.SetParamValues(f.ID)
 
-	ctx.Context.SetParamNames("id")
-	ctx.Context.SetParamValues(f.ID)
-
-	if err := FrontendUpdate(ctx); err != nil {
+	if err := api.Handle(APIResourceFrontends.Update); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("update:", string(resBody))
-	data := map[string]interface{}{}
-	json.Unmarshal(resBody, &data)
 
+	data := res.JSON()
 	if data["account_ref"] != "user23" {
 		t.Error("unexpected account_ref", data["account_ref"])
 	}
@@ -256,32 +205,24 @@ func TestFrontendUpdateUser(t *testing.T) {
 }
 
 func TestFrontendDestroy(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
+	api, res := NewTestRequest().
+		Authorize("admin42", ScopeAdmin).
+		Context()
+	defer api.Release()
 
-	f, err := CreateTestFrontend()
+	f, err := createTestFrontend(api)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Create request
-	req, _ := http.NewRequest("DELETE", "http:///", nil)
+	api.SetParamNames("id")
+	api.SetParamValues(f.ID)
 
-	ctx, rec := MakeTestContext(req)
-	defer ctx.Release()
-	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
-
-	ctx.Context.SetParamNames("id")
-	ctx.Context.SetParamValues(f.ID)
-
-	if err := FrontendDestroy(ctx); err != nil {
+	if err := api.Handle(APIResourceFrontends.Destroy); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("destroy:", string(resBody))
+	t.Log("destroy:", res.Body())
 }

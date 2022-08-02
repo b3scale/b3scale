@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"io/ioutil"
-	"net/http"
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
@@ -143,6 +141,7 @@ func TestBackendDestroy(t *testing.T) {
 func TestBackendForceDestroy(t *testing.T) {
 	api, res := NewTestRequest().
 		Authorize("admin42", ScopeAdmin).
+		Query("force=true").
 		Context()
 	defer api.Release()
 
@@ -153,58 +152,40 @@ func TestBackendForceDestroy(t *testing.T) {
 	}
 	t.Log("force destroy backend id:", b.ID)
 
-	req, _ := http.NewRequest("DELETE", "http://test?force=true", nil)
-	ctx, rec := MakeTestContext(req)
-	defer ctx.Release()
+	api.SetParamNames("id")
+	api.SetParamValues(b.ID)
 
-	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
-	ctx.Context.SetParamNames("id")
-	ctx.Context.SetParamValues(b.ID)
-
-	if err := BackendDestroy(ctx); err != nil {
+	if err := api.Handle(APIResourceBackends.Destroy); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("destroy:", string(resBody))
+	t.Log("destroy:", res.Body())
 }
 
 func TestBackendRetrieve(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
-
-	ctx, _ := MakeTestContext(nil)
-	defer ctx.Release()
-
-	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+	api, res := NewTestRequest().
+		Authorize("admin42", ScopeAdmin).
+		Context()
+	defer api.Release()
 
 	// Create a backend
-	b, err := CreateTestBackend()
+	b, err := createTestBackend(api)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("update backend id:", b.ID)
+	t.Log("fetch backend id:", b.ID)
 
 	// Create backend request
-	req, _ := http.NewRequest("GET", "http:///", nil)
-	ctx, rec := MakeTestContext(req)
-	defer ctx.Release()
+	api.SetParamNames("id")
+	api.SetParamValues(b.ID)
 
-	ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
-	ctx.Context.SetParamNames("id")
-	ctx.Context.SetParamValues(b.ID)
-
-	if err := BackendRetrieve(ctx); err != nil {
+	if err := api.Handle(APIResourceBackends.Show); err != nil {
 		t.Fatal(err)
 	}
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Error("unexpected status code:", res.StatusCode)
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
 	}
-	resBody, _ := ioutil.ReadAll(res.Body)
-	t.Log("retrieve:", string(resBody))
+	t.Log("retrieve:", res.Body())
 }
