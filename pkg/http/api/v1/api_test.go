@@ -43,8 +43,24 @@ func (rec *APITestResponseRecorder) StatusOK() error {
 
 func (rec *APITestResponseRecorder) Body() string {
 	res := rec.Result()
-	body, _ := ioutil.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
 	return string(body)
+}
+
+func (rec *APITestResponseRecorder) JSON() map[string]interface{} {
+	res := rec.Result()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	data := map[string]interface{}{}
+	if err := json.Unmarshal(body, data); err != nil {
+		panic(err)
+	}
+	return data
 }
 
 // MakeTestContext creates a new testing context
@@ -79,6 +95,7 @@ type APITestRequest struct {
 	contentType string
 	sub         string
 	scopes      []string
+	query       string
 	keep        bool
 }
 
@@ -95,6 +112,11 @@ func (req *APITestRequest) Authorize(
 ) *APITestRequest {
 	req.sub = sub
 	req.scopes = scopes
+	return req
+}
+
+func (req *APITestRequest) Query(q string) *APITestRequest {
+	req.query = q
 	return req
 }
 
@@ -125,6 +147,10 @@ func (req *APITestRequest) Binary(blob []byte) *APITestRequest {
 
 // Context creates the APIContext for a test request
 func (req *APITestRequest) Context() (*APIContext, *APITestResponseRecorder) {
+	url := "http:///"
+	if req.query != "" {
+		url += "?" + req.query
+	}
 	httpReq, err := http.NewRequest(
 		http.MethodGet, "http:///", nil)
 	if err != nil {

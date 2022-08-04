@@ -7,11 +7,11 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-func createTestFrontend(api *APIContext) (*store.FrontendState, error) {
+func createTestFrontend(api *APIContext) *store.FrontendState {
 	ctx := api.Ctx()
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -29,12 +29,12 @@ func createTestFrontend(api *APIContext) (*store.FrontendState, error) {
 	})
 
 	if err := f.Save(ctx, tx); err != nil {
-		return nil, err
+		panic(err)
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return nil, err
+		panic(err)
 	}
-	return f, nil
+	return f
 }
 
 func TestFrontendsList(t *testing.T) {
@@ -43,9 +43,7 @@ func TestFrontendsList(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	if _, err := createTestFrontend(api); err != nil {
-		t.Fatal(err)
-	}
+	createTestFrontend(api)
 
 	if err := api.Handle(APIResourceFrontends.List); err != nil {
 		t.Fatal(err)
@@ -62,10 +60,7 @@ func TestFrontendsRetrieve(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	f, err := createTestFrontend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	f := createTestFrontend(api)
 
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)
@@ -142,10 +137,7 @@ func TestFrontendUpdateAdmin(t *testing.T) {
 	defer api.Release()
 
 	// Create frontend
-	f, err := createTestFrontend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	f := createTestFrontend(api)
 
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)
@@ -177,11 +169,7 @@ func TestFrontendUpdateUser(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	f, err := createTestFrontend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	f := createTestFrontend(api)
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)
 
@@ -210,10 +198,7 @@ func TestFrontendDestroy(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	f, err := createTestFrontend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	f := createTestFrontend(api)
 
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)

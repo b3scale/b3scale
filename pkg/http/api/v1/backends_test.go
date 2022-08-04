@@ -9,11 +9,11 @@ import (
 
 func createTestBackend(
 	api *APIContext,
-) (*store.BackendState, error) {
+) *store.BackendState {
 	ctx := api.Ctx()
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	b := store.InitBackendState(&store.BackendState{
 		Backend: &bbb.Backend{
@@ -26,13 +26,13 @@ func createTestBackend(
 	})
 
 	if err := b.Save(ctx, tx); err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return nil, err
+		panic(err)
 	}
-	return b, nil
+	return b
 }
 
 func TestBackendsList(t *testing.T) {
@@ -42,9 +42,7 @@ func TestBackendsList(t *testing.T) {
 	defer api.Release()
 
 	// Create a backend
-	if _, err := createTestBackend(api); err != nil {
-		t.Fatal(err)
-	}
+	createTestBackend(api)
 
 	// List all backends
 	if err := api.Handle(APIResourceBackends.List); err != nil {
@@ -94,10 +92,7 @@ func TestBackendUpdate(t *testing.T) {
 	defer api.Release()
 
 	// Create a backend
-	b, err := createTestBackend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b := createTestBackend(api)
 	t.Log("update backend id:", b.ID)
 
 	// Create backend request
@@ -146,10 +141,7 @@ func TestBackendForceDestroy(t *testing.T) {
 	defer api.Release()
 
 	// Create a backend
-	b, err := createTestBackend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b := createTestBackend(api)
 	t.Log("force destroy backend id:", b.ID)
 
 	api.SetParamNames("id")
@@ -171,10 +163,7 @@ func TestBackendRetrieve(t *testing.T) {
 	defer api.Release()
 
 	// Create a backend
-	b, err := createTestBackend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b := createTestBackend(api)
 	t.Log("fetch backend id:", b.ID)
 
 	// Create backend request
