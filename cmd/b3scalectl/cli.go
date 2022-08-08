@@ -7,10 +7,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"syscall"
 
 	"github.com/urfave/cli/v2"
-	"golang.org/x/term"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/config"
@@ -228,6 +226,8 @@ func NewCli() *Cli {
 				Name: "auth",
 				Subcommands: []*cli.Command{
 					{
+						Name:  "create_access_token",
+						Usage: "Create an access token for interacting with the API",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:     "sub",
@@ -241,12 +241,25 @@ func NewCli() *Cli {
 							},
 							&cli.StringFlag{
 								Name:  "secret",
-								Usage: "shared secret, if not present read from STDIN",
+								Usage: "shared secret, if not from env: B3SCALE_API_JWT_SECRET, if not present read from STDIN",
 							},
 						},
-						Name:   "create_access_token",
-						Usage:  "Create an access token for interacting with the API",
 						Action: c.createAccessToken,
+					},
+					{
+						Name:  "authorize_node_agent",
+						Usage: "Create an access token for API access for a node agent",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "ref",
+								Usage: "Agent reference for example backend-01, will be generated if not present",
+							},
+							&cli.StringFlag{
+								Name:  "secret",
+								Usage: "shared secret, if not from env B3SCALE_API_JWT_SECRET, if not present read from STDIN",
+							},
+						},
+						Action: c.createNodeAccessToken,
 					},
 				},
 			},
@@ -271,19 +284,37 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 	fmt.Fprintln(os.Stderr, "  Scopes:", scopes)
 	fmt.Fprintln(os.Stderr, "")
 
-	secretStr := ctx.String("secret")
-	secret := []byte(secretStr)
-	if secretStr == "" {
-		fmt.Fprintln(os.Stderr, "Please paste your shared secret.")
-		fmt.Fprintf(os.Stderr, "Secret: ")
-		secret, err = term.ReadPassword(int(syscall.Stdin))
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(os.Stderr, "") // add missing newline
+	secret, err := readSecretOrEnv(ctx)
+	if err != nil {
+		return err
 	}
 
 	token, err := v1.SignAccessToken(sub, scopes, secret)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(token)
+
+	return nil
+}
+
+// Auth: create node access token.
+func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
+	var err error
+
+	ref := ctx.String("ref")
+	if ref == "" {
+		ref = config.GenerateRef(3)
+	}
+
+	secret, err := readSecretOrEnv(ctx)
+	if err != nil {
+		return err
+	}
+
+	scopes := v1.ScopeNode
+	token, err := v1.SignAccessToken(ref, scopes, secret)
 	if err != nil {
 		return err
 	}
