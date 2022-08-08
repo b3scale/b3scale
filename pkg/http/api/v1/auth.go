@@ -66,7 +66,7 @@ func SignAdminAccessToken(sub string, secret []byte) (string, error) {
 
 // SignAccessToken creates an authorized JWT
 func SignAccessToken(sub string, scope string, secret []byte) (string, error) {
-	id := config.GenerateNonce(64)
+	id := config.GenerateNonce(24)
 	claims := &APIAuthClaims{
 		Scope: scope,
 		StandardClaims: jwt.StandardClaims{
