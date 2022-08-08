@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli/v2"
 
@@ -813,20 +814,37 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 		return err
 	}
 	host := ctx.Args().Get(0)
-	state, err := getBackendByHost(ctx.Context, client, host)
+	backend, err := getBackendByHost(ctx.Context, client, host)
 	if err != nil {
 		return err
 	}
-	if state == nil {
+	if backend == nil {
 		return fmt.Errorf("no such backend")
 	}
 
-	cmd, err := client.BackendMeetingsEnd(ctx.Context, state.ID)
+	cmd, err := client.BackendMeetingsEnd(ctx.Context, backend.ID)
 	if err != nil {
 		return err
 	}
-	fmt.Println(cmd)
 
+	// Poll state changes
+	state := cmd.State
+	for {
+		update, err := client.CommandRetrieve(ctx.Context, cmd.ID)
+		if err != nil {
+			return err
+		}
+		if update.State != state {
+			fmt.Println("State:", update.State)
+		}
+		if update.State == "success" || update.State == "error" {
+			fmt.Println("Result:", update.Result)
+			break
+		}
+
+		state = update.State
+		time.Sleep(500 * time.Millisecond)
+	}
 	return nil
 }
 

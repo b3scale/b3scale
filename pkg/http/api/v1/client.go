@@ -65,7 +65,11 @@ type Client interface {
 	QueueCommand(
 		ctx context.Context,
 		cmd *store.Command,
-	) (store.Command, error)
+	) (*store.Command, error)
+	CommandRetrieve(
+		ctx context.Context,
+		id string,
+	) (*store.Command, error)
 }
 
 // JSON helper
@@ -464,8 +468,8 @@ func (c *JWTClient) QueueCommand(
 	if err != nil {
 		return nil, err
 	}
-	body := bytes.NewBuffer(payload)
 	// Create request
+	body := bytes.NewBuffer(payload)
 	req, err := http.NewRequestWithContext(
 		ctx, "POST", c.apiURL("commands", nil), body)
 	if err != nil {
@@ -479,6 +483,32 @@ func (c *JWTClient) QueueCommand(
 		return nil, APIErrorFromResponse(res)
 	}
 	cmd = &store.Command{}
+	if err := readJSONResponse(res, cmd); err != nil {
+		return nil, err
+	}
+	return cmd, err
+}
+
+// CommandRetrieve gets a single command by ID.
+// Usefull for state polling.
+func (c *JWTClient) CommandRetrieve(
+	ctx context.Context,
+	id string,
+) (*store.Command, error) {
+	url := c.apiURL("commands/"+id, nil)
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	if !httpSuccess(res) {
+		return nil, APIErrorFromResponse(res)
+	}
+	cmd := &store.Command{}
 	if err := readJSONResponse(res, cmd); err != nil {
 		return nil, err
 	}
