@@ -78,10 +78,6 @@ func apiFrontendCreate(
 	ctx context.Context,
 	api *APIContext,
 ) error {
-	if !api.HasScope(ScopeAdmin) {
-		return ErrScopeRequired(ScopeAdmin)
-	}
-
 	f := &store.FrontendState{}
 	if err := api.Bind(f); err != nil {
 		return err

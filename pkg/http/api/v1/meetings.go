@@ -30,7 +30,7 @@ func apiMeetingsList(
 	}
 	defer tx.Rollback(ctx)
 
-	backend, err := backendFromQuery(ctx, api, tx)
+	backend, err := BackendFromQuery(ctx, api, tx)
 	if err != nil {
 		return err
 	}

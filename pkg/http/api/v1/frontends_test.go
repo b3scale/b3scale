@@ -96,33 +96,6 @@ func TestFrontendCreateAdmin(t *testing.T) {
 	t.Log("create:", res.Body())
 }
 
-func TestFrontendCreateUser(t *testing.T) {
-	// Create backend request
-	api, res := NewTestRequest().
-		Authorize("user42", ScopeUser).
-		JSON(map[string]interface{}{
-			"bbb": map[string]interface{}{
-				"key":    "newfrontendkey",
-				"secret": "testsec",
-			},
-			"account_ref": "admin42",
-		}).
-		Context()
-	defer api.Release()
-
-	if err := api.Handle(APIResourceFrontends.Create); err != nil {
-		t.Fatal(err)
-	}
-	if err := res.StatusOK(); err != nil {
-		t.Error(err)
-	}
-
-	data := res.JSON()
-	if data["account_ref"] != "user23" {
-		t.Error("unexpected account_ref", data["account_ref"])
-	}
-}
-
 func TestFrontendUpdateAdmin(t *testing.T) {
 	api, res := NewTestRequest().
 		Authorize("admin23", ScopeAdmin).

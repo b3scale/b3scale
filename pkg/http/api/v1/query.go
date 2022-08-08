@@ -9,9 +9,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// The backend is either identified by ID or by
+// BackendFromQuery resolves the backend, either identified by ID or by
 // hostname. The hostname must be an exact match.
-func backendFromQuery(
+func BackendFromQuery(
 	ctx context.Context,
 	api *APIContext,
 	tx pgx.Tx,

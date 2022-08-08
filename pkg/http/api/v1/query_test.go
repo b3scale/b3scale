@@ -1,31 +1,41 @@
 package v1
 
 import (
-	"net/http"
-	"net/url"
 	"testing"
 )
 
 func TestBackendFromQuery(t *testing.T) {
 	api, _ := NewTestRequest().Context()
+	defer api.Release()
+
+	ctx := api.Ctx()
+	tx, err := api.Conn.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
 
 	backend := createTestBackend(api)
 
 	// This should fail with a bad request
-	if _, err := backendFromRequest(api.Ctx(), api, tx); err == nil {
+	if _, err := BackendFromQuery(ctx, api, tx); err == nil {
 		t.Error("no query should be a bad request")
 	}
 
-	// We need a new request, because the echo context will
-	// reuse the requests query.
-	u, _ := url.Parse("http:///?backend_id=" + backend.ID)
-	req := &http.Request{
-		URL: u,
+	// New request: Query by ID
+	api, _ = NewTestRequest().
+		KeepState().
+		Query("backend_id=" + backend.ID).
+		Context()
+	defer api.Release()
+	ctx = api.Ctx()
+	tx, err = api.Conn.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
-	ctx, _ = MakeTestContext(req)
-	defer ctx.Release()
+	defer tx.Rollback(ctx)
 
-	if lookup, err := backendFromRequest(ctx, tx); err != nil {
+	if lookup, err := BackendFromQuery(ctx, api, tx); err != nil {
 		t.Error(err)
 	} else {
 		if lookup.ID != backend.ID {
@@ -33,16 +43,19 @@ func TestBackendFromQuery(t *testing.T) {
 		}
 	}
 
-	// We need a new request, because the echo context will
-	// reuse the requests query.
-	u, _ = url.Parse("http:///?backend_host=" + backend.Backend.Host)
-	req = &http.Request{
-		URL: u,
+	// New request: Query by host
+	api, _ = NewTestRequest().
+		KeepState().
+		Query("backend_host=" + backend.Backend.Host).
+		Context()
+	defer api.Release()
+	ctx = api.Ctx()
+	tx, err = api.Conn.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
-	ctx, _ = MakeTestContext(req)
-	defer ctx.Release()
-
-	if lookup, err := backendFromRequest(ctx, tx); err != nil {
+	defer tx.Rollback(ctx)
+	if lookup, err := BackendFromQuery(ctx, api, tx); err != nil {
 		t.Error(err)
 	} else {
 		if lookup.ID != backend.ID {
@@ -51,13 +64,18 @@ func TestBackendFromQuery(t *testing.T) {
 	}
 
 	// Unknown host should yield nil
-	u, _ = url.Parse("http:///?backend_host=fooo000")
-	req = &http.Request{
-		URL: u,
+	api, _ = NewTestRequest().
+		KeepState().
+		Query("backend_host=f000000bar").
+		Context()
+	defer api.Release()
+	ctx = api.Ctx()
+	tx, err = api.Conn.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
 	}
-	ctx, _ = MakeTestContext(req)
-	defer ctx.Release()
-	if lookup, err := backendFromRequest(ctx, tx); err != nil {
+	defer tx.Rollback(ctx)
+	if lookup, err := BackendFromQuery(ctx, api, tx); err != nil {
 		t.Error(err)
 	} else {
 		if lookup != nil {

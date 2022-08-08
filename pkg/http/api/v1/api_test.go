@@ -57,7 +57,7 @@ func (rec *APITestResponseRecorder) JSON() map[string]interface{} {
 		panic(err)
 	}
 	data := map[string]interface{}{}
-	if err := json.Unmarshal(body, data); err != nil {
+	if err := json.Unmarshal(body, &data); err != nil {
 		panic(err)
 	}
 	return data
@@ -151,8 +151,7 @@ func (req *APITestRequest) Context() (*APIContext, *APITestResponseRecorder) {
 	if req.query != "" {
 		url += "?" + req.query
 	}
-	httpReq, err := http.NewRequest(
-		http.MethodGet, "http:///", nil)
+	httpReq, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -234,8 +233,6 @@ func (api *APIContext) ClearState() error {
 	}
 	return nil
 }
-
-func requireStatusOK(rec *httptest.ResponseRecorder)
 
 func TestAPIContextHasScope(t *testing.T) {
 	api, _ := MakeTestContext(nil)
