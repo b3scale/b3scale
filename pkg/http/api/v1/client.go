@@ -57,6 +57,10 @@ type Client interface {
 		backendID string,
 		query url.Values,
 	) ([]*store.MeetingState, error)
+	BackendMeetingsEnd(
+		ctx context.Context,
+		backendID string,
+	) (*store.Command, error)
 
 	QueueCommand(
 		ctx context.Context,
