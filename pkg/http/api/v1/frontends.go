@@ -177,7 +177,7 @@ func apiFrontendDestroy(
 
 	// Delete recordings
 	for _, rec := range recordings {
-		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+		tx, err := api.Conn.Begin(ctx)
 		if err != nil {
 			return err
 		}
@@ -200,7 +200,7 @@ func apiFrontendDestroy(
 	}
 
 	// New transaction for deleting the frontend
-	tx, err = store.ConnectionFromContext(ctx).Begin(ctx)
+	tx, err = api.Conn.Begin(ctx)
 	if err := frontend.Delete(ctx, tx); err != nil {
 		return err
 	}
