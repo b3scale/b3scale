@@ -474,7 +474,9 @@ func (c *JWTClient) QueueCommand(
 	if !httpSuccess(res) {
 		return nil, APIErrorFromResponse(res)
 	}
-	cmd := &store.Command{}
-	err = readJSONResponse(res, cmd)
+	cmd = &store.Command{}
+	if err := readJSONResponse(res, cmd); err != nil {
+		return nil, err
+	}
 	return cmd, err
 }

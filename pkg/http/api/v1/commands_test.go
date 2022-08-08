@@ -2,7 +2,8 @@ package v1
 
 import "testing"
 
-func TestBackendMeetingsEnd(t *testing.T) {
+func TestQueueBackendMeetingsEnd(t *testing.T) {
+
 	/*
 		u, _ := url.Parse("http:///?backend_host=" + backend.Backend.Host)
 		req := &http.Request{

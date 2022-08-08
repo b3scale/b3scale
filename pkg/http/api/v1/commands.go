@@ -3,6 +3,9 @@ package v1
 import (
 	"context"
 	"net/http"
+
+	"github.com/b3scale/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // APIResourceCommands bundles read and create operations
@@ -10,63 +13,91 @@ import (
 var APIResourceCommands = &APIResource{
 	List: RequireScope(
 		ScopeAdmin,
-	)(apiCommandsList),
+	)(apiCommandList),
+
+	Show: RequireScope(
+		ScopeAdmin,
+	)(apiCommandShow),
 
 	Create: RequireScope(
 		ScopeAdmin,
 	)(apiCommandCreate),
 }
 
-// apiCommandsList returns the current command queue
-func apiCommandsList(ctx context.Context, api *APIContext) error {
-	return api.JSON(http.StatusOK, []string{})
+// ErrCommandNotAllowed is a validation error
+var ErrCommandNotAllowed = store.ValidationError{
+	"action": []string{"this action is not allowed"},
+}
+
+// validateCommand checks if the command is ok
+func validateCommand(cmd *store.Command) error {
+	// Only allow DeleteBackend for now
+	if cmd.Action != cluster.CmdEndAllMeetings {
+		return ErrCommandNotAllowed
+	}
+	return nil
+}
+
+// apiCommandList returns the command queue
+func apiCommandList(ctx context.Context, api *APIContext) error {
+	// Begin TX
+	tx, err := api.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	commands, err := store.GetCommands(ctx, tx, store.Q())
+	if err != nil {
+		return err
+	}
+	return api.JSON(http.StatusOK, commands)
+}
+
+// apiCommandShow returns a single command by ID
+func apiCommandShow(ctx context.Context, api *APIContext) error {
+	// Begin TX
+	tx, err := api.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Fetch command
+	id := api.Param("id")
+	qry := store.Q().Where("id = ?", id)
+	commands, err := store.GetCommand(ctx, tx, qry)
+	if err != nil {
+		return err
+	}
+
+	return api.JSON(http.StatusOK, commands)
 }
 
 // apiCommandCreate adds a new well known command to the queue
 func apiCommandCreate(ctx context.Context, api *APIContext) error {
-	return api.JSON(http.StatusOK, "COMMAND")
-}
-
-// BackendMeetingsEndResponse is the result of the end
-// all meeting on backend request and will indicate
-// that the command was queued and the request was
-// accepted.
-
-// BackendMeetingsEnd will stop all meetings for a
-// given backend_id.
-/*
-func BackendMeetingsEnd(c echo.Context) error {
-	ctx := c.(*APIContext)
-	cctx := ctx.Ctx()
-
 	// Begin TX
-	tx, err := store.ConnectionFromContext(cctx).Begin(cctx)
+	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(cctx)
+	defer tx.Rollback(ctx)
 
-	backend, err := backendFromRequest(c, tx)
-	if err != nil {
+	// Parse command and insert into queue
+	cmd := &store.Command{}
+	if err := api.Bind(cmd); err != nil {
+		return err
+	}
+	if err := validateCommand(cmd); err != nil {
+		return err
+	}
+	if err := store.QueueCommand(ctx, tx, cmd); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
-	if backend == nil {
-		return echo.ErrNotFound
-	}
-
-	cmd := cluster.EndAllMeetings(&cluster.EndAllMeetingsRequest{
-		BackendID: backend.ID,
-	})
-	if err := store.QueueCommand(cctx, tx, cmd); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(cctx); err != nil {
-		return err
-	}
-
-	// Make response
-	return c.JSON(http.StatusAccepted, cmd)
+	// Ok
+	return api.JSON(http.StatusAccepted, cmd)
 }
-*/
