@@ -115,10 +115,7 @@ func TestBackendDestroy(t *testing.T) {
 	defer api.Release()
 
 	// Create a backend
-	b, err := createTestBackend(api)
-	if err != nil {
-		t.Fatal(err)
-	}
+	b := createTestBackend(api)
 	t.Log("destroy backend id:", b.ID)
 
 	api.SetParamNames("id")

@@ -41,16 +41,13 @@ func createTestMeeting(
 }
 
 func TestBackendMeetingsList(t *testing.T) {
-	if err := ClearState(); err != nil {
-		t.Fatal(err)
-	}
-	backend, err := CreateTestBackend()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := CreateTestMeeting(backend); err != nil {
-		t.Fatal(err)
-	}
+	api, res := NewTestRequest().
+		Authorize("admin42", ScopeAdmin).
+		Context()
+	defer api.Release()
+
+	backend := createTestBackend(api)
+	meeting := createTestMeeting(api, backend)
 
 	u, _ := url.Parse("http:///?backend_host=" + backend.Backend.Host)
 	req := &http.Request{
