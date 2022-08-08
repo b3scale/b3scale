@@ -305,7 +305,7 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 
 	ref := ctx.String("ref")
 	if ref == "" {
-		ref = config.GenerateRef(3)
+		ref = v1.GenerateRef(3)
 	}
 
 	secret, err := readSecretOrEnv(ctx)
