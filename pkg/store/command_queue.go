@@ -163,7 +163,8 @@ func GetCommand(
 	return cmds[0], nil
 }
 
-// GetCommands retrieves the current command queue
+// GetCommands retrieves the current command queue.
+// This includes locked.
 func GetCommands(
 	ctx context.Context,
 	tx pgx.Tx,

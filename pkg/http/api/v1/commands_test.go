@@ -1,27 +1,27 @@
 package v1
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/b3scale/b3scale/pkg/cluster"
+)
 
 func TestQueueBackendMeetingsEnd(t *testing.T) {
+	cmd := cluster.EndAllMeetings(&cluster.EndAllMeetingsRequest{
+		BackendID: "some-backend-id",
+	})
 
-	/*
-		u, _ := url.Parse("http:///?backend_host=" + backend.Backend.Host)
-		req := &http.Request{
-			URL: u,
-		}
-		ctx, rec := MakeTestContext(req)
-		defer ctx.Release()
-		ctx = AuthorizeTestContext(ctx, "admin42", []string{ScopeAdmin})
+	api, res := NewTestRequest().
+		Authorize("admin42", ScopeAdmin).
+		JSON(cmd).
+		Context()
 
-		if err := BackendMeetingsEnd(ctx); err != nil {
-			t.Fatal(err)
-		}
-		res := rec.Result()
-		if res.StatusCode != http.StatusAccepted {
-			t.Error("unexpected status code:", res.StatusCode)
-		}
-		resBody, _ := ioutil.ReadAll(res.Body)
-		t.Log("list:", string(resBody))
-	*/
+	if err := api.Handle(APIResourceCommands.Create); err != nil {
+		t.Fatal(err)
+	}
 
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
+	}
+	t.Log(res.Body())
 }

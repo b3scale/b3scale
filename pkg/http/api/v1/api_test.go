@@ -35,7 +35,8 @@ type APITestResponseRecorder struct {
 // AssertOK checks the http status code of the response
 func (rec *APITestResponseRecorder) StatusOK() error {
 	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
+	code := res.StatusCode
+	if code != http.StatusOK && code != http.StatusAccepted {
 		return fmt.Errorf("unexpected status code: %v", res.StatusCode)
 	}
 	return nil
