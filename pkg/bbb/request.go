@@ -22,6 +22,8 @@ const (
 	ParamRecordID  = "recordID"
 	ParamPublish   = "publish"
 	ParamState     = "state"
+
+	ParamDisabledFeatures = "disabledFeatures"
 )
 
 var (
@@ -54,6 +56,18 @@ func (p Params) String() string {
 		q = append(q, fmt.Sprintf("%s=%s", k, vStr))
 	}
 	return strings.Join(q, "&")
+}
+
+// MarshalJSON is a custom implementation of the
+// interface to omit empty values.
+func (p Params) MarshalJSON() ([]byte, error) {
+	filtered := map[string]string{}
+	for k, v := range p {
+		if v != "" {
+			filtered[k] = v
+		}
+	}
+	return json.Marshal(filtered)
 }
 
 // MetaParam creates a meta parameter. In practice

@@ -165,6 +165,42 @@ func apiFrontendDestroy(
 		return echo.ErrNotFound
 	}
 
+	// Get all related recordings
+	recordings, err := store.GetRecordingStates(
+		ctx, tx, store.Q().Where("frontend_id = ?", id))
+	if err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Delete recordings
+	for _, rec := range recordings {
+		tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback(ctx)
+
+		// Remove from FS (this will fail more likely than deleting
+		// the database record, so we do this first in case this fails.
+		if err := rec.DeleteFiles(); err != nil {
+			return err
+		}
+
+		// Delete recording state.
+		if err := rec.Delete(ctx, tx); err != nil {
+			return err
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+	}
+
+	// New transaction for deleting the frontend
+	tx, err = store.ConnectionFromContext(ctx).Begin(ctx)
 	if err := frontend.Delete(ctx, tx); err != nil {
 		return err
 	}

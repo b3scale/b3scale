@@ -31,6 +31,9 @@ type Client interface {
 	FrontendUpdate(
 		ctx context.Context, frontend *store.FrontendState,
 	) (*store.FrontendState, error)
+	FrontendUpdateRaw(
+		ctx context.Context, id string, payload []byte,
+	) (*store.FrontendState, error)
 	FrontendDelete(
 		ctx context.Context, frontend *store.FrontendState,
 	) (*store.FrontendState, error)
@@ -47,6 +50,9 @@ type Client interface {
 	BackendUpdate(
 		ctx context.Context, backend *store.BackendState,
 	) (*store.BackendState, error)
+	BackendUpdateRaw(
+		ctx context.Context, id string, payload []byte,
+	) (*store.BackendState, error)
 	BackendDelete(
 		ctx context.Context, backend *store.BackendState,
 		query url.Values,
@@ -57,12 +63,13 @@ type Client interface {
 		backendID string,
 		query url.Values,
 	) ([]*store.MeetingState, error)
+
 	BackendMeetingsEnd(
 		ctx context.Context,
 		backendID string,
 	) (*store.Command, error)
 
-	QueueCommand(
+	CommandCreate(
 		ctx context.Context,
 		cmd *store.Command,
 	) (*store.Command, error)
@@ -160,7 +167,7 @@ func (c *JWTClient) Status(
 	ctx context.Context,
 ) (*StatusResponse, error) {
 	req, err := http.NewRequestWithContext(
-		ctx, "GET", c.apiURL("", nil), nil)
+		ctx, http.MethodGet, c.apiURL("", nil), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +188,7 @@ func (c *JWTClient) FrontendsList(
 	ctx context.Context, query url.Values,
 ) ([]*store.FrontendState, error) {
 	req, err := http.NewRequestWithContext(
-		ctx, "GET", c.apiURL("frontends", query), nil)
+		ctx, http.MethodGet, c.apiURL("frontends", query), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +209,7 @@ func (c *JWTClient) FrontendRetrieve(
 	ctx context.Context, id string,
 ) (*store.FrontendState, error) {
 	req, err := http.NewRequestWithContext(
-		ctx, "GET", c.apiURL("frontends/"+id, nil), nil)
+		ctx, http.MethodGet, c.apiURL("frontends/"+id, nil), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +238,7 @@ func (c *JWTClient) FrontendCreate(
 	}
 	body := bytes.NewBuffer(payload)
 	req, err := http.NewRequestWithContext(
-		ctx, "POST", c.apiURL("frontends", nil), body)
+		ctx, http.MethodPost, c.apiURL("frontends", nil), body)
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +252,33 @@ func (c *JWTClient) FrontendCreate(
 		return nil, APIErrorFromResponse(res)
 	}
 	frontend = &store.FrontendState{}
+	err = readJSONResponse(res, frontend)
+	return frontend, err
+}
+
+// FrontendUpdateRaw PATCHes an already existing frontend
+// identified by ID using raw payload.
+func (c *JWTClient) FrontendUpdateRaw(
+	ctx context.Context,
+	id string,
+	payload []byte,
+) (*store.FrontendState, error) {
+	body := bytes.NewBuffer(payload)
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodPatch, c.apiURL("frontends/"+id, nil), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	if !httpSuccess(res) {
+		return nil, APIErrorFromResponse(res)
+	}
+	frontend := &store.FrontendState{}
 	err = readJSONResponse(res, frontend)
 	return frontend, err
 }
@@ -257,24 +291,7 @@ func (c *JWTClient) FrontendUpdate(
 	if err != nil {
 		return nil, err
 	}
-	body := bytes.NewBuffer(payload)
-	req, err := http.NewRequestWithContext(
-		ctx, "PATCH", c.apiURL("frontends/"+frontend.ID, nil), body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, APIErrorFromResponse(res)
-	}
-	frontend = &store.FrontendState{}
-	err = readJSONResponse(res, frontend)
-	return frontend, err
+	return c.FrontendUpdateRaw(ctx, frontend.ID, payload)
 }
 
 // FrontendDelete removes a frontend from the cluster.
@@ -282,7 +299,7 @@ func (c *JWTClient) FrontendDelete(
 	ctx context.Context, frontend *store.FrontendState,
 ) (*store.FrontendState, error) {
 	req, err := http.NewRequestWithContext(
-		ctx, "DELETE", c.apiURL("frontends/"+frontend.ID, nil), nil)
+		ctx, http.MethodDelete, c.apiURL("frontends/"+frontend.ID, nil), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +320,7 @@ func (c *JWTClient) BackendsList(
 	ctx context.Context, query url.Values,
 ) ([]*store.BackendState, error) {
 	req, err := http.NewRequestWithContext(
-		ctx, "GET", c.apiURL("backends", query), nil)
+		ctx, http.MethodGet, c.apiURL("backends", query), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +341,7 @@ func (c *JWTClient) BackendRetrieve(
 	ctx context.Context, id string,
 ) (*store.BackendState, error) {
 	req, err := http.NewRequestWithContext(
-		ctx, "GET", c.apiURL("backends/"+id, nil), nil)
+		ctx, http.MethodGet, c.apiURL("backends/"+id, nil), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -353,7 +370,7 @@ func (c *JWTClient) BackendCreate(
 	}
 	body := bytes.NewBuffer(payload)
 	req, err := http.NewRequestWithContext(
-		ctx, "POST", c.apiURL("backends", nil), body)
+		ctx, http.MethodPost, c.apiURL("backends", nil), body)
 	if err != nil {
 		return nil, err
 	}
@@ -367,6 +384,33 @@ func (c *JWTClient) BackendCreate(
 		return nil, APIErrorFromResponse(res)
 	}
 	backend = &store.BackendState{}
+	err = readJSONResponse(res, backend)
+	return backend, err
+}
+
+// BackendUpdateRaw updates an existing backend
+// identified by ID with a raw JSON payload.
+func (c *JWTClient) BackendUpdateRaw(
+	ctx context.Context,
+	id string,
+	payload []byte,
+) (*store.BackendState, error) {
+	body := bytes.NewBuffer(payload)
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodPatch, c.apiURL("backends/"+id, nil), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	res, err := c.Client.Do(c.AuthorizeRequest(req))
+	if err != nil {
+		return nil, err
+	}
+	if !httpSuccess(res) {
+		return nil, APIErrorFromResponse(res)
+	}
+	backend := &store.BackendState{}
 	err = readJSONResponse(res, backend)
 	return backend, err
 }
@@ -379,24 +423,7 @@ func (c *JWTClient) BackendUpdate(
 	if err != nil {
 		return nil, err
 	}
-	body := bytes.NewBuffer(payload)
-	req, err := http.NewRequestWithContext(
-		ctx, "PATCH", c.apiURL("backends/"+backend.ID, nil), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, APIErrorFromResponse(res)
-	}
-	backend = &store.BackendState{}
-	err = readJSONResponse(res, backend)
-	return backend, err
+	return c.BackendUpdateRaw(ctx, backend.ID, payload)
 }
 
 // BackendDelete removes a backend from the cluster
@@ -404,7 +431,7 @@ func (c *JWTClient) BackendDelete(
 	ctx context.Context, backend *store.BackendState, query url.Values,
 ) (*store.BackendState, error) {
 	req, err := http.NewRequestWithContext(
-		ctx, "DELETE", c.apiURL("backends/"+backend.ID, query), nil)
+		ctx, http.MethodDelete, c.apiURL("backends/"+backend.ID, query), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +457,7 @@ func (c *JWTClient) BackendMeetingsList(
 	query.Set("backend_id", backendID)
 
 	req, err := http.NewRequestWithContext(
-		ctx, "GET", c.apiURL("meetings", query), nil)
+		ctx, http.MethodGet, c.apiURL("meetings", query), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -454,12 +481,12 @@ func (c *JWTClient) BackendMeetingsEnd(
 	cmd := cluster.EndAllMeetings(&cluster.EndAllMeetingsRequest{
 		BackendID: backendID,
 	})
-	return c.QueueCommand(ctx, cmd)
+	return c.CommandCreate(ctx, cmd)
 }
 
-// QueueCommand enqueues a command into the cluster's
+// CommandCreate enqueues a command into the cluster's
 // command queue.
-func (c *JWTClient) QueueCommand(
+func (c *JWTClient) CommandCreate(
 	ctx context.Context,
 	cmd *store.Command,
 ) (*store.Command, error) {
@@ -475,6 +502,7 @@ func (c *JWTClient) QueueCommand(
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
 	res, err := c.Client.Do(c.AuthorizeRequest(req))
 	if err != nil {
 		return nil, err

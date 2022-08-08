@@ -147,6 +147,13 @@ The load factor of the backend can be set through:
 
     You can pass the secret through the --secret longopt - however this is discouraged
     because it might end up in the shell history. Be careful.
+
+    In case your `b3scalectl` responds with
+
+        3:43PM FTL this is fatal error="message: invalid or expired jwt"
+
+    remove the access token in `~/.config/b3scale/<host>.access_token`
+
  
  * `B3SCALE_RECORDINGS_PUBLISHED_PATH` required if recordings are supported: This points to
    the shared path where published recordings are.
@@ -206,8 +213,11 @@ It will be permanently deleted after the last session was closed.
 
 ## Middleware Configuration
 
-The middlewares can be configured using b3scalectl:
+The middlewares can be configured using b3scalectl or via API calls.
 A property value will be interpreted as JSON.
+
+### Configure tagged routing
+
 
     b3scalectl set backend -j '{"tags": ["asdf", "foo", "bar"]}' https://backend23/
     b3scalectl set frontend -j '{"required_tags": ["asdf"]}' frontend1
@@ -216,9 +226,46 @@ Unset a value with explicit null:
 
     b3scalectl set frontend -j '{"required_tags": null}' frontend1
 
-Configure a default presentation:
+### Configure a default presentation
 
     b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
+
+### Configure create parameter *defaults* and *overrides*
+
+An *override* will replace the parameter of the request.
+
+A *default* is added to the request parameters if not present.
+In case of `disabledFeatures`, the list coming from the request
+will be amended with the defaults. If no disabledFeatures are
+provided from the frontend, the defaults will be used.
+
+All parameter values are strings and need to be encoded
+according to the specifications in 
+https://docs.bigbluebutton.org/dev/api.html#create
+
+Some examples:
+
+Set a default logo (if not present) and force some disabled features.
+Addional disabled features from the frontend will be preserved.
+
+    b3scalectl set frontend -j '{"create_default_params": {"logo": "logoURL", "disabledFeatures": "chat,captions"}}' frontend1
+
+
+Force disable recordings:
+
+    b3scalectl set frontend -j '{"create_override_params": {"allowStartStopRecording": "false", "autoStartRecording": "false"}}' frontend1
+
+
+Set disabledFeatures, ignoring requested disabled features from the frontend:
+
+    b3scalectl set frontend -j '{"create_override_params": {"disabledFeatures": "captions"}}' frontend1
+
+
+Setting `create_default_params` or `create_override_params` is always
+a replacement of the current value. If `null` is provided, the configuration
+key will be unset.
+
+    b3scalectl set frontend -j '{"create_override_params": null, "create_default_params": null}' frontend1
 
 ## Monitoring
 

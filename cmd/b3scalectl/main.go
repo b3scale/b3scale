@@ -18,6 +18,7 @@ func main() {
 		// Try to load the environment from files
 		config.LoadEnv([]string{
 			".env",
+			"/etc/default/b3scale",
 			"/etc/sysconfig/b3scale",
 		})
 	}

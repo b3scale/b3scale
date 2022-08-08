@@ -20,6 +20,7 @@ func main() {
 	if chk := config.EnvOpt(config.EnvDbURL, "unconfigured"); chk == "unconfigured" {
 		config.LoadEnv([]string{
 			".env",
+			"/etc/default/b3scale",
 			"/etc/sysconfig/b3scale",
 		})
 	}
@@ -72,22 +73,24 @@ func main() {
 	recordingsStorage, err := store.NewRecordingsStorageFromEnv()
 	if err != nil {
 		log.Error().Err(err).Msg("could not initialize recordings storage")
-	}
-	if err := recordingsStorage.Check(); err != nil {
-		log.Error().Err(err).Msg("recordings storage error")
+		log.Error().Msg("recording feature is not available")
+	} else {
+		if err := recordingsStorage.Check(); err != nil {
+			log.Error().Err(err).Msg("recordings storage error")
+		}
 	}
 
 	// Initialize cluster
 	ctrl := cluster.NewController()
 
 	// Create router and configure middlewares.
-	// The middlewares are executes in reverse order.
+	// IMPORTANT: The middlewares are executed in reverse order.
 	router := cluster.NewRouter(ctrl)
 	router.Use(routing.SortLoad)
 	router.Use(routing.RequiredTags)
 
 	// Start cluster request handler, and apply middlewares.
-	// The middlewares are executes in reverse order.
+	// IMPORTANT: The middlewares are executed in reverse order.
 	gateway := cluster.NewGateway(ctrl, &cluster.GatewayOptions{})
 
 	gateway.Use(requests.AdminRequestHandler(router))
@@ -100,6 +103,7 @@ func main() {
 
 	gateway.Use(requests.SetMetaFrontend())
 	gateway.Use(requests.SetDefaultPresentation())
+	gateway.Use(requests.SetCreateParams())
 	gateway.Use(requests.BindMeetingFrontend())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 

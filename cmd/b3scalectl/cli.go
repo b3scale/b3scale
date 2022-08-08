@@ -411,11 +411,6 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 		}
 
 		if ctx.IsSet("opts") {
-			// Frontend settings
-			if err := json.Unmarshal(
-				[]byte(ctx.String("opts")), &state.Settings); err != nil {
-				return err
-			}
 			changes = true
 		}
 
@@ -424,9 +419,24 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 			c.returnCode = RetNoChange
 		} else {
 			if !dry {
-				_, err := client.FrontendUpdate(ctx.Context, state)
-				if err != nil {
-					return err
+				if ctx.IsSet("opts") {
+					// Update frontend settings using raw payload to
+					// convey explicit null values.
+					payload, err := json.Marshal(map[string]json.RawMessage{
+						"settings": []byte(ctx.String("opts")),
+					})
+					if err != nil {
+						return err
+					}
+					_, err = client.FrontendUpdateRaw(ctx.Context, state.ID, payload)
+					if err != nil {
+						return err
+					}
+				} else {
+					_, err := client.FrontendUpdate(ctx.Context, state)
+					if err != nil {
+						return err
+					}
 				}
 				fmt.Println("updated frontend")
 			} else {
@@ -586,17 +596,28 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			changes = true
 		}
 		if ctx.IsSet("opts") {
-			if err := json.Unmarshal(
-				[]byte(ctx.String("opts")), &state.Settings); err != nil {
-				return err
-			}
 			changes = true
 		}
 		if changes {
 			if !dry {
-				state, err = client.BackendUpdate(ctx.Context, state)
-				if err != nil {
-					return err
+				if ctx.IsSet("opts") {
+					// Update backend settings using raw payload to
+					// convey explicit null values.
+					payload, err := json.Marshal(map[string]json.RawMessage{
+						"settings": []byte(ctx.String("opts")),
+					})
+					if err != nil {
+						return err
+					}
+					_, err = client.BackendUpdateRaw(ctx.Context, state.ID, payload)
+					if err != nil {
+						return err
+					}
+				} else {
+					state, err = client.BackendUpdate(ctx.Context, state)
+					if err != nil {
+						return err
+					}
 				}
 				fmt.Println("updated backend")
 			} else {
@@ -826,6 +847,7 @@ func (c *Cli) endAllMeetings(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Dispatch:", cmd.Action, cmd.Params)
 
 	// Poll state changes
 	state := cmd.State

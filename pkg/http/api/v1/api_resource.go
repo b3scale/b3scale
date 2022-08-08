@@ -39,10 +39,10 @@ func (r *APIResource) Mount(
 ) {
 	g := root.Group(prefix, middlewares...)
 	if r.List != nil {
-		g.GET("/", APIEndpoint(r.List))
+		g.GET("", APIEndpoint(r.List))
 	}
 	if r.Create != nil {
-		g.POST("/", APIEndpoint(r.Create))
+		g.POST("", APIEndpoint(r.Create))
 	}
 	if r.Show != nil {
 		g.GET("/:id", APIEndpoint(r.Show))
