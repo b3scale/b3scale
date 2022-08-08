@@ -15,11 +15,28 @@ import (
 
 // APIResourceBackends is a restful group for backend endpoints
 var APIResourceBackends = &APIResource{
-	List:    apiBackendsList,
-	Create:  apiBackendCreate,
-	Show:    apiBackendShow,
-	Update:  apiBackendUpdate,
-	Destroy: apiBackendDestroy,
+	List: RequireScope(
+		ScopeAdmin,
+	)(apiBackendsList),
+
+	Create: RequireScope(
+		ScopeAdmin,
+		ScopeNode,
+	)(apiBackendCreate),
+
+	Show: RequireScope(
+		ScopeAdmin,
+		ScopeNode,
+	)(apiBackendShow),
+
+	Update: RequireScope(
+		ScopeAdmin,
+		ScopeNode,
+	)(apiBackendUpdate),
+
+	Destroy: RequireScope(
+		ScopeAdmin,
+	)(apiBackendDestroy),
 }
 
 // apiBackendsList will list all frontends known

@@ -8,8 +8,13 @@ import (
 // APIResourceCommands bundles read and create operations
 // for manipulating the command queue.
 var APIResourceCommands = &APIResource{
-	List:   apiCommandsList,
-	Create: apiCommandCreate,
+	List: RequireScope(
+		ScopeAdmin,
+	)(apiCommandsList),
+
+	Create: RequireScope(
+		ScopeAdmin,
+	)(apiCommandCreate),
 }
 
 // apiCommandsList returns the current command queue

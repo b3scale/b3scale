@@ -21,7 +21,10 @@ var (
 
 // APIResourceRecordingsImport is the recordings import api resource
 var APIResourceRecordingsImport = &APIResource{
-	Create: apiRecordingsImport,
+	Create: RequireScope(
+		ScopeAdmin,
+		ScopeNode,
+	)(apiRecordingsImport),
 }
 
 // RecordingsImportMeta will accept the contents of a
