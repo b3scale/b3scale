@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog/log"
 
 	"github.com/jackc/pgx/v4"
@@ -144,6 +145,70 @@ func safeExecHandler(
 		}
 	}()
 	return handler(ctx, cmd)
+}
+
+// GetCommand retrievs a command query
+func GetCommand(
+	ctx context.Context,
+	tx pgx.Tx,
+	q sq.SelectBuilder,
+) (*Command, error) {
+	cmds, err := GetCommands(ctx, tx, q)
+	if err != nil {
+		return nil, err
+	}
+	if len(cmds) == 0 {
+		return nil, fmt.Errorf("command not found")
+	}
+	return cmds[0], nil
+}
+
+// GetCommands retrieves the current command queue
+func GetCommands(
+	ctx context.Context,
+	tx pgx.Tx,
+	q sq.SelectBuilder,
+) ([]*Command, error) {
+	qry, params, _ := q.Columns(
+		"id",
+		"seq",
+		"state",
+		"action",
+		"params",
+		"result",
+		"deadline",
+		"created_at",
+		"started_at",
+		"stopped_at").
+		From("commands").
+		ToSql()
+	rows, err := tx.Query(ctx, qry, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch all commands
+	tag := rows.CommandTag()
+	commands := make([]*Command, 0, tag.RowsAffected())
+	for rows.Next() {
+		cmd := &Command{}
+		err := rows.Scan(
+			&cmd.ID,
+			&cmd.Seq,
+			&cmd.State,
+			&cmd.Action,
+			&cmd.Params,
+			&cmd.Result,
+			&cmd.Deadline,
+			&cmd.CreatedAt,
+			&cmd.StartedAt,
+			&cmd.StoppedAt)
+		if err != nil {
+			return nil, err
+		}
+		commands = append(commands, cmd)
+	}
+	return commands, nil
 }
 
 // Process will dequeue a command and apply the

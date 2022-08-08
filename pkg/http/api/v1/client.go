@@ -11,6 +11,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -57,10 +58,10 @@ type Client interface {
 		query url.Values,
 	) ([]*store.MeetingState, error)
 
-	BackendMeetingsEnd(
+	QueueCommand(
 		ctx context.Context,
-		backendID string,
-	) (*store.Command, error)
+		cmd *store.Command,
+	) (store.Command, error)
 }
 
 // JSON helper
@@ -439,13 +440,30 @@ func (c *JWTClient) BackendMeetingsList(
 
 // BackendMeetingsEnd ends all meetings on a given backend
 func (c *JWTClient) BackendMeetingsEnd(
-	ctx context.Context, backendID string,
+	ctx context.Context,
+	backendID string,
 ) (*store.Command, error) {
-	query := url.Values{}
-	query.Set("backend_id", backendID)
+	cmd := cluster.EndAllMeetings(&cluster.EndAllMeetingsRequest{
+		BackendID: backendID,
+	})
+	return c.QueueCommand(ctx, cmd)
+}
 
+// QueueCommand enqueues a command into the cluster's
+// command queue.
+func (c *JWTClient) QueueCommand(
+	ctx context.Context,
+	cmd *store.Command,
+) (*store.Command, error) {
+	// Encode Command
+	payload, err := json.Marshal(cmd)
+	if err != nil {
+		return nil, err
+	}
+	body := bytes.NewBuffer(payload)
+	// Create request
 	req, err := http.NewRequestWithContext(
-		ctx, "DELETE", c.apiURL("meetings", query), nil)
+		ctx, "POST", c.apiURL("commands", nil), body)
 	if err != nil {
 		return nil, err
 	}
