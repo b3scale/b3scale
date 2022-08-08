@@ -1,10 +1,7 @@
-let
-  pkgs = import <nixpkgs> {};
-in
+{ pkgs ? import <nixpkgs> {} }:
 pkgs.mkShell {
   buildInputs = with pkgs; [
     postgresql
     go
   ]; 
 }
-

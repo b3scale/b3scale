@@ -76,4 +76,5 @@ fi
 
 ## Apply sql scripts
 $PSQL -v ON_ERROR_STOP=on < schema/0001_initial_tables.sql
+$PSQL -v ON_ERROR_STOP=on < schema/0002_node_agent_api.sql
 
