@@ -64,14 +64,14 @@ fi
 
 if [ $OPT_TESTING -eq 1 ]; then
     echo "++ using test database"
-    DB_NAME="${DB_NAME}_test"
-    export PGDATABASE=$DB_NAME
+    PGDATABASE="${PGDATABASE}_test"
+    export PGDATABASE=$PGDATABASE
 fi
 
 if [ $OPT_CLEAR -eq 1 ]; then
     echo "++ clearing database"
-    $PSQL template1 -c "DROP DATABASE $DB_NAME"
-    $PSQL template1 -c "CREATE DATABASE $DB_NAME"
+    $PSQL template1 -c "DROP DATABASE $PGDATABASE"
+    $PSQL template1 -c "CREATE DATABASE $PGDATABASE"
 fi
 
 ## Apply sql scripts
