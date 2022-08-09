@@ -59,11 +59,9 @@ jobs:
           PGPORT: 5432
           PGUSER: postgres
           PGPASSWORD: postgres
+        working-directory: ./db
         run: |
-          ./db/init.sh -c -t
-          # psql -c 'DROP DATABASE IF EXISTS b3scale_test'
-          # psql -c 'CREATE DATABASE b3scale_test'
-          # psql -d b3scale_test < ./db/schema/*.sql
+          ./init.sh -c -t
 
       # Run Tests
       - name: Tests
