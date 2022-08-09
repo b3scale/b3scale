@@ -91,6 +91,10 @@ func apiBackendCreate(
 		LoadFactor: b.LoadFactor,
 	})
 
+	if api.HasScope(ScopeNode) {
+		backend.AgentRef = &api.Ref
+	}
+
 	if err := backend.Validate(); err != nil {
 		return err
 	}
@@ -138,6 +142,11 @@ func apiBackendShow(
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
+
+	if api.HasScope(ScopeNode) {
+		q = q.Where("agent_ref = ?", api.Ref)
+	}
+
 	backend, err := store.GetBackendState(ctx, tx, q)
 
 	if backend == nil {
@@ -166,6 +175,10 @@ func apiBackendDestroy(
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
+	if api.HasScope(ScopeNode) {
+		q = q.Where("agent_ref = ?", api.Ref)
+	}
+
 	backend, err := store.GetBackendState(ctx, tx, q)
 	if backend == nil {
 		return echo.ErrNotFound
@@ -210,6 +223,10 @@ func apiBackendUpdate(
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
+	if api.HasScope(ScopeNode) {
+		q = q.Where("agent_ref = ?", api.Ref)
+	}
+
 	update, err := store.GetBackendState(ctx, tx, q)
 	if err != nil {
 		return err

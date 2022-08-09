@@ -137,7 +137,7 @@ func TestBackendStateAgentHeartbeat(t *testing.T) {
 	}
 
 	// Make heartbeat
-	if err := state.UpdateAgentHeartbeat(ctx, tx); err != nil {
+	if _, err := state.UpdateAgentHeartbeat(ctx, tx); err != nil {
 		t.Error(err)
 	}
 

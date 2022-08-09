@@ -122,6 +122,7 @@ func Init(e *echo.Echo) error {
 	APIResourceMeetings.Mount(v1, "/meetings")
 	APIResourceCommands.Mount(v1, "/commands")
 	APIResourceRecordingsImport.Mount(v1, "/recordings-import")
+	APIResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
 
 	return nil
 }

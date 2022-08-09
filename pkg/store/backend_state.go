@@ -28,6 +28,7 @@ type BackendState struct {
 	AdminState string `json:"admin_state"`
 
 	AgentHeartbeat time.Time `json:"agent_heartbeat"`
+	AgentRef       *string   `json:"agent_ref"`
 
 	LastError *string `json:"last_error"`
 
@@ -44,6 +45,12 @@ type BackendState struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	SyncedAt  time.Time `json:"synced_at"`
+}
+
+// AgentHeartbeat is a short api response
+type AgentHeartbeat struct {
+	BackendID string    `json:"backend_id"`
+	Heartbeat time.Time `json:"heartbeat"`
 }
 
 // InitBackendState initializes a new backend state with
@@ -76,6 +83,7 @@ func GetBackendStates(
 		"backends.node_state",
 		"backends.admin_state",
 		"backends.agent_heartbeat",
+		"backends.agent_ref",
 		"backends.last_error",
 		"backends.latency",
 		"backends.meetings_count",
@@ -103,6 +111,7 @@ func GetBackendStates(
 			&state.NodeState,
 			&state.AdminState,
 			&state.AgentHeartbeat,
+			&state.AgentRef,
 			&state.LastError,
 			&state.Latency,
 			&state.MeetingsCount,
@@ -195,9 +204,11 @@ func (s *BackendState) insert(
 
 			settings,
 
-			load_factor
+			load_factor,
+
+			agent_ref
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
 	insertID := ""
@@ -208,7 +219,8 @@ func (s *BackendState) insert(
 		s.NodeState,
 		s.AdminState,
 		s.Settings,
-		s.LoadFactor).Scan(&insertID)
+		s.LoadFactor,
+		s.AgentRef).Scan(&insertID)
 
 	return insertID, err
 }
@@ -286,7 +298,7 @@ func (s *BackendState) Delete(
 func (s *BackendState) UpdateAgentHeartbeat(
 	ctx context.Context,
 	tx pgx.Tx,
-) error {
+) (*AgentHeartbeat, error) {
 	qry := `
 		UPDATE backends
 		   SET agent_heartbeat = $2
@@ -296,10 +308,15 @@ func (s *BackendState) UpdateAgentHeartbeat(
 	now := time.Now().UTC()
 	_, err := tx.Exec(ctx, qry, s.ID, now)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	s.AgentHeartbeat = now
-	return nil
+
+	heartbeat := &AgentHeartbeat{
+		BackendID: s.ID,
+		Heartbeat: s.AgentHeartbeat,
+	}
+	return heartbeat, nil
 }
 
 // IsAgentAlive checks if the heartbeat is older
