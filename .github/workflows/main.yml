@@ -60,9 +60,10 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: postgres
         run: |
-          psql -c 'DROP DATABASE IF EXISTS b3scale_test'
-          psql -c 'CREATE DATABASE b3scale_test'
-          psql -d b3scale_test < ./db/schema/*.sql
+          ./db/init.sh -c -t
+          # psql -c 'DROP DATABASE IF EXISTS b3scale_test'
+          # psql -c 'CREATE DATABASE b3scale_test'
+          # psql -d b3scale_test < ./db/schema/*.sql
 
       # Run Tests
       - name: Tests
