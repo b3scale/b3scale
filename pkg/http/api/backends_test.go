@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 )
 
 func createTestBackend(
-	api *APIContext,
+	api *API,
 ) *store.BackendState {
 	ctx := api.Ctx()
 	tx, err := api.Conn.Begin(ctx)
@@ -47,7 +47,7 @@ func TestBackendsList(t *testing.T) {
 	createTestBackend(api)
 
 	// List all backends
-	if err := api.Handle(APIResourceBackends.List); err != nil {
+	if err := api.Handle(ResourceBackends.List); err != nil {
 		t.Fatal(err)
 	}
 
@@ -72,7 +72,7 @@ func TestBackendCreate(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	if err := api.Handle(APIResourceBackends.Create); err != nil {
+	if err := api.Handle(ResourceBackends.Create); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -95,7 +95,7 @@ func TestBackendAgentCreate(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	if err := api.Handle(APIResourceBackends.Create); err != nil {
+	if err := api.Handle(ResourceBackends.Create); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -127,7 +127,7 @@ func TestBackendUpdate(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(b.ID)
 
-	if err := api.Handle(APIResourceBackends.Update); err != nil {
+	if err := api.Handle(ResourceBackends.Update); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -149,7 +149,7 @@ func TestBackendDestroy(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(b.ID)
 
-	if err := api.Handle(APIResourceBackends.Destroy); err != nil {
+	if err := api.Handle(ResourceBackends.Destroy); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -172,7 +172,7 @@ func TestBackendForceDestroy(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(b.ID)
 
-	if err := api.Handle(APIResourceBackends.Destroy); err != nil {
+	if err := api.Handle(ResourceBackends.Destroy); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -195,7 +195,7 @@ func TestBackendRetrieve(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(b.ID)
 
-	if err := api.Handle(APIResourceBackends.Show); err != nil {
+	if err := api.Handle(ResourceBackends.Show); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {

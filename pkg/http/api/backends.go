@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-// APIResourceBackends is a restful group for backend endpoints
-var APIResourceBackends = &APIResource{
+// ResourceBackends is a restful group for backend endpoints
+var ResourceBackends = &Resource{
 	List: RequireScope(
 		ScopeAdmin,
 	)(apiBackendsList),
@@ -44,7 +44,7 @@ var APIResourceBackends = &APIResource{
 // Admin scope is mandatory
 func apiBackendsList(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
@@ -76,7 +76,7 @@ func apiBackendsList(
 // Requires admin scope
 func apiBackendCreate(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	b := &store.BackendState{}
 	if err := api.Bind(b); err != nil {
@@ -128,7 +128,7 @@ func apiBackendCreate(
 // Requires admin scope
 func apiBackendShow(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	id := api.Param("id")
 
@@ -160,7 +160,7 @@ func apiBackendShow(
 // Requires admin scope.
 func apiBackendDestroy(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	id := api.Param("id")
 	force := config.IsEnabled(api.QueryParam("force"))
@@ -211,7 +211,7 @@ func apiBackendDestroy(
 // be updated.
 func apiBackendUpdate(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	id := api.Param("id")
 	tx, err := api.Conn.Begin(ctx)

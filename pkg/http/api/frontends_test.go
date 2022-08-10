@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-func createTestFrontend(api *APIContext) *store.FrontendState {
+func createTestFrontend(api *API) *store.FrontendState {
 	ctx := api.Ctx()
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
@@ -45,7 +45,7 @@ func TestFrontendsList(t *testing.T) {
 
 	createTestFrontend(api)
 
-	if err := api.Handle(APIResourceFrontends.List); err != nil {
+	if err := api.Handle(ResourceFrontends.List); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -65,7 +65,7 @@ func TestFrontendsRetrieve(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)
 
-	if err := api.Handle(APIResourceFrontends.Show); err != nil {
+	if err := api.Handle(ResourceFrontends.Show); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -87,7 +87,7 @@ func TestFrontendCreateAdmin(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	if err := api.Handle(APIResourceFrontends.Create); err != nil {
+	if err := api.Handle(ResourceFrontends.Create); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -115,7 +115,7 @@ func TestFrontendUpdateAdmin(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)
 
-	if err := api.Handle(APIResourceFrontends.Update); err != nil {
+	if err := api.Handle(ResourceFrontends.Update); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -146,7 +146,7 @@ func TestFrontendUpdateUser(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)
 
-	if err := api.Handle(APIResourceFrontends.Update); err != nil {
+	if err := api.Handle(ResourceFrontends.Update); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -176,7 +176,7 @@ func TestFrontendDestroy(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(f.ID)
 
-	if err := api.Handle(APIResourceFrontends.Destroy); err != nil {
+	if err := api.Handle(ResourceFrontends.Destroy); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {

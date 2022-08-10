@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"testing"
@@ -16,7 +16,7 @@ func TestQueueBackendMeetingsEnd(t *testing.T) {
 		JSON(cmd).
 		Context()
 
-	if err := api.Handle(APIResourceCommands.Create); err != nil {
+	if err := api.Handle(ResourceCommands.Create); err != nil {
 		t.Fatal(err)
 	}
 

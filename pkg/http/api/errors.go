@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"net/http"
@@ -28,9 +28,9 @@ func ErrorValidationFailed(c echo.Context, err store.ValidationError) error {
 	})
 }
 
-// APIErrorHandler intercepts well known errors
+// ErrorHandler intercepts well known errors
 // and renders a response.
-func APIErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
+func ErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		err := next(c)
 		if err == nil {

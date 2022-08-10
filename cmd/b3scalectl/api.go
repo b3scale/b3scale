@@ -5,13 +5,13 @@ import (
 	"syscall"
 
 	"github.com/b3scale/b3scale/pkg/config"
-	v1 "github.com/b3scale/b3scale/pkg/http/api/v1"
+	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
 )
 
 // apiClient initializes the applications API client
-func apiClient(ctx *cli.Context) (v1.Client, error) {
+func apiClient(ctx *cli.Context) (api.Client, error) {
 	apiHost := ctx.String("api")
 	tokenFilename := apiHost + ".access_token"
 

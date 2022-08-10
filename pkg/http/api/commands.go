@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-// APIResourceCommands bundles read and create operations
+// ResourceCommands bundles read and create operations
 // for manipulating the command queue.
-var APIResourceCommands = &APIResource{
+var ResourceCommands = &Resource{
 	List: RequireScope(
 		ScopeAdmin,
 	)(apiCommandList),
@@ -39,7 +39,7 @@ func validateCommand(cmd *store.Command) error {
 }
 
 // apiCommandList returns the command queue
-func apiCommandList(ctx context.Context, api *APIContext) error {
+func apiCommandList(ctx context.Context, api *API) error {
 	// Begin TX
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
@@ -55,7 +55,7 @@ func apiCommandList(ctx context.Context, api *APIContext) error {
 }
 
 // apiCommandShow returns a single command by ID
-func apiCommandShow(ctx context.Context, api *APIContext) error {
+func apiCommandShow(ctx context.Context, api *API) error {
 	// Begin TX
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
@@ -75,7 +75,7 @@ func apiCommandShow(ctx context.Context, api *APIContext) error {
 }
 
 // apiCommandCreate adds a new well known command to the queue
-func apiCommandCreate(ctx context.Context, api *APIContext) error {
+func apiCommandCreate(ctx context.Context, api *API) error {
 	// Begin TX
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {

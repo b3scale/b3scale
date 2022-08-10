@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 // hostname. The hostname must be an exact match.
 func BackendFromQuery(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 	tx pgx.Tx,
 ) (*store.BackendState, error) {
 	id := strings.TrimSpace(api.QueryParam("backend_id"))
@@ -44,7 +44,7 @@ func BackendFromQuery(
 // the current node agent.
 func BackendFromAgentRef(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 	tx pgx.Tx,
 ) (*store.BackendState, error) {
 	if !api.HasScope(ScopeNode) {
@@ -57,7 +57,7 @@ func BackendFromAgentRef(
 // MeetingFromRequest resolves the current meeting
 func MeetingFromRequest(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 	tx pgx.Tx,
 ) (*store.MeetingState, error) {
 	backend, err := BackendFromAgentRef(ctx, api, tx)

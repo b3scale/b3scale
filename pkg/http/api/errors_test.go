@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"io/ioutil"
@@ -19,7 +19,7 @@ func TestAPIErrorHandler(t *testing.T) {
 			},
 		}
 	}
-	h := APIErrorHandler(errFunc)
+	h := ErrorHandler(errFunc)
 
 	err := h(ctx)
 	if err != nil {

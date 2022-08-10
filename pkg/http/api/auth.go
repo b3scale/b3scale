@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	// Until the echo middleware is updated, we have to use the
@@ -34,9 +34,9 @@ func ErrScopeRequired(scopes ...string) *echo.HTTPError {
 		scope+" scope required")
 }
 
-// APIAuthClaims extends the JWT standard claims
+// AuthClaims extends the JWT standard claims
 // with a well-known `scope` claim.
-type APIAuthClaims struct {
+type AuthClaims struct {
 	Scope string `json:"scope"`
 	jwt.StandardClaims
 }
@@ -52,7 +52,7 @@ func NewAPIJWTConfig() (middleware.JWTConfig, error) {
 
 	cfg := middleware.DefaultJWTConfig
 	cfg.SigningMethod = "HS384"
-	cfg.Claims = &APIAuthClaims{}
+	cfg.Claims = &AuthClaims{}
 	cfg.SigningKey = []byte(secret)
 
 	return cfg, nil
@@ -67,7 +67,7 @@ func SignAdminAccessToken(sub string, secret []byte) (string, error) {
 // SignAccessToken creates an authorized JWT
 func SignAccessToken(sub string, scope string, secret []byte) (string, error) {
 	id := GenerateNonce(24)
-	claims := &APIAuthClaims{
+	claims := &AuthClaims{
 		Scope: scope,
 		StandardClaims: jwt.StandardClaims{
 			Subject: sub,
@@ -80,9 +80,9 @@ func SignAccessToken(sub string, scope string, secret []byte) (string, error) {
 
 // RequireScope creates a middleware to ensure the presence of
 // at least one required scope.
-func RequireScope(scopes ...string) APIEndpointMiddleware {
-	return func(next APIEndpointHandler) APIEndpointHandler {
-		return func(ctx context.Context, api *APIContext) error {
+func RequireScope(scopes ...string) ResourceMiddleware {
+	return func(next ResourceHandler) ResourceHandler {
+		return func(ctx context.Context, api *API) error {
 			hasScope := false
 			for _, sc := range scopes {
 				if api.HasScope(sc) {

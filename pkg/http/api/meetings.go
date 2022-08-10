@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-// APIResourceMeetings is a restful group for meetings
-var APIResourceMeetings = &APIResource{
+// ResourceMeetings is a restful group for meetings
+var ResourceMeetings = &Resource{
 	List: RequireScope(
 		ScopeAdmin,
 	)(apiMeetingsList),
@@ -36,7 +36,7 @@ var APIResourceMeetings = &APIResource{
 // scope is important because the returned list might be long.
 func apiMeetingsList(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	// Begin TX
 	tx, err := api.Conn.Begin(ctx)
@@ -71,7 +71,7 @@ func apiMeetingsList(
 // This inband signaling is a compromise.
 func apiMeetingShow(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	// Begin TX
 	tx, err := api.Conn.Begin(ctx)
@@ -94,7 +94,7 @@ func apiMeetingShow(
 // apiMeetingsUpdate will update a meeting
 func apiMeetingUpdate(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
@@ -135,7 +135,7 @@ func apiMeetingUpdate(
 // apiMeetingDestroy will delete a meeting from the store
 func apiMeetingDestroy(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {

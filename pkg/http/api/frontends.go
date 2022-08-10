@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-// APIResourceFrontends is a restful group for frontend endpoints
-var APIResourceFrontends = &APIResource{
+// ResourceFrontends is a restful group for frontend endpoints
+var ResourceFrontends = &Resource{
 	List: RequireScope(
 		ScopeAdmin,
 		ScopeUser,
@@ -38,7 +38,7 @@ var APIResourceFrontends = &APIResource{
 
 func apiFrontendsList(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	q := store.Q()
 	// Force filters if not admin account
@@ -76,7 +76,7 @@ func apiFrontendsList(
 // Admin scope is mandatory.
 func apiFrontendCreate(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	f := &store.FrontendState{}
 	if err := api.Bind(f); err != nil {
@@ -113,7 +113,7 @@ func apiFrontendCreate(
 // identified by ID.
 func apiFrontendShow(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	id := api.Param("id")
 
@@ -142,7 +142,7 @@ func apiFrontendShow(
 // Admin scope is mandatory.
 func apiFrontendDestroy(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	id := api.Param("id")
 
@@ -217,7 +217,7 @@ func apiFrontendDestroy(
 // be updated.
 func apiFrontendUpdate(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	id := api.Param("id")
 

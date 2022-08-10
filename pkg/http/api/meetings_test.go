@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"strings"
@@ -11,7 +11,7 @@ import (
 )
 
 func createTestMeeting(
-	api *APIContext,
+	api *API,
 	backend *store.BackendState,
 ) *store.MeetingState {
 	ctx := api.Ctx()
@@ -54,7 +54,7 @@ func TestBackendMeetingsList(t *testing.T) {
 		Context()
 	defer api.Release()
 
-	if err := api.Handle(APIResourceMeetings.List); err != nil {
+	if err := api.Handle(ResourceMeetings.List); err != nil {
 		t.Fatal(err)
 	}
 	if err := res.StatusOK(); err != nil {
@@ -78,7 +78,7 @@ func TestMeetingShow(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues("internal:" + meeting.Meeting.InternalMeetingID)
 
-	if err := api.Handle(APIResourceMeetings.Show); err != nil {
+	if err := api.Handle(ResourceMeetings.Show); err != nil {
 		t.Fatal(err)
 	}
 
@@ -106,7 +106,7 @@ func TestMeetingDestroy(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(meeting.Meeting.MeetingID)
 
-	if err := api.Handle(APIResourceMeetings.Destroy); err != nil {
+	if err := api.Handle(ResourceMeetings.Destroy); err != nil {
 		t.Fatal(err)
 	}
 
@@ -124,7 +124,7 @@ func TestMeetingDestroy(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(meeting.Meeting.MeetingID)
 
-	if err := api.Handle(APIResourceMeetings.Show); err == nil {
+	if err := api.Handle(ResourceMeetings.Show); err == nil {
 		t.Error("should raise an error")
 	}
 }
@@ -161,7 +161,7 @@ func TestMeetingUpdate(t *testing.T) {
 	api.SetParamNames("id")
 	api.SetParamValues(meeting.Meeting.MeetingID)
 
-	if err := api.Handle(APIResourceMeetings.Update); err != nil {
+	if err := api.Handle(ResourceMeetings.Update); err != nil {
 		t.Fatal(err)
 	}
 

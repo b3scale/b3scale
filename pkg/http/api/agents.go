@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// APIResourceAgentHeartbeat is the resource for receiving
+// ResourceAgentHeartbeat is the resource for receiving
 // an agent heartbeat
-var APIResourceAgentHeartbeat = &APIResource{
+var ResourceAgentHeartbeat = &Resource{
 	Create: RequireScope(
 		ScopeNode,
 	)(apiAgentHeartbeat),
@@ -27,7 +27,7 @@ type AgentHearbeat struct {
 // Update the backends agent heartbeat
 func apiAgentHeartbeat(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {

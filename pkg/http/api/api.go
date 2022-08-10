@@ -1,4 +1,4 @@
-package v1
+package api
 
 /*
 B3Scale API v1
@@ -38,9 +38,9 @@ const (
 	PrefixInternalID = "internal:"
 )
 
-// APIContext extends the context and provides methods
+// API extends the context and provides methods
 // for handling the current user.
-type APIContext struct {
+type API struct {
 	// Authorization
 	Scopes []string
 	Ref    string
@@ -54,7 +54,7 @@ type APIContext struct {
 // contains a scope by name.
 // The scope claim is a space separated list of scopes
 // according to RFC8693, Section 4.2, (OAuth 2).
-func (api *APIContext) HasScope(s string) (found bool) {
+func (api *API) HasScope(s string) (found bool) {
 	for _, sc := range api.Scopes {
 		if sc == s {
 			return true
@@ -64,14 +64,14 @@ func (api *APIContext) HasScope(s string) (found bool) {
 }
 
 // Ctx is a shortcut to access the request context
-func (api *APIContext) Ctx() context.Context {
+func (api *API) Ctx() context.Context {
 	return api.Request().Context()
 }
 
 // ParamID is a shortcut to access the ID parameter.
 // If the parameter is prefixed with `internal:`, the
 // prefix will be stripped and the ID will be returned.
-func (api *APIContext) ParamID() (string, bool) {
+func (api *API) ParamID() (string, bool) {
 	id := api.Param("id")
 	if strings.HasPrefix(id, PrefixInternalID) {
 		return id[len(PrefixInternalID):], true
@@ -79,15 +79,15 @@ func (api *APIContext) ParamID() (string, bool) {
 	return id, false
 }
 
-// APIContextSetup initializes the context with
+// ContextMiddleware initializes the context with
 // auth information and a database connection.
-func APIContextSetup(next echo.HandlerFunc) echo.HandlerFunc {
+func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()
 
 		// Add authorization to context
 		user := c.Get("user").(*jwt.Token)
-		claims := user.Claims.(*APIAuthClaims)
+		claims := user.Claims.(*AuthClaims)
 		scopes := strings.Split(claims.Scope, " ")
 		ref := claims.StandardClaims.Subject
 
@@ -99,7 +99,7 @@ func APIContextSetup(next echo.HandlerFunc) echo.HandlerFunc {
 		defer conn.Release()
 
 		// Create API context
-		ac := &APIContext{
+		ac := &API{
 			Scopes: scopes,
 			Conn:   conn,
 			Ref:    ref,
@@ -126,19 +126,19 @@ func Init(e *echo.Echo) error {
 
 	// API Auth and Context Middlewares
 	v1.Use(middleware.JWTWithConfig(jwtConfig))
-	v1.Use(APIErrorHandler)
-	v1.Use(APIContextSetup)
+	v1.Use(ErrorHandler)
+	v1.Use(ContextMiddleware)
 
 	// Status
-	v1.GET("", APIEndpoint(apiStatusShow))
+	v1.GET("", Endpoint(apiStatusShow))
 
 	// API resources
-	APIResourceFrontends.Mount(v1, "/frontends")
-	APIResourceBackends.Mount(v1, "/backends")
-	APIResourceMeetings.Mount(v1, "/meetings")
-	APIResourceCommands.Mount(v1, "/commands")
-	APIResourceRecordingsImport.Mount(v1, "/recordings-import")
-	APIResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
+	ResourceFrontends.Mount(v1, "/frontends")
+	ResourceBackends.Mount(v1, "/backends")
+	ResourceMeetings.Mount(v1, "/meetings")
+	ResourceCommands.Mount(v1, "/commands")
+	ResourceRecordingsImport.Mount(v1, "/recordings-import")
+	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
 
 	return nil
 }
@@ -155,7 +155,7 @@ type StatusResponse struct {
 
 // apiStatusShow will respond with the api version and b3scale
 // version.
-func apiStatusShow(ctx context.Context, api *APIContext) error {
+func apiStatusShow(ctx context.Context, api *API) error {
 	status := &StatusResponse{
 		Version:    config.Version,
 		Build:      config.Build,

@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"bytes"
@@ -26,14 +26,14 @@ func init() {
 	}
 }
 
-// APITestResponseRecorder is a response recorder with
+// ResponseRecorder is a response recorder with
 // convenience functions for testing
-type APITestResponseRecorder struct {
+type ResponseRecorder struct {
 	*httptest.ResponseRecorder
 }
 
 // AssertOK checks the http status code of the response
-func (rec *APITestResponseRecorder) StatusOK() error {
+func (rec *ResponseRecorder) StatusOK() error {
 	res := rec.Result()
 	code := res.StatusCode
 	if code != http.StatusOK && code != http.StatusAccepted {
@@ -42,7 +42,7 @@ func (rec *APITestResponseRecorder) StatusOK() error {
 	return nil
 }
 
-func (rec *APITestResponseRecorder) Body() string {
+func (rec *ResponseRecorder) Body() string {
 	res := rec.Result()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -51,7 +51,7 @@ func (rec *APITestResponseRecorder) Body() string {
 	return string(body)
 }
 
-func (rec *APITestResponseRecorder) JSON() map[string]interface{} {
+func (rec *ResponseRecorder) JSON() map[string]interface{} {
 	res := rec.Result()
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -65,7 +65,7 @@ func (rec *APITestResponseRecorder) JSON() map[string]interface{} {
 }
 
 // MakeTestContext creates a new testing context
-func MakeTestContext(req *http.Request) (*APIContext, *APITestResponseRecorder) {
+func MakeTestContext(req *http.Request) (*API, *ResponseRecorder) {
 	ctx := context.Background()
 
 	// Acquire connection
@@ -80,18 +80,18 @@ func MakeTestContext(req *http.Request) (*APIContext, *APITestResponseRecorder) 
 	}
 	req = req.WithContext(ctx)
 
-	rec := &APITestResponseRecorder{httptest.NewRecorder()}
+	rec := &ResponseRecorder{httptest.NewRecorder()}
 	e := echo.New()
 
 	context := e.NewContext(req, rec)
 
-	return &APIContext{
+	return &API{
 		Conn:    conn,
 		Context: context,
 	}, rec
 }
 
-type APITestRequest struct {
+type TestRequest struct {
 	body        []byte
 	contentType string
 	sub         string
@@ -100,36 +100,36 @@ type APITestRequest struct {
 	keep        bool
 }
 
-func NewTestRequest() *APITestRequest {
-	return &APITestRequest{
+func NewTestRequest() *TestRequest {
+	return &TestRequest{
 		contentType: "application/json", // default
 	}
 }
 
 // Authorize adds scope and subject to request
-func (req *APITestRequest) Authorize(
+func (req *TestRequest) Authorize(
 	sub string,
 	scopes ...string,
-) *APITestRequest {
+) *TestRequest {
 	req.sub = sub
 	req.scopes = scopes
 	return req
 }
 
-func (req *APITestRequest) Query(q string) *APITestRequest {
+func (req *TestRequest) Query(q string) *TestRequest {
 	req.query = q
 	return req
 }
 
 // KeepState will prevent invoking a state reset after
 // the context was created
-func (req *APITestRequest) KeepState() *APITestRequest {
+func (req *TestRequest) KeepState() *TestRequest {
 	req.keep = true
 	return req
 }
 
 // JSON adds a request body
-func (req *APITestRequest) JSON(payload interface{}) *APITestRequest {
+func (req *TestRequest) JSON(payload interface{}) *TestRequest {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		panic(err)
@@ -140,14 +140,14 @@ func (req *APITestRequest) JSON(payload interface{}) *APITestRequest {
 }
 
 // Binary adds a binary request body
-func (req *APITestRequest) Binary(blob []byte) *APITestRequest {
+func (req *TestRequest) Binary(blob []byte) *TestRequest {
 	req.body = blob
 	req.contentType = "application/octet-stream"
 	return req
 }
 
-// Context creates the APIContext for a test request
-func (req *APITestRequest) Context() (*APIContext, *APITestResponseRecorder) {
+// Context creates the Context for a test request
+func (req *TestRequest) Context() (*API, *ResponseRecorder) {
 	url := "http:///"
 	if req.query != "" {
 		url += "?" + req.query
@@ -180,23 +180,23 @@ func (req *APITestRequest) Context() (*APIContext, *APITestResponseRecorder) {
 	return api, rec
 }
 
-func (api *APIContext) Release() {
+func (api *API) Release() {
 	if api.Conn != nil {
 		api.Conn.Release()
 	}
 }
 
 // Invoke the endpoint handler in the api context
-func (api *APIContext) Handle(endpoint APIEndpointHandler) error {
+func (api *API) Handle(endpoint ResourceHandler) error {
 	return endpoint(api.Ctx(), api)
 }
 
 // Authorize authorizes the context
-func (api *APIContext) Authorize(
+func (api *API) Authorize(
 	sub string,
 	scopes []string,
-) *APIContext {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &APIAuthClaims{
+) *API {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &AuthClaims{
 		StandardClaims: jwt.StandardClaims{
 			Subject: sub,
 		},
@@ -211,7 +211,7 @@ func (api *APIContext) Authorize(
 	return api
 }
 
-func (api *APIContext) ClearState() error {
+func (api *API) ClearState() error {
 	ctx := api.Ctx()
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
@@ -235,7 +235,7 @@ func (api *APIContext) ClearState() error {
 	return nil
 }
 
-func TestAPIContextHasScope(t *testing.T) {
+func TestContextHasScope(t *testing.T) {
 	api, _ := MakeTestContext(nil)
 	defer api.Release()
 
@@ -249,8 +249,8 @@ func TestAPIContextHasScope(t *testing.T) {
 	}
 }
 
-func TestAPIStatus(t *testing.T) {
-	endpoint := APIEndpoint(apiStatusShow)
+func TestStatus(t *testing.T) {
+	endpoint := Endpoint(apiStatusShow)
 
 	api, rec := MakeTestContext(nil)
 	defer api.Release()
@@ -262,7 +262,7 @@ func TestAPIStatus(t *testing.T) {
 	t.Log(rec)
 }
 
-func TestAPIParamID(t *testing.T) {
+func TestParamID(t *testing.T) {
 	api, _ := MakeTestContext(nil)
 	defer api.Release()
 
@@ -278,7 +278,7 @@ func TestAPIParamID(t *testing.T) {
 	}
 }
 
-func TestAPIParamIDInternal(t *testing.T) {
+func TestParamIDInternal(t *testing.T) {
 	api, _ := MakeTestContext(nil)
 	defer api.Release()
 

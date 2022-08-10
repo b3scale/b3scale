@@ -1,4 +1,4 @@
-package v1
+package api
 
 import (
 	"context"
@@ -19,8 +19,8 @@ var (
 		"the request must contain content of a metadata.xml")
 )
 
-// APIResourceRecordingsImport is the recordings import api resource
-var APIResourceRecordingsImport = &APIResource{
+// ResourceRecordingsImport is the recordings import api resource
+var ResourceRecordingsImport = &Resource{
 	Create: RequireScope(
 		ScopeAdmin,
 		ScopeNode,
@@ -32,7 +32,7 @@ var APIResourceRecordingsImport = &APIResource{
 // the state.
 func apiRecordingsImport(
 	ctx context.Context,
-	api *APIContext,
+	api *API,
 ) error {
 	// Parse request body, which should be the content of a
 	// metadata.xml

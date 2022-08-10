@@ -17,7 +17,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/config"
-	"github.com/b3scale/b3scale/pkg/http/api/v1"
+	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/metrics"
 	"github.com/b3scale/b3scale/pkg/templates"
 )
@@ -77,7 +77,7 @@ func NewServer(
 	e.GET("/", s.httpIndex)
 	e.GET("/b3s/retry-join/:req", s.httpRetryJoin)
 
-	if err := v1.Init(e); err != nil {
+	if err := api.Init(e); err != nil {
 		log.Warn().Err(err).Msg("could not initialize rest API")
 	}
 
