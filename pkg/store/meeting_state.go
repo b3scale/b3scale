@@ -20,20 +20,20 @@ var (
 // The MeetingState holds a meeting and its relations
 // to a backend and frontend.
 type MeetingState struct {
-	ID         string
-	InternalID string
+	ID         string `json:"id"`
+	InternalID string `json:"internal_id"`
 
-	Meeting *bbb.Meeting
+	Meeting *bbb.Meeting `json:"meeting"`
 
-	FrontendID *string
+	FrontendID *string `json:"frontend_id"`
 	frontend   *FrontendState
 
-	BackendID *string
+	BackendID *string `json:"backend_id"`
 	backend   *BackendState
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	SyncedAt  time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	SyncedAt  time.Time `json:"synced_at"`
 }
 
 // InitMeetingState initializes meeting state with

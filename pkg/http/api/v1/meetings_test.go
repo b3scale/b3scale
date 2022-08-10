@@ -26,6 +26,8 @@ func createTestMeeting(
 		Meeting: &bbb.Meeting{
 			MeetingID:         uuid.New().String(),
 			InternalMeetingID: uuid.New().String(),
+			AttendeePW:        "foo42",
+			DialNumber:        "+12 345 666",
 		},
 	})
 
@@ -62,4 +64,118 @@ func TestBackendMeetingsList(t *testing.T) {
 	if !strings.Contains(body, meeting.ID) {
 		t.Error("meeting ID", meeting.ID, "not found in response body", body)
 	}
+}
+
+func TestMeetingShow(t *testing.T) {
+	api, res := NewTestRequest().
+		Authorize("test-agent-2000", ScopeNode).
+		Context()
+	defer api.Release()
+
+	backend := createTestBackend(api)
+	meeting := createTestMeeting(api, backend)
+
+	api.SetParamNames("id")
+	api.SetParamValues("internal:" + meeting.Meeting.InternalMeetingID)
+
+	if err := api.Handle(APIResourceMeetings.Show); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
+	}
+
+	body := res.JSON()
+	meetingRes := body["meeting"].(map[string]interface{})
+	if meetingRes["AttendeePW"].(string) != "foo42" {
+		t.Error("unexpected meeting:", body)
+	}
+}
+
+func TestMeetingDestroy(t *testing.T) {
+	api, res := NewTestRequest().
+		Authorize("test-agent-2000", ScopeNode).
+		Context()
+	defer api.Release()
+
+	backend := createTestBackend(api)
+	meeting := createTestMeeting(api, backend)
+
+	api.SetParamNames("id")
+	api.SetParamValues(meeting.Meeting.MeetingID)
+
+	if err := api.Handle(APIResourceMeetings.Destroy); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
+	}
+
+	// Query the meeting again, this should fail.
+	api, res = NewTestRequest().
+		Authorize("test-agent-2000", ScopeNode).
+		KeepState().
+		Context()
+	defer api.Release()
+
+	api.SetParamNames("id")
+	api.SetParamValues(meeting.Meeting.MeetingID)
+
+	if err := api.Handle(APIResourceMeetings.Show); err == nil {
+		t.Error("should raise an error")
+	}
+}
+
+func TestMeetingUpdate(t *testing.T) {
+	api, res := NewTestRequest().
+		Authorize("test-agent-2000", ScopeNode).
+		JSON(map[string]interface{}{
+			"meeting": map[string]interface{}{
+				"Attendees": []map[string]interface{}{
+					{
+						"UserID":         "user123",
+						"InternalUserID": "internal-user-123",
+						"FullName":       "Jen Test",
+						"Role":           "admin",
+						"IsPresenter":    true,
+					},
+					{
+						"UserID":         "user42",
+						"InternalUserID": "internal-user-42",
+						"FullName":       "Kate Test",
+						"Role":           "user",
+						"IsPresenter":    false,
+					},
+				},
+			},
+		}).
+		Context()
+	defer api.Release()
+
+	backend := createTestBackend(api)
+	meeting := createTestMeeting(api, backend)
+
+	api.SetParamNames("id")
+	api.SetParamValues(meeting.Meeting.MeetingID)
+
+	if err := api.Handle(APIResourceMeetings.Update); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
+	}
+
+	body := res.JSON()
+	meetingRes := body["meeting"].(map[string]interface{})
+	attendeesRes := meetingRes["Attendees"].([]interface{})
+	if len(attendeesRes) != 2 {
+		t.Error("unexpected attendees", attendeesRes)
+	}
+	if meetingRes["DialNumber"].(string) != "+12 345 666" {
+		t.Error("partial update should not have touched other props", body)
+	}
+
 }

@@ -15,6 +15,7 @@ func createTestBackend(
 	if err != nil {
 		panic(err)
 	}
+	agentRef := "test-agent-2000"
 	b := store.InitBackendState(&store.BackendState{
 		Backend: &bbb.Backend{
 			Host:   "testhost",
@@ -23,6 +24,7 @@ func createTestBackend(
 		Settings: store.BackendSettings{
 			Tags: []string{"tag1"},
 		},
+		AgentRef: &agentRef,
 	})
 
 	if err := b.Save(ctx, tx); err != nil {

@@ -53,3 +53,38 @@ func BackendFromAgentRef(
 	q := store.Q().Where("agent_ref = ?", api.Ref)
 	return store.GetBackendState(ctx, tx, q)
 }
+
+// MeetingFromRequest resolves the current meeting
+func MeetingFromRequest(
+	ctx context.Context,
+	api *APIContext,
+	tx pgx.Tx,
+) (*store.MeetingState, error) {
+	backend, err := BackendFromAgentRef(ctx, api, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	// The backend must be available if the scope is node
+	if api.HasScope(ScopeNode) && backend == nil {
+		return nil, echo.ErrForbidden
+	}
+
+	id, internal := api.ParamID()
+	q := store.Q()
+	if internal {
+		q = q.Where("meetings.internal_id = ?", id)
+	} else {
+		q = q.Where("meetings.id = ?", id)
+	}
+
+	if api.HasScope(ScopeNode) {
+		q = q.Where("meetings.backend_id = ?", backend.ID)
+	}
+
+	meeting, err := store.GetMeetingState(ctx, tx, q)
+	if err != nil {
+		return nil, err
+	}
+	return meeting, nil
+}

@@ -18,7 +18,17 @@ var APIResourceMeetings = &APIResource{
 	Show: RequireScope(
 		ScopeAdmin,
 		ScopeNode,
-	)(apiMeetingsShow),
+	)(apiMeetingShow),
+
+	Update: RequireScope(
+		ScopeAdmin,
+		ScopeNode,
+	)(apiMeetingUpdate),
+
+	Destroy: RequireScope(
+		ScopeAdmin,
+		ScopeNode,
+	)(apiMeetingDestroy),
 }
 
 // apiMeetingsList will retrieve all meetings within the scope
@@ -59,7 +69,7 @@ func apiMeetingsList(
 // ID parameter with an `internal:`.
 //
 // This inband signaling is a compromise.
-func apiMeetingsShow(
+func apiMeetingShow(
 	ctx context.Context,
 	api *APIContext,
 ) error {
@@ -70,31 +80,82 @@ func apiMeetingsShow(
 	}
 	defer tx.Rollback(ctx)
 
-	backend, err := BackendFromAgentRef(ctx, api, tx)
+	meeting, err := MeetingFromRequest(ctx, api, tx)
+	if err != nil {
+		return err
+	}
+	if meeting == nil {
+		return echo.ErrNotFound
+	}
+
+	return api.JSON(http.StatusOK, meeting)
+}
+
+// apiMeetingsUpdate will update a meeting
+func apiMeetingUpdate(
+	ctx context.Context,
+	api *APIContext,
+) error {
+	tx, err := api.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	meeting, err := MeetingFromRequest(ctx, api, tx)
+	if err != nil {
+		return err
+	}
+	if meeting == nil {
+		return echo.ErrNotFound
+	}
+	update, err := MeetingFromRequest(ctx, api, tx)
 	if err != nil {
 		return err
 	}
 
-	// The backend must be available if the scope is node
-	if api.HasScope(ScopeNode) && backend == nil {
-		return echo.ErrForbidden
+	if err := api.Bind(update); err != nil {
+		return err
 	}
 
-	id, internal := api.ParamID()
+	// Only allow update of meeting data
+	meeting.Meeting = update.Meeting
 
-	q := store.Q()
-	if internal {
-		q = q.Where("meetings.internal_id = ?", id)
-	} else {
-		q = q.Where("meetings.id = ?", id)
+	if err := meeting.Save(ctx, tx); err != nil {
+		return err
 	}
 
-	if api.HasScope(ScopeNode) {
-		q = q.Where("meetings.backend_id = ?", backend.ID)
+	if err := tx.Commit(ctx); err != nil {
+		return err
 	}
 
-	meeting, err := store.GetMeetingState(ctx, tx, q)
+	return api.JSON(http.StatusOK, meeting)
+}
+
+// apiMeetingDestroy will delete a meeting from the store
+func apiMeetingDestroy(
+	ctx context.Context,
+	api *APIContext,
+) error {
+	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	meeting, err := MeetingFromRequest(ctx, api, tx)
+	if err != nil {
+		return err
+	}
+	if meeting == nil {
+		return echo.ErrNotFound
+	}
+
+	if err := store.DeleteMeetingStateByID(ctx, tx, meeting.ID); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
 
