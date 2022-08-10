@@ -928,57 +928,57 @@ func (res *PutRecordingTextTrackResponse) IsSuccess() bool {
 
 // Breakout info
 type Breakout struct {
-	XMLName         xml.Name `xml:"breakout"`
-	ParentMeetingID string   `xml:"parentMeetingID"`
-	Sequence        int      `xml:"sequence"`
-	FreeJoin        bool     `xml:"freeJoin"`
+	XMLName         xml.Name `xml:"breakout" json:"-"`
+	ParentMeetingID string   `xml:"parentMeetingID" json:"parent_meeting_id"`
+	Sequence        int      `xml:"sequence" json:"sequence"`
+	FreeJoin        bool     `xml:"freeJoin" json:"free_join"`
 }
 
 // Attendee of a meeting
 type Attendee struct {
-	XMLName         xml.Name `xml:"attendee"`
-	UserID          string   `xml:"userID"`
-	InternalUserID  string   `xml:"internalUserID,omit"`
-	FullName        string   `xml:"fullName"`
-	Role            string   `xml:"role"`
-	IsPresenter     bool     `xml:"isPresenter"`
-	IsListeningOnly bool     `xml:"isListeningOnly"`
-	HasJoinedVoice  bool     `xml:"hasJoinedVoice"`
-	HasVideo        bool     `xml:"hasVideo"`
-	ClientType      string   `xml:"clientType"`
+	XMLName         xml.Name `xml:"attendee" json:"-"`
+	UserID          string   `xml:"userID" json:"user_id"`
+	InternalUserID  string   `xml:"internalUserID,omit" json:"internal_user_id"`
+	FullName        string   `xml:"fullName" json:"full_name"`
+	Role            string   `xml:"role" json:"role"`
+	IsPresenter     bool     `xml:"isPresenter" json:"is_presenter"`
+	IsListeningOnly bool     `xml:"isListeningOnly" json:"is_listening_only"`
+	HasJoinedVoice  bool     `xml:"hasJoinedVoice" json:"has_joined_voice"`
+	HasVideo        bool     `xml:"hasVideo" json:"has_video"`
+	ClientType      string   `xml:"clientType" json:"client_type"`
 }
 
 // Meeting information
 type Meeting struct {
-	XMLName               xml.Name  `xml:"meeting"`
-	MeetingName           string    `xml:"meetingName"`
-	MeetingID             string    `xml:"meetingID"`
-	InternalMeetingID     string    `xml:"internalMeetingID"`
-	CreateTime            Timestamp `xml:"createTime"`
-	CreateDate            string    `xml:"createDate"`
-	VoiceBridge           string    `xml:"voiceBridge"`
-	DialNumber            string    `xml:"dialNumber"`
-	AttendeePW            string    `xml:"attendeePW"`
-	ModeratorPW           string    `xml:"moderatorPW"`
-	Running               bool      `xml:"running"`
-	Duration              int       `xml:"duration"`
-	Recording             bool      `xml:"recording"`
-	HasBeenForciblyEnded  bool      `xml:"hasBeenForciblyEnded"`
-	StartTime             Timestamp `xml:"startTime"`
-	EndTime               Timestamp `xml:"endTime"`
-	ParticipantCount      int       `xml:"participantCount"`
-	ListenerCount         int       `xml:"listenerCount"`
-	VoiceParticipantCount int       `xml:"voiceParticipantCount"`
-	VideoCount            int       `xml:"videoCount"`
-	MaxUsers              int       `xml:"maxUsers"`
-	ModeratorCount        int       `xml:"moderatorCount"`
-	IsBreakout            bool      `xml:"isBreakout"`
+	XMLName               xml.Name  `xml:"meeting" json:"-"`
+	MeetingName           string    `xml:"meetingName" json:"meeting_name"`
+	MeetingID             string    `xml:"meetingID" json:"meeting_id"`
+	InternalMeetingID     string    `xml:"internalMeetingID" json:"internal_meeting_id"`
+	CreateTime            Timestamp `xml:"createTime" json:"create_time"`
+	CreateDate            string    `xml:"createDate" json:"create_date"`
+	VoiceBridge           string    `xml:"voiceBridge" json:"voice_bridge"`
+	DialNumber            string    `xml:"dialNumber" json:"dial_number"`
+	AttendeePW            string    `xml:"attendeePW" json:"attendee_pw"`
+	ModeratorPW           string    `xml:"moderatorPW" json:"moderator_pw"`
+	Running               bool      `xml:"running" json:"running"`
+	Duration              int       `xml:"duration" json:"duration"`
+	Recording             bool      `xml:"recording" json:"recording"`
+	HasBeenForciblyEnded  bool      `xml:"hasBeenForciblyEnded" json:"has_been_forcibly_ended"`
+	StartTime             Timestamp `xml:"startTime" json:"start_time"`
+	EndTime               Timestamp `xml:"endTime" json:"end_time"`
+	ParticipantCount      int       `xml:"participantCount" json:"participant_count"`
+	ListenerCount         int       `xml:"listenerCount" json:"listener_count"`
+	VoiceParticipantCount int       `xml:"voiceParticipantCount" json:"voice_participant_count"`
+	VideoCount            int       `xml:"videoCount" json:"video_count"`
+	MaxUsers              int       `xml:"maxUsers" json:"max_users"`
+	ModeratorCount        int       `xml:"moderatorCount" json:"moderator_count"`
+	IsBreakout            bool      `xml:"isBreakout" json:"is_breakout"`
 
-	Metadata Metadata `xml:"metadata"`
+	Metadata Metadata `xml:"metadata" json:"metadata"`
 
-	Attendees     []*Attendee `xml:"attendees>attendee"`
-	BreakoutRooms []string    `xml:"breakoutRooms>breakout"`
-	Breakout      *Breakout   `xml:"breakout"`
+	Attendees     []*Attendee `xml:"attendees>attendee" json:"attendees"`
+	BreakoutRooms []string    `xml:"breakoutRooms>breakout" json:"breakout_rooms"`
+	Breakout      *Breakout   `xml:"breakout" json:"breakout"`
 }
 
 func (m *Meeting) String() string {
