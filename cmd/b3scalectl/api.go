@@ -6,6 +6,7 @@ import (
 
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/api"
+	"github.com/b3scale/b3scale/pkg/http/api/client"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
 )
@@ -34,7 +35,7 @@ func apiClient(ctx *cli.Context) (api.Client, error) {
 	}
 
 	// Initialize client and test connection
-	client := v1.NewJWTClient(apiHost, token)
+	client := client.New(apiHost, token)
 	status, err := client.Status(ctx.Context)
 	if err != nil {
 		return nil, err
@@ -79,5 +80,5 @@ func acquireToken(apiHost string) (string, error) {
 		return "", fmt.Errorf("secret should not be empty")
 	}
 
-	return v1.SignAdminAccessToken("b3scalectl", secret)
+	return api.SignAdminAccessToken("b3scalectl", secret)
 }

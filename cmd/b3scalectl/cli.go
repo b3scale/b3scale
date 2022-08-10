@@ -13,7 +13,7 @@ import (
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/config"
-	v1 "github.com/b3scale/b3scale/pkg/http/api/v1"
+	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -23,7 +23,7 @@ const RetNoChange = 64
 
 // Frontend retrieval helper
 func getFrontendByKey(
-	ctx context.Context, c v1.Client, key string,
+	ctx context.Context, c api.Client, key string,
 ) (*store.FrontendState, error) {
 	frontends, err := c.FrontendsList(ctx, url.Values{
 		"key": []string{key},
@@ -39,7 +39,7 @@ func getFrontendByKey(
 
 // Backend retrieval helper
 func getBackendByHost(
-	ctx context.Context, c v1.Client, key string,
+	ctx context.Context, c api.Client, key string,
 ) (*store.BackendState, error) {
 	backends, err := c.BackendsList(ctx, url.Values{
 		"host": []string{key},
@@ -290,7 +290,7 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	token, err := v1.SignAccessToken(sub, scopes, secret)
+	token, err := api.SignAccessToken(sub, scopes, secret)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 
 	ref := ctx.String("ref")
 	if ref == "" {
-		ref = v1.GenerateRef(3)
+		ref = api.GenerateRef(3)
 	}
 
 	secret, err := readSecretOrEnv(ctx)
@@ -314,8 +314,8 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	scopes := v1.ScopeNode
-	token, err := v1.SignAccessToken(ref, scopes, secret)
+	scopes := api.ScopeNode
+	token, err := api.SignAccessToken(ref, scopes, secret)
 	if err != nil {
 		return err
 	}
