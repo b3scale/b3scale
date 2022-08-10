@@ -33,6 +33,11 @@ var (
 	ErrMissingJWTSecret = errors.New("missing JWT secret")
 )
 
+const (
+	// PrefixInternalID indicates that the ID is an 'internal' ID.
+	PrefixInternalID = "internal:"
+)
+
 // APIContext extends the context and provides methods
 // for handling the current user.
 type APIContext struct {
@@ -61,6 +66,17 @@ func (api *APIContext) HasScope(s string) (found bool) {
 // Ctx is a shortcut to access the request context
 func (api *APIContext) Ctx() context.Context {
 	return api.Request().Context()
+}
+
+// ParamID is a shortcut to access the ID parameter.
+// If the parameter is prefixed with `internal:`, the
+// prefix will be stripped and the ID will be returned.
+func (api *APIContext) ParamID() (string, bool) {
+	id := api.Param("id")
+	if strings.HasPrefix(id, PrefixInternalID) {
+		return id[len(PrefixInternalID):], true
+	}
+	return id, false
 }
 
 // APIContextSetup initializes the context with

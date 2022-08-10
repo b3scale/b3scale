@@ -39,3 +39,17 @@ func BackendFromQuery(
 	}
 	return backend, nil
 }
+
+// BackendFromAgentRef resolves the backend attached to
+// the current node agent.
+func BackendFromAgentRef(
+	ctx context.Context,
+	api *APIContext,
+	tx pgx.Tx,
+) (*store.BackendState, error) {
+	if !api.HasScope(ScopeNode) {
+		return nil, nil // does not apply
+	}
+	q := store.Q().Where("agent_ref = ?", api.Ref)
+	return store.GetBackendState(ctx, tx, q)
+}

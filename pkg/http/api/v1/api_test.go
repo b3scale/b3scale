@@ -261,3 +261,35 @@ func TestAPIStatus(t *testing.T) {
 
 	t.Log(rec)
 }
+
+func TestAPIParamID(t *testing.T) {
+	api, _ := MakeTestContext(nil)
+	defer api.Release()
+
+	api.SetParamNames("id")
+	api.SetParamValues("foo-bar")
+
+	id, internal := api.ParamID()
+	if id != "foo-bar" {
+		t.Error("unexpected id", id)
+	}
+	if internal == true {
+		t.Error("should not have been an internal ID")
+	}
+}
+
+func TestAPIParamIDInternal(t *testing.T) {
+	api, _ := MakeTestContext(nil)
+	defer api.Release()
+
+	api.SetParamNames("id")
+	api.SetParamValues("internal:fnord")
+
+	id, internal := api.ParamID()
+	if id != "fnord" {
+		t.Error("unexpected id", id)
+	}
+	if !internal {
+		t.Error("should have been an internal ID")
+	}
+}
