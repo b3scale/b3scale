@@ -80,6 +80,32 @@ func TestBackendCreate(t *testing.T) {
 	t.Log("create:", res.Body())
 }
 
+func TestBackendAgentCreate(t *testing.T) {
+	api, res := NewTestRequest().
+		Authorize("context-defer-apiresource", ScopeNode).
+		JSON(map[string]interface{}{
+			"bbb": map[string]interface{}{
+				"host":   "http://testhost",
+				"secret": "testsec",
+			},
+			"load_factor": 1.23,
+		}).
+		Context()
+	defer api.Release()
+
+	if err := api.Handle(APIResourceBackends.Create); err != nil {
+		t.Fatal(err)
+	}
+	if err := res.StatusOK(); err != nil {
+		t.Fatal(err)
+	}
+
+	body := res.JSON()
+	if body["agent_ref"].(string) != "context-defer-apiresource" {
+		t.Error("unexpected agent_ref", body["agent_ref"])
+	}
+}
+
 func TestBackendUpdate(t *testing.T) {
 	api, res := NewTestRequest().
 		Authorize("admin42", ScopeAdmin).

@@ -234,7 +234,6 @@ func apiBackendUpdate(
 	if update == nil {
 		return echo.ErrNotFound
 	}
-
 	backend, err := store.GetBackendState(ctx, tx, q)
 	if err != nil {
 		return err
