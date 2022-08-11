@@ -165,7 +165,7 @@ func (c *Client) Request(
 
 	// Check status code for other errors
 	status := res.StatusCode
-	if status < 200 && status >= 400 {
+	if status < 200 || status >= 400 {
 		return nil, ErrRequestFailed(res)
 	}
 
