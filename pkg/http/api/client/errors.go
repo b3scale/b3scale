@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,3 +36,6 @@ func ErrRequestFailed(res *http.Response) APIError {
 	}
 	return apiErr
 }
+
+// ErrNotFound is the response when a response is a 404
+var ErrNotFound = errors.New("the resource could not be found (404)")

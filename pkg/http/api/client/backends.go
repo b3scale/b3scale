@@ -1,86 +1,68 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"net/http"
 	"net/url"
 
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
+// Backends creates a backend resource string
+func Backends(id ...string) string {
+	return Resource("backends", id)
+}
+
 // BackendsList retrievs a list of backends from the server
 func (c *Client) BackendsList(
-	ctx context.Context, query url.Values,
+	ctx context.Context,
+	query ...url.Values,
 ) ([]*store.BackendState, error) {
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodGet, c.apiURL("backends", query), nil)
+	res, err := c.Request(ctx, Fetch(Backends(), query))
 	if err != nil {
 		return nil, err
-	}
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	backends := []*store.BackendState{}
-	err = readJSONResponse(res, &backends)
-	return backends, err
+	if err := res.JSON(backends); err != nil {
+		return nil, err
+	}
+	return backends, nil
 }
 
 // BackendRetrieve retrieves a single backend by ID.
 func (c *Client) BackendRetrieve(
-	ctx context.Context, id string,
+	ctx context.Context,
+	id string,
 ) (*store.BackendState, error) {
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodGet, c.apiURL("backends/"+id, nil), nil)
+	res, err := c.Request(ctx, Fetch(Backends(id), nil))
 	if err != nil {
 		return nil, err
-	}
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if res.StatusCode == http.StatusNotFound {
-		return nil, nil
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	backend := &store.BackendState{}
-	err = readJSONResponse(res, backend)
-	return backend, err
+	if err := res.JSON(backend); err != nil {
+		return nil, err
+	}
+	return backend, nil
 }
 
 // BackendCreate creates a new backend on the server
 func (c *Client) BackendCreate(
-	ctx context.Context, backend *store.BackendState,
+	ctx context.Context,
+	backend *store.BackendState,
 ) (*store.BackendState, error) {
 	payload, err := json.Marshal(backend)
 	if err != nil {
 		return nil, err
 	}
-	body := bytes.NewBuffer(payload)
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPost, c.apiURL("backends", nil), body)
+	res, err := c.Request(ctx, Create(Backends(), payload))
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	backend = &store.BackendState{}
-	err = readJSONResponse(res, backend)
-	return backend, err
+	if err := res.JSON(backend); err != nil {
+		return nil, err
+	}
+	return backend, nil
 }
 
 // BackendUpdateRaw updates an existing backend
@@ -90,24 +72,15 @@ func (c *Client) BackendUpdateRaw(
 	id string,
 	payload []byte,
 ) (*store.BackendState, error) {
-	body := bytes.NewBuffer(payload)
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPatch, c.apiURL("backends/"+id, nil), body)
+	res, err := c.Request(ctx, Update(Backends(id), payload))
 	if err != nil {
 		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	backend := &store.BackendState{}
-	err = readJSONResponse(res, backend)
-	return backend, err
+	if err := res.JSON(backend); err != nil {
+		return nil, err
+	}
+	return backend, nil
 }
 
 // BackendUpdate updates the backend
@@ -125,21 +98,14 @@ func (c *Client) BackendUpdate(
 func (c *Client) BackendDelete(
 	ctx context.Context,
 	backend *store.BackendState,
-	query url.Values,
 ) (*store.BackendState, error) {
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodDelete, c.apiURL("backends/"+backend.ID, query), nil)
+	res, err := c.Request(ctx, Destroy(Backends(backend.ID)))
 	if err != nil {
 		return nil, err
-	}
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	backend = &store.BackendState{}
-	err = readJSONResponse(res, backend)
-	return backend, err
+	if err := res.JSON(backend); err != nil {
+		return nil, err
+	}
+	return backend, nil
 }
