@@ -4,6 +4,7 @@
 cmd/b3scaled/b3scaled
 cmd/b3scalectl/b3scalectl
 cmd/b3scalenoded/b3scalenoded
+cmd/b3scaleagent/b3scaleagent
 
 etc/b3scale/backends.conf
 etc/b3scale/frontends.conf
