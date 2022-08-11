@@ -89,7 +89,7 @@ func TestMeetingShow(t *testing.T) {
 	body := res.JSON()
 	t.Log(body)
 	meetingRes := body["meeting"].(map[string]interface{})
-	if meetingRes["attendee_pw"].(string) != "foo42" {
+	if meetingRes["AttendeePW"].(string) != "foo42" {
 		t.Error("unexpected meeting:", body)
 	}
 }
@@ -134,20 +134,20 @@ func TestMeetingUpdate(t *testing.T) {
 		Authorize("test-agent-2000", ScopeNode).
 		JSON(map[string]interface{}{
 			"meeting": map[string]interface{}{
-				"attendees": []map[string]interface{}{
+				"Attendees": []map[string]interface{}{
 					{
-						"user_id":          "user123",
-						"internal_user_id": "internal-user-123",
-						"full_name":        "Jen Test",
-						"role":             "admin",
-						"is_presenter":     true,
+						"UserID":         "user123",
+						"InternalUserID": "internal-user-123",
+						"FullName":       "Jen Test",
+						"Role":           "admin",
+						"IsPresenter":    true,
 					},
 					{
-						"user_id":          "user42",
-						"internal_user_id": "internal-user-42",
-						"full_name":        "Kate Test",
-						"role":             "user",
-						"is_presenter":     false,
+						"UserId":         "user42",
+						"InternalUserID": "internal-user-42",
+						"FullName":       "Kate Test",
+						"Role":           "user",
+						"IsPresenter":    false,
 					},
 				},
 			},
@@ -172,11 +172,11 @@ func TestMeetingUpdate(t *testing.T) {
 	body := res.JSON()
 	t.Log(body)
 	meetingRes := body["meeting"].(map[string]interface{})
-	attendeesRes := meetingRes["attendees"].([]interface{})
+	attendeesRes := meetingRes["Attendees"].([]interface{})
 	if len(attendeesRes) != 2 {
 		t.Error("unexpected attendees", attendeesRes)
 	}
-	if meetingRes["dial_number"].(string) != "+12 345 666" {
+	if meetingRes["DialNumber"].(string) != "+12 345 666" {
 		t.Error("partial update should not have touched other props", body)
 	}
 
