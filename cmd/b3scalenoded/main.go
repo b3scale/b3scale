@@ -43,7 +43,7 @@ func heartbeat(backend *store.BackendState) {
 			log.Error().Err(err).Msg("could not start heartbeat tx")
 		}
 
-		if err := backend.UpdateAgentHeartbeat(ctx, tx); err != nil {
+		if _, err := backend.UpdateAgentHeartbeat(ctx, tx); err != nil {
 			log.Error().
 				Err(err).
 				Msg("update heartbeat failed")
