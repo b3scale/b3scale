@@ -30,7 +30,7 @@ type Request struct {
 
 // Fetch will create a GET request with
 // optional query params.
-func Fetch(resource string, query []url.Values) *Request {
+func Fetch(resource string, query ...url.Values) *Request {
 	var q url.Values
 	if len(query) > 0 {
 		q = query[0]

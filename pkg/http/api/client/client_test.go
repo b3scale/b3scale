@@ -8,4 +8,5 @@ import (
 
 func TestClientImplementsInterface(t *testing.T) {
 	var c api.Client = New("foo", "bar")
+	_ = c
 }

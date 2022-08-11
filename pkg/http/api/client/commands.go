@@ -1,14 +1,17 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"net/http"
 
 	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/store"
 )
+
+// Commands creates a new commands resource
+func Commands(id ...string) string {
+	return Resource("commands", id)
+}
 
 // CommandCreate enqueues a command into the cluster's
 // command queue.
@@ -21,26 +24,15 @@ func (c *Client) CommandCreate(
 	if err != nil {
 		return nil, err
 	}
-	// Create request
-	body := bytes.NewBuffer(payload)
-	req, err := http.NewRequestWithContext(
-		ctx, "POST", c.apiURL("commands", nil), body)
+	res, err := c.Request(ctx, Create(Commands(), payload))
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	cmd = &store.Command{}
-	if err := readJSONResponse(res, cmd); err != nil {
+	if err := res.JSON(cmd); err != nil {
 		return nil, err
 	}
-	return cmd, err
+	return cmd, nil
 }
 
 // CommandRetrieve gets a single command by ID.
@@ -49,24 +41,15 @@ func (c *Client) CommandRetrieve(
 	ctx context.Context,
 	id string,
 ) (*store.Command, error) {
-	url := c.apiURL("commands/"+id, nil)
-	// Create request
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	res, err := c.Request(ctx, Fetch(Commands(id)))
 	if err != nil {
 		return nil, err
-	}
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	cmd := &store.Command{}
-	if err := readJSONResponse(res, cmd); err != nil {
+	if err := res.JSON(cmd); err != nil {
 		return nil, err
 	}
-	return cmd, err
+	return cmd, nil
 }
 
 // BackendMeetingsEnd ends all meetings on a given backend

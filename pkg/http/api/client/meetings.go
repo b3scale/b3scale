@@ -1,50 +1,47 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"net/http"
 	"net/url"
 
 	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
+// Meetings creates a meetings resource
+func Meetings(id ...string) string {
+	return Resource("meetings", id)
+}
+
 // MeetingsList retrieves all meetings. Warning:
 // Some scope is required otherwise the request will fail.
 func (c *Client) MeetingsList(
 	ctx context.Context,
-	query url.Values,
+	query ...url.Values,
 ) ([]*store.MeetingState, error) {
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodGet, c.apiURL("meetings", query), nil)
+	res, err := c.Request(ctx, Fetch(Meetings(), query...))
 	if err != nil {
 		return nil, err
-	}
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	meetings := []*store.MeetingState{}
-	err = readJSONResponse(res, meetings)
-	return meetings, err
+	if err := res.JSON(meetings); err != nil {
+		return nil, err
+	}
+	return meetings, nil
 }
 
 // BackendMeetingsList retrieves all meetings for a given backend
 func (c *Client) BackendMeetingsList(
 	ctx context.Context,
 	backendID string,
-	query url.Values,
+	query ...url.Values,
 ) ([]*store.MeetingState, error) {
-	if query == nil {
-		query = url.Values{}
+	if len(query) == 0 {
+		query = append(query, url.Values{})
 	}
-	query.Set("backend_id", backendID)
-	return c.MeetingsList(ctx, query)
+	query[0].Set("backend_id", backendID)
+	return c.MeetingsList(ctx, query...)
 }
 
 // MeetingRetrieve will fetch a single meeting by ID
@@ -52,23 +49,12 @@ func (c *Client) MeetingRetrieve(
 	ctx context.Context,
 	id string,
 ) (*store.MeetingState, error) {
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodGet, c.apiURL("meetings/"+id, nil), nil)
+	res, err := c.Request(ctx, Fetch(Meetings(id)))
 	if err != nil {
 		return nil, err
-	}
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if res.StatusCode == http.StatusNotFound {
-		return nil, nil
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	meeting := &store.MeetingState{}
-	if err := readJSONResponse(res, meeting); err != nil {
+	if err := res.JSON(meeting); err != nil {
 		return nil, err
 	}
 	return meeting, nil
@@ -86,22 +72,12 @@ func (c *Client) MeetingUpdateRaw(
 	id string,
 	payload []byte,
 ) (*store.MeetingState, error) {
-	body := bytes.NewBuffer(payload)
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPatch, c.apiURL("meetings/"+id, nil), body)
+	res, err := c.Request(ctx, Update(Meetings(id), payload))
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
 	}
 	meeting := &store.MeetingState{}
-	if err := readJSONResponse(res, meeting); err != nil {
+	if err := res.JSON(meeting); err != nil {
 		return nil, err
 	}
 	return meeting, nil
@@ -124,20 +100,13 @@ func (c *Client) MeetingDelete(
 	ctx context.Context,
 	id string,
 ) (*store.MeetingState, error) {
-	req, err := http.NewRequestWithContext(
-		ctx, http.MethodDelete, c.apiURL("meetings/"+id, nil), nil)
+	res, err := c.Request(ctx, Destroy(Meetings(id)))
 	if err != nil {
 		return nil, err
 	}
-	res, err := c.Client.Do(c.AuthorizeRequest(req))
-	if err != nil {
-		return nil, err
-	}
-	if !httpSuccess(res) {
-		return nil, ErrRequestFailed(res)
-	}
+
 	meeting := &store.MeetingState{}
-	if err := readJSONResponse(res, meeting); err != nil {
+	if err := res.JSON(meeting); err != nil {
 		return nil, err
 	}
 	return meeting, nil

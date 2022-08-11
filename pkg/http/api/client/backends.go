@@ -18,7 +18,7 @@ func (c *Client) BackendsList(
 	ctx context.Context,
 	query ...url.Values,
 ) ([]*store.BackendState, error) {
-	res, err := c.Request(ctx, Fetch(Backends(), query))
+	res, err := c.Request(ctx, Fetch(Backends(), query...))
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (c *Client) BackendRetrieve(
 	ctx context.Context,
 	id string,
 ) (*store.BackendState, error) {
-	res, err := c.Request(ctx, Fetch(Backends(id), nil))
+	res, err := c.Request(ctx, Fetch(Backends(id)))
 	if err != nil {
 		return nil, err
 	}
