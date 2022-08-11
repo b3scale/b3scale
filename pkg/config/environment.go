@@ -20,6 +20,8 @@ const (
 	EnvReverseProxy              = "B3SCALE_REVERSE_PROXY_MODE"
 	EnvLoadFactor                = "B3SCALE_LOAD_FACTOR"
 	EnvJWTSecret                 = "B3SCALE_API_JWT_SECRET"
+	EnvAPIURL                    = "B3SCALE_API_URL"
+	EnvAPIAccessToken            = "B3SCALE_API_ACCESS_TOKEN"
 	EnvBBBConfig                 = "BBB_CONFIG"
 	EnvRecordingsPublishedPath   = "B3SCALE_RECORDINGS_PUBLISHED_PATH"
 	EnvRecordingsUnpublishedPath = "B3SCALE_RECORDINGS_UNPUBLISHED_PATH"

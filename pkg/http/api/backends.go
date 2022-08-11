@@ -63,6 +63,10 @@ func apiBackendsList(
 	if queryHostLike != "" {
 		q = q.Where("host LIKE ?", fmt.Sprintf("%%%s%%", queryHostLike))
 	}
+	queryHostILike := api.QueryParam("host__ilike")
+	if queryHostILike != "" {
+		q = q.Where("host ILIKE ?", fmt.Sprintf("%%%s%%", queryHostILike))
+	}
 
 	// Set ordering
 	q = q.OrderBy("backends.host ASC")
