@@ -11,7 +11,7 @@ import (
 // the frontends resource of the api
 type FrontendResourceClient interface {
 	FrontendsList(
-		ctx context.Context, query url.Values,
+		ctx context.Context, query ...url.Values,
 	) ([]*store.FrontendState, error)
 	FrontendRetrieve(
 		ctx context.Context, id string,
@@ -34,7 +34,7 @@ type FrontendResourceClient interface {
 // using the backends api resource
 type BackendResourceClient interface {
 	BackendsList(
-		ctx context.Context, query url.Values,
+		ctx context.Context, query ...url.Values,
 	) ([]*store.BackendState, error)
 	BackendRetrieve(
 		ctx context.Context, id string,
@@ -50,7 +50,6 @@ type BackendResourceClient interface {
 	) (*store.BackendState, error)
 	BackendDelete(
 		ctx context.Context, backend *store.BackendState,
-		query url.Values,
 	) (*store.BackendState, error)
 }
 
@@ -60,12 +59,12 @@ type MeetingResourceClient interface {
 	BackendMeetingsList(
 		ctx context.Context,
 		backendID string,
-		query url.Values,
+		query ...url.Values,
 	) ([]*store.MeetingState, error)
 
 	MeetingsList(
 		ctx context.Context,
-		query url.Values,
+		query ...url.Values,
 	) ([]*store.MeetingState, error)
 	MeetingRetrieve(
 		ctx context.Context,
@@ -104,6 +103,14 @@ type CommandResourceClient interface {
 	) (*store.Command, error)
 }
 
+// AgentResourceClient defines node agent specific
+// methods.
+type AgentResourceClient interface {
+	AgentHeartbeatCreate(
+		ctx context.Context,
+	) (*store.AgentHeartbeat, error)
+}
+
 // Client is an interface to the api API.
 type Client interface {
 	Status(ctx context.Context) (*StatusResponse, error)
@@ -112,4 +119,5 @@ type Client interface {
 	BackendResourceClient
 	MeetingResourceClient
 	CommandResourceClient
+	AgentResourceClient
 }
