@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/b3scale/b3scale/pkg/http/api"
 )
 
 // Resource creates a resource identifier
@@ -158,7 +160,7 @@ func (c *Client) Request(
 
 	// Did we 404?
 	if res.StatusCode == http.StatusNotFound {
-		return nil, ErrNotFound
+		return nil, api.ErrNotFound
 	}
 
 	// Check status code for other errors

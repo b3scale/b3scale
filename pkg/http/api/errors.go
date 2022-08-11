@@ -1,7 +1,10 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -42,3 +45,19 @@ func ErrorHandler(next echo.HandlerFunc) echo.HandlerFunc {
 		return err
 	}
 }
+
+// ServerError will contain the decoded json body
+// when the response status was not OK or Accepted
+type ServerError map[string]interface{}
+
+// Error implements the error interface
+func (err ServerError) Error() string {
+	errs := []string{}
+	for k, v := range err {
+		errs = append(errs, fmt.Sprintf("%s: %v", k, v))
+	}
+	return strings.Join(errs, "; ")
+}
+
+// ErrNotFound is the error when a response is a 404
+var ErrNotFound = errors.New("the resource could not be found (404)")
