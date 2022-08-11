@@ -173,7 +173,7 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 		return err
 	}
 	// Check if backend exists
-	backends, err := client.BackendsList(ctx.Context, nil)
+	backends, err := client.BackendsList(ctx.Context)
 	if err != nil {
 		return err
 	}

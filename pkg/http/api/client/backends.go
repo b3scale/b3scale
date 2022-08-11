@@ -23,7 +23,7 @@ func (c *Client) BackendsList(
 		return nil, err
 	}
 	backends := []*store.BackendState{}
-	if err := res.JSON(backends); err != nil {
+	if err := res.JSON(&backends); err != nil {
 		return nil, err
 	}
 	return backends, nil

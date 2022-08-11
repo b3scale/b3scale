@@ -25,7 +25,7 @@ func (c *Client) MeetingsList(
 		return nil, err
 	}
 	meetings := []*store.MeetingState{}
-	if err := res.JSON(meetings); err != nil {
+	if err := res.JSON(&meetings); err != nil {
 		return nil, err
 	}
 	return meetings, nil

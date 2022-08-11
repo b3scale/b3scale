@@ -111,6 +111,9 @@ type AgentResourceClient interface {
 	AgentHeartbeatCreate(
 		ctx context.Context,
 	) (*store.AgentHeartbeat, error)
+	AgentBackendRetrieve(
+		ctx context.Context,
+	) (*store.BackendState, error)
 }
 
 // Client is an interface to the api API.

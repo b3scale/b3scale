@@ -23,7 +23,7 @@ func (c *Client) FrontendsList(
 		return nil, err
 	}
 	frontends := []*store.FrontendState{}
-	if err := res.JSON(frontends); err != nil {
+	if err := res.JSON(&frontends); err != nil {
 		return nil, err
 	}
 	return frontends, nil

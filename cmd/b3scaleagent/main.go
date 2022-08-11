@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 
@@ -66,13 +68,17 @@ func initAPI() api.Client {
 }
 
 func initBBBConfig() config.Properties {
-	bbbPropFile := config.EnvOpt(config.EnvBBBConfig, config.EnvBBBConfigDefault)
+	bbbPropFile := config.EnvOpt(
+		config.EnvBBBConfig,
+		config.EnvBBBConfigDefault,
+	)
 	// Parse BBB config
 	props, err := config.ReadPropertiesFile(bbbPropFile)
 	if err != nil {
 		log.Fatal().
 			Err(err).
-			String("file", bbbPropFile).
+			Str("env", config.EnvBBBConfig).
+			Str("file", bbbPropFile).
 			Msg("could not read bbb config")
 	}
 	return props
@@ -80,14 +86,20 @@ func initBBBConfig() config.Properties {
 
 func main() {
 	ctx := context.Background()
+	done := make(chan bool)
+
 	fmt.Printf("b3scale node agent		v.%s\n", config.Version)
+
+	flag.Parse()
 
 	// Initialisation
 	initEnvironment()
 	initLogging()
 
+	bbbCfg := initBBBConfig()
 	client := initAPI()
 
+	// Make sure we can talk to the API
 	status, err := client.Status(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("api initialization failed")
@@ -99,10 +111,58 @@ func main() {
 		Str("version", status.Version).
 		Msg("connected to b3scaled")
 
-	/*
-		loadFactor := config.GetLoadFactor()
-	*/
+	// Get registered backend
+	backendCfg, err := backendFromConfig(bbbCfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("backend from config")
+	}
 
-	// Check API connection
+	backend, err := client.AgentBackendRetrieve(ctx)
+	if err != nil && !errors.Is(err, api.ErrNotFound) {
+		log.Fatal().Err(err).Msg("failed to get backend")
+	}
 
+	if backend == nil && !autoregister {
+		log.Fatal().
+			Msg("the backend was not found, " +
+				"consider using the autoregister option " +
+				" -register (or -a)")
+	}
+
+	// Set backend params from config
+	if backend == nil {
+		backend, err = client.BackendCreate(ctx, backendCfg)
+		if err != nil {
+			log.Fatal().Err(err).
+				Msg("could not register backend")
+		}
+		log.Info().
+			Str("id", backend.ID).
+			Msg("registered backend")
+	} else {
+		update, err := json.Marshal(map[string]interface{}{
+			"backend":     backendCfg.Backend,
+			"load_factor": config.GetLoadFactor(),
+		})
+		if err != nil {
+			log.Fatal().Err(err).
+				Msg("could create backend update")
+		}
+		backend, err = client.BackendUpdateRaw(ctx, backend.ID, update)
+		if err != nil {
+			log.Fatal().Err(err).
+				Msg("could not update backend")
+		}
+	}
+
+	log.Info().
+		Str("id", backend.ID).
+		Str("host", backend.Backend.Host).
+		Msg("agent configured for backend")
+
+	// Start heartbeat
+	go StartHeartbeat(ctx, client)
+
+	// Start handler
+	<-done
 }
