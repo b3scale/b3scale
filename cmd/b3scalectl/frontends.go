@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -49,11 +50,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 
 	// Get or create frontend
 	state, err := getFrontendByKey(ctx.Context, client, key)
-	if err != nil {
-		return err
-	}
-
-	if state == nil {
+	if errors.Is(err, api.ErrNotFound) {
 		fmt.Println("creating frontend")
 		// Create frontend
 		if secret == "" {
@@ -80,49 +77,51 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 		} else {
 			fmt.Println("skipped creating frontend")
 		}
+	}
+	if err != nil { // Something else failed.
+		return err
+	}
+	// Update Frontend
+	changes := false
+	if ctx.IsSet("secret") {
+		if secret == "" {
+			return fmt.Errorf("secret may not be empty for update")
+		}
+		changes = true
+		state.Frontend.Secret = secret
+	}
+
+	if ctx.IsSet("opts") {
+		changes = true
+	}
+
+	if !changes {
+		fmt.Println("no changes")
+		c.returnCode = RetNoChange
 	} else {
-		// Update Frontend
-		changes := false
-		if ctx.IsSet("secret") {
-			if secret == "" {
-				return fmt.Errorf("secret may not be empty for update")
-			}
-			changes = true
-			state.Frontend.Secret = secret
-		}
-
-		if ctx.IsSet("opts") {
-			changes = true
-		}
-
-		if !changes {
-			fmt.Println("no changes")
-			c.returnCode = RetNoChange
-		} else {
-			if !dry {
-				if ctx.IsSet("opts") {
-					// Update frontend settings using raw payload to
-					// convey explicit null values.
-					payload, err := json.Marshal(map[string]json.RawMessage{
-						"settings": []byte(ctx.String("opts")),
-					})
-					if err != nil {
-						return err
-					}
-					_, err = client.FrontendUpdateRaw(ctx.Context, state.ID, payload)
-					if err != nil {
-						return err
-					}
-				} else {
-					_, err := client.FrontendUpdate(ctx.Context, state)
-					if err != nil {
-						return err
-					}
+		if !dry {
+			if ctx.IsSet("opts") {
+				// Update frontend settings using raw payload to
+				// convey explicit null values.
+				payload, err := json.Marshal(map[string]json.RawMessage{
+					"settings": []byte(ctx.String("opts")),
+				})
+				if err != nil {
+					return err
 				}
-				fmt.Println("updated frontend")
+				_, err = client.FrontendUpdateRaw(ctx.Context, state.ID, payload)
+				if err != nil {
+					return err
+				}
 			} else {
-				fmt.Println("skipped saving changes in frontend")
+				_, err := client.FrontendUpdate(ctx.Context, state)
+				if err != nil {
+					return err
+				}
 			}
+			fmt.Println("updated frontend")
+		} else {
+			fmt.Println("skipped saving changes in frontend")
 		}
 	}
 
@@ -146,9 +145,6 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	state, err := getFrontendByKey(ctx.Context, client, key)
 	if err != nil {
 		return err
-	}
-	if state == nil {
-		return fmt.Errorf("no such frontend")
 	}
 
 	if dry {
@@ -176,9 +172,6 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 	state, err := getFrontendByKey(ctx.Context, client, key)
 	if err != nil {
 		return err
-	}
-	if state == nil {
-		return fmt.Errorf("no such frontend")
 	}
 
 	fmt.Println("Frontend:", state.Frontend.Key)
