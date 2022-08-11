@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/config"
@@ -102,7 +101,6 @@ func apiBackendCreate(
 	// Begin transaction and save new backend state
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
-		log.Err(err).Msg("could not start transaction")
 		return err
 	}
 	defer tx.Rollback(ctx)
@@ -135,7 +133,6 @@ func apiBackendShow(
 	// Begin TX
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
-		log.Err(err).Msg("could not start transaction")
 		return err
 	}
 	defer tx.Rollback(ctx)
@@ -168,7 +165,6 @@ func apiBackendDestroy(
 	// Begin TX
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
-		log.Err(err).Msg("could not start transaction")
 		return err
 	}
 	defer tx.Rollback(ctx)
@@ -216,7 +212,6 @@ func apiBackendUpdate(
 	id := api.Param("id")
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
-		log.Err(err).Msg("could not start transaction")
 		return err
 	}
 	defer tx.Rollback(ctx)
