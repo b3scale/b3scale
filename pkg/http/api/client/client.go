@@ -63,10 +63,15 @@ func Update(resource string, data []byte) *Request {
 }
 
 // Destroy will make a DELETE request
-func Destroy(resource string) *Request {
+func Destroy(resource string, opts ...url.Values) *Request {
+	var q url.Values
+	if len(opts) > 0 {
+		q = opts[0]
+	}
 	return &Request{
 		Method:   http.MethodDelete,
 		Resource: resource,
+		Query:    q,
 	}
 }
 

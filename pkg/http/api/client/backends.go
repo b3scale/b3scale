@@ -98,8 +98,9 @@ func (c *Client) BackendUpdate(
 func (c *Client) BackendDelete(
 	ctx context.Context,
 	backend *store.BackendState,
+	opts ...url.Values,
 ) (*store.BackendState, error) {
-	res, err := c.Request(ctx, Destroy(Backends(backend.ID)))
+	res, err := c.Request(ctx, Destroy(Backends(backend.ID), opts...))
 	if err != nil {
 		return nil, err
 	}

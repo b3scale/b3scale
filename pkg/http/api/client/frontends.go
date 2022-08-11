@@ -98,7 +98,8 @@ func (c *Client) FrontendUpdate(
 
 // FrontendDelete removes a frontend from the cluster.
 func (c *Client) FrontendDelete(
-	ctx context.Context, frontend *store.FrontendState,
+	ctx context.Context,
+	frontend *store.FrontendState,
 ) (*store.FrontendState, error) {
 	res, err := c.Request(ctx, Destroy(Frontends(frontend.ID)))
 	if err != nil {

@@ -49,7 +49,9 @@ type BackendResourceClient interface {
 		ctx context.Context, id string, payload []byte,
 	) (*store.BackendState, error)
 	BackendDelete(
-		ctx context.Context, backend *store.BackendState,
+		ctx context.Context,
+		backend *store.BackendState,
+		opts ...url.Values,
 	) (*store.BackendState, error)
 }
 
