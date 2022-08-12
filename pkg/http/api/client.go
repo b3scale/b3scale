@@ -116,7 +116,8 @@ type AgentResourceClient interface {
 	) (*store.BackendState, error)
 	AgentRPC(
 		ctx context.Context,
-		req *RPCRequest,
+		action string,
+		params *RPCPayload,
 	) (RPCResult, error)
 }
 

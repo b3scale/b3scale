@@ -226,7 +226,7 @@ func (rpc *RPCHandler) MeetingSetRunning(
 	defer tx.Rollback(ctx)
 
 	// Update state
-	meeting.Meeting.Running = true
+	meeting.Meeting.Running = req.Running
 
 	// Commit changes
 	if err := meeting.Save(ctx, tx); err != nil {

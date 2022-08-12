@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -90,27 +88,11 @@ func (h *EventHandler) onMeetingCreated(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Str("meetingID", e.MeetingID).
 		Msg("meeting created")
-
-	meeting, err := h.api.MeetingRetrieve(
-		ctx, api.InternalMeetingID(e.InternalMeetingID), url.Values{
-			"await": "true",
+	_, err := h.api.AgentRPC(
+		ctx, api.RPCMeetingSetRunning, &api.MeetingSetRunningRequest{
+			InternalMeetingID: e.InternalMeetingID,
+			Running:           true,
 		})
-	if err != nil {
-		return err
-	}
-
-	// Patch meeting
-	update, err := json.Marshal(map[string]interface{}{
-		"meeting": map[string]interface{}{
-			"Running": true,
-		},
-	})
-	if err != nil {
-		return err
-	}
-	_, err = h.api.MeetingUpdateRaw(
-		ctx, api.InternalMeetingID(e.InternalMeetingID), update,
-	)
 	if err != nil {
 		return err
 	}
@@ -127,31 +109,13 @@ func (h *EventHandler) onMeetingEnded(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("meeting ended")
 
-	meeting, err := h.api.MeetingRetrieve(
-		ctx, api.InternalMeetingID(e.InternalMeetingID), url.Values{
-			"await": "true",
+	_, err := h.api.AgentRPC(
+		ctx, api.RPCMeetingResetState, &api.MeetingStateResetRequest{
+			InternalMeetingID: e.InternalMeetingID,
 		})
 	if err != nil {
 		return err
 	}
-
-	// Reset meeting state
-	update, err := json.Marshal(map[string]interface{}{
-		"meeting": map[string]interface{}{
-			"Running":   false,
-			"Attendees": []map[string]interface{}{},
-		},
-	})
-	if err != nil {
-		return err
-	}
-	_, err = h.api.MeetingUpdateRaw(
-		ctx, api.InternalMeetingID(e.InternalMeetingID), update,
-	)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -183,25 +147,11 @@ func (h *EventHandler) onUserJoinedMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user joined meeting")
 
-	meeting, err := h.api.MeetingRetrieve(
-		ctx, api.InternalMeetingID(e.InternalMeetingID), url.Values{
-			"await": "true",
+	_, err := h.api.AgentRPC(
+		ctx, api.RPCMeetingAddAttendee, &api.MeetingAddAttendeeRequest{
+			InternalMeetingID: e.InternalMeetingID,
+			Attendee:          e.Attendee,
 		})
-	if err != nil {
-		return err
-	}
-
-	// Update state attendees list
-	attendees := meeting.Meeting.Attendees
-	if attendees == nil {
-		attendees = []*bbb.Attendee{}
-	}
-	attendees = append(attendees, e.Attendee)
-	update, err := json.Marshal(map[string]interface{}{
-		"meeting": map[string]interface{}{
-			"Attendees": attendees,
-		},
-	})
 	if err != nil {
 		return err
 	}
@@ -219,44 +169,14 @@ func (h *EventHandler) onUserLeftMeeting(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("user left meeting")
 
-	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	// Remove user from attendees list
-	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
-		Where("meetings.internal_id = ?", e.InternalMeetingID))
+	_, err := h.api.AgentRPC(
+		ctx, api.RPCMeetingRemoveAttendee, &api.MeetingRemoveAttendeeRequest{
+			InternalMeetingID: e.InternalMeetingID,
+			InternalUserID:    e.InternalUserID,
+		})
 	if err != nil {
 		return err
 	}
 
-	if mstate == nil {
-		log.Warn().
-			Str("internalMeetingID", e.InternalMeetingID).
-			Msg("meeting identified by internalMeetingID " +
-				"is unknown to the cluster")
-		return nil // however we are done here
-	}
-
-	// Update state attendees list
-	if mstate.Meeting.Attendees == nil {
-		return nil // Unlikely but in this case, we are done here
-	}
-
-	// Remove user from meeting's attendees
-	filtered := make([]*bbb.Attendee, 0, len(mstate.Meeting.Attendees))
-	for _, a := range mstate.Meeting.Attendees {
-		if a.InternalUserID == e.InternalUserID {
-			continue // The user just left
-		}
-		filtered = append(filtered, a)
-	}
-	mstate.Meeting.Attendees = filtered
-	if err := mstate.Save(ctx, tx); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	return nil
 }

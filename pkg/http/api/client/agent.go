@@ -42,8 +42,14 @@ func (c *Client) AgentBackendRetrieve(
 // AgentRPC makes an rpc call
 func (c *Client) AgentRPC(
 	ctx context.Context,
-	req *api.RPCRequest,
+	action string,
+	params api.RPCPayload,
 ) (api.RPCResult, error) {
+	req := &api.RPCRequest{
+		Action:  action,
+		Payload: params,
+	}
+
 	payload, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
