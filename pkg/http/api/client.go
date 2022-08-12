@@ -117,7 +117,7 @@ type AgentResourceClient interface {
 	AgentRPC(
 		ctx context.Context,
 		action string,
-		params *RPCPayload,
+		params RPCPayload,
 	) (RPCResult, error)
 }
 
