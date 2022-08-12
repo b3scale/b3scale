@@ -114,6 +114,10 @@ type AgentResourceClient interface {
 	AgentBackendRetrieve(
 		ctx context.Context,
 	) (*store.BackendState, error)
+	AgentRPC(
+		ctx context.Context,
+		req *RPCRequest,
+	) (RPCResult, error)
 }
 
 // Client is an interface to the api API.

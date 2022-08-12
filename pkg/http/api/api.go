@@ -144,6 +144,7 @@ func Init(e *echo.Echo) error {
 	ResourceMeetings.Mount(v1, "/meetings")
 	ResourceCommands.Mount(v1, "/commands")
 	ResourceRecordingsImport.Mount(v1, "/recordings-import")
+	ResourceAgentRPC.Mount(v1, "/agent/rpc")
 	ResourceAgentBackend.Mount(v1, "/agent/backend")
 	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
 

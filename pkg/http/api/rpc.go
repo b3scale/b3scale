@@ -5,9 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // AgentRPC api - because sometimes having things
@@ -15,7 +20,8 @@ import (
 
 // Errors
 var (
-	ErrInvalidAction = errors.New("the requsted RPC action is unknown")
+	ErrInvalidAction  = errors.New("the requsted RPC action is unknown")
+	ErrInvalidBackend = errors.New("backend not associated with meeting")
 )
 
 // RPC status
@@ -40,7 +46,9 @@ type RPCRequest struct {
 
 // RPCHandler contains a database connection
 type RPCHandler struct {
-	Conn *pgxpool.Conn
+	AgentRef string
+	Backend  *store.BackendState
+	Conn     *pgxpool.Conn
 }
 
 // RPCResponse is the result of an RPC request
@@ -153,12 +161,47 @@ func (rpc *RPCRequest) Dispatch(
 
 // Handler
 
+// logMeetingNotFound creates a log message when the meeting
+// could not be found within deadline.
+func (rpc *RPCHandler) logMeetingNotFound(internalID string) {
+	log.Warn().
+		Str("agent", rpc.AgentRef).
+		Str("backend", rpc.Backend.Backend.Host).
+		Str("backend_id", rpc.Backend.ID).
+		Str("internal_meeting_id", internalID).
+		Msg("meeting not found within deadline")
+}
+
 // MeetingStateReset clears the attendees list and
 // sets the running flag to false
 func (rpc *RPCHandler) MeetingStateReset(
 	ctx context.Context,
 	req *MeetingStateResetRequest,
 ) (RPCResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
+		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.internal_id = ?", req.InternalMeetingID))
+	if errors.Is(err, context.DeadlineExceeded) {
+		rpc.logMeetingNotFound(req.InternalMeetingID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Update state
+	meeting.Meeting.Running = false
+	meeting.Meeting.Attendees = []*bbb.Attendee{}
+
+	if err := meeting.Save(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -168,6 +211,31 @@ func (rpc *RPCHandler) MeetingSetRunning(
 	ctx context.Context,
 	req *MeetingSetRunningRequest,
 ) (RPCResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
+		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.internal_id = ?", req.InternalMeetingID))
+	if errors.Is(err, context.DeadlineExceeded) {
+		rpc.logMeetingNotFound(req.InternalMeetingID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Update state
+	meeting.Meeting.Running = true
+
+	// Commit changes
+	if err := meeting.Save(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -176,6 +244,34 @@ func (rpc *RPCHandler) MeetingAddAttendee(
 	ctx context.Context,
 	req *MeetingAddAttendeeRequest,
 ) (RPCResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
+		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.internal_id = ?", req.InternalMeetingID))
+	if errors.Is(err, context.DeadlineExceeded) {
+		rpc.logMeetingNotFound(req.InternalMeetingID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Update state
+	attendees := meeting.Meeting.Attendees
+	if attendees == nil {
+		attendees = []*bbb.Attendee{}
+	}
+	attendees = append(attendees, req.Attendee)
+	meeting.Meeting.Attendees = attendees
+
+	if err := meeting.Save(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -184,6 +280,40 @@ func (rpc *RPCHandler) MeetingRemoveAttendee(
 	ctx context.Context,
 	req *MeetingRemoveAttendeeRequest,
 ) (RPCResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
+		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.internal_id = ?", req.InternalMeetingID))
+	if errors.Is(err, context.DeadlineExceeded) {
+		rpc.logMeetingNotFound(req.InternalMeetingID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Update state
+	attendees := meeting.Meeting.Attendees
+	if attendees == nil {
+		return nil, nil // nothing to do here...
+	}
+	filtered := make([]*bbb.Attendee, 0, len(meeting.Meeting.Attendees))
+	for _, a := range meeting.Meeting.Attendees {
+		if a.InternalUserID == req.InternalUserID {
+			continue // The user just left
+		}
+		filtered = append(filtered, a)
+	}
+	meeting.Meeting.Attendees = filtered
+
+	if err := meeting.Save(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -201,16 +331,32 @@ var ResourceAgentRPC = &Resource{
 			return api.JSON(http.StatusBadRequest, RPCError(err))
 		}
 
+		tx, err := api.Conn.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback(ctx)
+
+		// Get current backend
+		backend, err := BackendFromAgentRef(ctx, api, tx)
+		if err != nil {
+			return err
+		}
+		if backend == nil {
+			return echo.ErrForbidden // We require an active agent
+		}
+		tx.Rollback(ctx) // Transaction is not longer required
+
 		// Execute op
 		res := rpc.Dispatch(ctx, &RPCHandler{
-			Conn: api.Conn,
+			AgentRef: api.Ref,
+			Backend:  backend,
+			Conn:     api.Conn,
 		})
 
-		// Make JSON response
-		code := http.StatusOK
-		if res.Status == RPCStatusError {
-			code = http.StatusBadRequest
-		}
-		return api.JSON(code, res)
+		// Make JSON response. We do not use HTTP status
+		// here for error signaling, as this will be decoded
+		// as an APIError.
+		return api.JSON(http.StatusOK, res)
 	}),
 }
