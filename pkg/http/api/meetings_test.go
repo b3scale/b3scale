@@ -26,6 +26,7 @@ func createTestMeeting(
 		Meeting: &bbb.Meeting{
 			MeetingID:         uuid.New().String(),
 			InternalMeetingID: uuid.New().String(),
+			Running:           true,
 			AttendeePW:        "foo42",
 			DialNumber:        "+12 345 666",
 		},
