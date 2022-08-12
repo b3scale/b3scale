@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -73,21 +74,46 @@ func apiMeetingShow(
 	ctx context.Context,
 	api *API,
 ) error {
-	// Begin TX
+	// Get meeting query
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
 
-	meeting, err := MeetingFromRequest(ctx, api, tx)
+	q, err := MeetingQueryFromRequest(ctx, api, tx)
 	if err != nil {
 		return err
 	}
+	tx.Rollback(ctx) // Close this transaction
+
+	// Get the meeting
+	var meeting *store.MeetingState
+
+	// Await meeting
+	await := api.QueryParam("await") == "true"
+	if await && api.HasScope(ScopeNode) {
+		awaitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		meeting, err = AwaitMeetingFromRequest(awaitCtx, api, q)
+		if err != nil {
+			return err
+		}
+	} else { // Fetch meeting
+		tx, err := api.Conn.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback(ctx)
+		meeting, err = store.GetMeetingState(ctx, tx, q)
+		if err != nil {
+			return err
+		}
+	}
+
 	if meeting == nil {
 		return echo.ErrNotFound
 	}
-
 	return api.JSON(http.StatusOK, meeting)
 }
 
@@ -106,14 +132,12 @@ func apiMeetingUpdate(
 	if err != nil {
 		return err
 	}
-	if meeting == nil {
-		return echo.ErrNotFound
-	}
 	update, err := MeetingFromRequest(ctx, api, tx)
 	if err != nil {
 		return err
 	}
 
+	// Apply updates
 	if err := api.Bind(update); err != nil {
 		return err
 	}
@@ -124,7 +148,6 @@ func apiMeetingUpdate(
 	if err := meeting.Save(ctx, tx); err != nil {
 		return err
 	}
-
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
@@ -146,9 +169,6 @@ func apiMeetingDestroy(
 	meeting, err := MeetingFromRequest(ctx, api, tx)
 	if err != nil {
 		return err
-	}
-	if meeting == nil {
-		return echo.ErrNotFound
 	}
 
 	if err := store.DeleteMeetingStateByID(ctx, tx, meeting.ID); err != nil {

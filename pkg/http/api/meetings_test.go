@@ -94,6 +94,35 @@ func TestMeetingShow(t *testing.T) {
 	}
 }
 
+func TestMeetingAwaitShow(t *testing.T) {
+	api, res := NewTestRequest().
+		Authorize("test-agent-2000", ScopeNode).
+		Query("await=true").
+		Context()
+	defer api.Release()
+
+	backend := createTestBackend(api)
+	meeting := createTestMeeting(api, backend)
+
+	api.SetParamNames("id")
+	api.SetParamValues("internal:" + meeting.Meeting.InternalMeetingID)
+
+	if err := api.Handle(ResourceMeetings.Show); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := res.StatusOK(); err != nil {
+		t.Error(err)
+	}
+
+	body := res.JSON()
+	t.Log(body)
+	meetingRes := body["meeting"].(map[string]interface{})
+	if meetingRes["AttendeePW"].(string) != "foo42" {
+		t.Error("unexpected meeting:", body)
+	}
+}
+
 func TestMeetingDestroy(t *testing.T) {
 	api, res := NewTestRequest().
 		Authorize("test-agent-2000", ScopeNode).
