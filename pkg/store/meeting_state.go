@@ -8,13 +8,15 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 )
 
 // MeetingStateErrors
 var (
-	ErrNoBackend = errors.New("no backend associated with meeting")
+	ErrNoBackend        = errors.New("no backend associated with meeting")
+	ErrDeadlineRequired = errors.New("the operation requires a dealine")
 )
 
 // The MeetingState holds a meeting and its relations
@@ -91,6 +93,44 @@ func GetMeetingState(
 		return nil, nil
 	}
 	return states[0], nil
+}
+
+// AwaitMeetingState polls the database for a meeting
+// state until the context expires.
+func AwaitMeetingState(
+	ctx context.Context,
+	conn *pgxpool.Conn,
+	q sq.SelectBuilder,
+) (*MeetingState, pgx.Tx, error) {
+	if _, ok := ctx.Deadline(); !ok {
+		return nil, nil, ErrDeadlineRequired
+	}
+
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, nil, err // context was canceled or expired
+		}
+
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			time.Sleep(150 * time.Millisecond)
+			continue // Let's not give up that easily
+		}
+
+		state, err := GetMeetingState(ctx, tx, q)
+		if err != nil {
+			tx.Rollback(ctx)
+			return nil, nil, err // Database error
+		}
+
+		if state != nil {
+			return state, tx, nil // We are done here!
+		}
+
+		// Close tx and wait before retry
+		tx.Rollback(ctx)
+		time.Sleep(150 * time.Millisecond)
+	}
 }
 
 // GetMeetingStateByID is a convenience wrapper

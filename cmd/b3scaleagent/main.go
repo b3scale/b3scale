@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/config"
@@ -160,9 +161,15 @@ func main() {
 		Str("host", backend.Backend.Host).
 		Msg("agent configured for backend")
 
-	// Start heartbeat
-	go StartHeartbeat(ctx, client)
+	redisOpts, err := redis.ParseURL(configRedisURL(bbbCfg))
+	if err != nil {
+		log.Fatal().Err(err).Msg("redis connection")
+	}
+	rdb := redis.NewClient(redisOpts)
 
-	// Start handler
+	// Start heartbeat and monitoring
+	go StartHeartbeat(ctx, client)
+	go StartEventMonitor(ctx, client, redisOpts, backend)
+
 	<-done
 }
