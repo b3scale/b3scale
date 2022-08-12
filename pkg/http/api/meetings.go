@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -74,49 +73,17 @@ func apiMeetingShow(
 	ctx context.Context,
 	api *API,
 ) error {
-	// Get meeting query
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
 
-	q, err := MeetingQueryFromRequest(ctx, api, tx)
+	meeting, err := MeetingFromRequest(ctx, api, tx)
 	if err != nil {
 		return err
 	}
-	tx.Rollback(ctx) // Close this transaction
 
-	// Get the meeting
-	var meeting *store.MeetingState
-
-	// Await meeting - the other option would be to let the
-	// client do this. However, this would spam the logs with
-	// a lot of 404 errors. So this is kind of a middleground.
-	// To prevent resource exhaustion, we end this after a timeout.
-	await := api.QueryParam("await") == "true"
-	if await && api.HasScope(ScopeNode) {
-		awaitCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		defer cancel()
-		meeting, err = AwaitMeetingFromRequest(awaitCtx, api, q)
-		if err != nil {
-			return err
-		}
-	} else { // Fetch meeting
-		tx, err := api.Conn.Begin(ctx)
-		if err != nil {
-			return err
-		}
-		defer tx.Rollback(ctx)
-		meeting, err = store.GetMeetingState(ctx, tx, q)
-		if err != nil {
-			return err
-		}
-	}
-
-	if meeting == nil {
-		return echo.ErrNotFound
-	}
 	return api.JSON(http.StatusOK, meeting)
 }
 
