@@ -90,10 +90,13 @@ func apiMeetingShow(
 	// Get the meeting
 	var meeting *store.MeetingState
 
-	// Await meeting
+	// Await meeting - the other option would be to let the
+	// client do this. However, this would spam the logs with
+	// a lot of 404 errors. So this is kind of a middleground.
+	// To prevent resource exhaustion, we end this after a timeout.
 	await := api.QueryParam("await") == "true"
 	if await && api.HasScope(ScopeNode) {
-		awaitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		awaitCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		defer cancel()
 		meeting, err = AwaitMeetingFromRequest(awaitCtx, api, q)
 		if err != nil {
