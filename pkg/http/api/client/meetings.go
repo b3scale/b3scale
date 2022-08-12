@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/url"
 
-	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -58,12 +57,6 @@ func (c *Client) MeetingRetrieve(
 		return nil, err
 	}
 	return meeting, nil
-}
-
-// InternalMeetingID returns the internal id for
-// accessing via the API.
-func InternalMeetingID(id string) string {
-	return api.PrefixInternalID + id
 }
 
 // MeetingUpdateRaw will perform a PATCH on a meeting

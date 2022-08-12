@@ -38,6 +38,12 @@ const (
 	PrefixInternalID = "internal:"
 )
 
+// InternalMeetingID returns the internal id for
+// accessing via the API.
+func InternalMeetingID(id string) string {
+	return PrefixInternalID + id
+}
+
 // API extends the context and provides methods
 // for handling the current user.
 type API struct {

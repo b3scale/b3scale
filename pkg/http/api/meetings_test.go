@@ -76,7 +76,7 @@ func TestMeetingShow(t *testing.T) {
 	meeting := createTestMeeting(api, backend)
 
 	api.SetParamNames("id")
-	api.SetParamValues("internal:" + meeting.Meeting.InternalMeetingID)
+	api.SetParamValues(InternalMeetingID(meeting.Meeting.InternalMeetingID))
 
 	if err := api.Handle(ResourceMeetings.Show); err != nil {
 		t.Fatal(err)
