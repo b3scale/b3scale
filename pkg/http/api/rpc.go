@@ -44,6 +44,22 @@ type RPCRequest struct {
 	Payload RPCPayload `json:"payload"`
 }
 
+// NewRPCRequest creates a new RPC request
+func NewRPCRequest(
+	action string,
+	params interface{},
+) *RPCRequest {
+	payload, err := json.Marshal(params)
+	if err != nil {
+		panic(err)
+	}
+	req := &RPCRequest{
+		Action:  action,
+		Payload: payload,
+	}
+	return req
+}
+
 // RPCHandler contains a database connection
 type RPCHandler struct {
 	AgentRef string
@@ -79,10 +95,10 @@ func RPCSuccess(result RPCResult) *RPCResponse {
 
 // Actions
 const (
-	RPCMeetingStateReset     = "meeting_state_reset"
-	RPCMeetingSetRunning     = "meeting_set_running"
-	RPCMeetingAddAttendee    = "meeting_add_attendee"
-	RPCMeetingRemoveAttendee = "meeting_remove_attendee"
+	ActionMeetingStateReset     = "meeting_state_reset"
+	ActionMeetingSetRunning     = "meeting_set_running"
+	ActionMeetingAddAttendee    = "meeting_add_attendee"
+	ActionMeetingRemoveAttendee = "meeting_remove_attendee"
 )
 
 // Payloads
@@ -112,6 +128,28 @@ type MeetingRemoveAttendeeRequest struct {
 	InternalUserID    string `json:"internal_user_id"`
 }
 
+// Action Creators
+
+// RPCMeetingStateReset creates an meeting state reset request
+func RPCMeetingStateReset(params *MeetingStateResetRequest) *RPCRequest {
+	return NewRPCRequest(ActionMeetingStateReset, params)
+}
+
+// RPCMeetingSetRunning creates a set running request
+func RPCMeetingSetRunning(params *MeetingSetRunningRequest) *RPCRequest {
+	return NewRPCRequest(ActionMeetingSetRunning, params)
+}
+
+// RPCMeetingAddAttendee creates a new add attendee request
+func RPCMeetingAddAttendee(params *MeetingAddAttendeeRequest) *RPCRequest {
+	return NewRPCRequest(ActionMeetingAddAttendee, params)
+}
+
+// RPCMeetingRemoveAttendee creates a remove attendee request
+func RPCMeetingRemoveAttendee(params *MeetingRemoveAttendeeRequest) *RPCRequest {
+	return NewRPCRequest(ActionMeetingRemoveAttendee, params)
+}
+
 // Dispatch will invoke the RPC handlers with the decoded
 // request payload.
 func (rpc *RPCRequest) Dispatch(
@@ -122,28 +160,28 @@ func (rpc *RPCRequest) Dispatch(
 	var err error
 
 	switch rpc.Action {
-	case RPCMeetingStateReset:
+	case ActionMeetingStateReset:
 		req := &MeetingStateResetRequest{}
 		if err := json.Unmarshal(rpc.Payload, &req); err != nil {
 			return RPCError(err)
 		}
 		result, err = handler.MeetingStateReset(ctx, req)
 
-	case RPCMeetingSetRunning:
+	case ActionMeetingSetRunning:
 		req := &MeetingSetRunningRequest{}
 		if err := json.Unmarshal(rpc.Payload, &req); err != nil {
 			return RPCError(err)
 		}
 		result, err = handler.MeetingSetRunning(ctx, req)
 
-	case RPCMeetingAddAttendee:
+	case ActionMeetingAddAttendee:
 		req := &MeetingAddAttendeeRequest{}
 		if err := json.Unmarshal(rpc.Payload, &req); err != nil {
 			return RPCError(err)
 		}
 		result, err = handler.MeetingAddAttendee(ctx, req)
 
-	case RPCMeetingRemoveAttendee:
+	case ActionMeetingRemoveAttendee:
 		req := &MeetingRemoveAttendeeRequest{}
 		if err := json.Unmarshal(rpc.Payload, &req); err != nil {
 			return RPCError(err)
@@ -182,7 +220,7 @@ func (rpc *RPCHandler) MeetingStateReset(
 	defer cancel()
 
 	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
-		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.backend_id = ?", rpc.Backend.ID).
 		Where("meetings.internal_id = ?", req.InternalMeetingID))
 	if errors.Is(err, context.DeadlineExceeded) {
 		rpc.logMeetingNotFound(req.InternalMeetingID)
@@ -215,7 +253,7 @@ func (rpc *RPCHandler) MeetingSetRunning(
 	defer cancel()
 
 	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
-		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.backend_id = ?", rpc.Backend.ID).
 		Where("meetings.internal_id = ?", req.InternalMeetingID))
 	if errors.Is(err, context.DeadlineExceeded) {
 		rpc.logMeetingNotFound(req.InternalMeetingID)
@@ -235,7 +273,6 @@ func (rpc *RPCHandler) MeetingSetRunning(
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
-
 	return nil, nil
 }
 
@@ -248,7 +285,7 @@ func (rpc *RPCHandler) MeetingAddAttendee(
 	defer cancel()
 
 	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
-		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.backend_id = ?", rpc.Backend.ID).
 		Where("meetings.internal_id = ?", req.InternalMeetingID))
 	if errors.Is(err, context.DeadlineExceeded) {
 		rpc.logMeetingNotFound(req.InternalMeetingID)
@@ -284,7 +321,7 @@ func (rpc *RPCHandler) MeetingRemoveAttendee(
 	defer cancel()
 
 	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
-		Where("meeting.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.backend_id = ?", rpc.Backend.ID).
 		Where("meetings.internal_id = ?", req.InternalMeetingID))
 	if errors.Is(err, context.DeadlineExceeded) {
 		rpc.logMeetingNotFound(req.InternalMeetingID)
