@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -57,3 +58,6 @@ func (err ServerError) Error() string {
 	}
 	return strings.Join(errs, "; ")
 }
+
+// ErrNotFound is the error when a response is a 404
+var ErrNotFound = errors.New("the resource could not be found (404)")

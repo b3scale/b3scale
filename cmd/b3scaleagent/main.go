@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/http/api/client"
 	"github.com/b3scale/b3scale/pkg/logging"
 )
@@ -53,7 +54,7 @@ func initLogging() {
 }
 
 // initAPI initializes the API client
-func initAPI() *client.Client {
+func initAPI() api.Client {
 	// Configure client
 	apiURL, ok := config.GetEnvOpt(config.EnvAPIURL)
 	if !ok {
@@ -97,10 +98,10 @@ func main() {
 	initLogging()
 
 	bbbCfg := initBBBConfig()
-	api := initAPI()
+	b3s := initAPI()
 
 	// Make sure we can talk to the API
-	status, err := api.Status(ctx)
+	status, err := b3s.Status(ctx)
 	if err != nil {
 		log.Fatal().Err(err).Msg("api initialization failed")
 	}
@@ -117,8 +118,8 @@ func main() {
 		log.Fatal().Err(err).Msg("backend from config")
 	}
 
-	backend, err := api.AgentBackendRetrieve(ctx)
-	if err != nil && !errors.Is(err, client.ErrNotFound) {
+	backend, err := b3s.AgentBackendRetrieve(ctx)
+	if err != nil && !errors.Is(err, api.ErrNotFound) {
 		log.Fatal().Err(err).Msg("failed to get backend")
 	}
 
@@ -131,7 +132,7 @@ func main() {
 
 	// Set backend params from config
 	if backend == nil {
-		backend, err = api.BackendCreate(ctx, backendCfg)
+		backend, err = b3s.BackendCreate(ctx, backendCfg)
 		if err != nil {
 			log.Fatal().Err(err).
 				Msg("could not register backend")
@@ -148,7 +149,7 @@ func main() {
 			log.Fatal().Err(err).
 				Msg("could create backend update")
 		}
-		backend, err = api.BackendUpdateRaw(ctx, backend.ID, update)
+		backend, err = b3s.BackendUpdateRaw(ctx, backend.ID, update)
 		if err != nil {
 			log.Fatal().Err(err).
 				Msg("could not update backend")
@@ -167,8 +168,8 @@ func main() {
 	rdb := redis.NewClient(redisOpts)
 
 	// Start heartbeat and monitoring
-	go StartHeartbeat(ctx, api)
-	go StartEventMonitor(ctx, api, rdb, backend)
+	go StartHeartbeat(ctx, b3s)
+	go StartEventMonitor(ctx, b3s, rdb, backend)
 
 	<-done
 }
