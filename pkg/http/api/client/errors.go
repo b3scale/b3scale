@@ -2,11 +2,15 @@ package client
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
 	"github.com/b3scale/b3scale/pkg/http/api"
 )
+
+// ErrNotFound is the error when a response is a 404
+var ErrNotFound = errors.New("the resource could not be found (404)")
 
 // ErrRequestFailed creates an APIError from the
 // HTTP response.

@@ -26,7 +26,7 @@ func StartEventMonitor(
 	for ev := range channel {
 		// We are handling an event in it's own goroutine
 		go func(ev bbb.Event) {
-			handler := NewEventHandler(backend)
+			handler := NewEventHandler(cli, backend)
 			eventCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 			defer cancel()
 			if err := handler.Dispatch(eventCtx, ev); err != nil {
@@ -89,10 +89,10 @@ func (h *EventHandler) onMeetingCreated(
 		Str("meetingID", e.MeetingID).
 		Msg("meeting created")
 	_, err := h.api.AgentRPC(
-		ctx, api.RPCMeetingSetRunning, &api.MeetingSetRunningRequest{
+		ctx, api.RPCMeetingSetRunning(&api.MeetingSetRunningRequest{
 			InternalMeetingID: e.InternalMeetingID,
 			Running:           true,
-		})
+		}))
 	if err != nil {
 		return err
 	}
@@ -110,9 +110,9 @@ func (h *EventHandler) onMeetingEnded(
 		Msg("meeting ended")
 
 	_, err := h.api.AgentRPC(
-		ctx, api.RPCMeetingResetState, &api.MeetingStateResetRequest{
+		ctx, api.RPCMeetingStateReset(&api.MeetingStateResetRequest{
 			InternalMeetingID: e.InternalMeetingID,
-		})
+		}))
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (h *EventHandler) onMeetingDestroyed(
 		Str("internalMeetingID", e.InternalMeetingID).
 		Msg("meeting destroyed")
 	// Delete meeting state
-	_, err := h.api.MeetingDestroy(
+	_, err := h.api.MeetingDelete(
 		ctx, api.InternalMeetingID(e.InternalMeetingID))
 	if err != nil {
 		return err
@@ -148,10 +148,10 @@ func (h *EventHandler) onUserJoinedMeeting(
 		Msg("user joined meeting")
 
 	_, err := h.api.AgentRPC(
-		ctx, api.RPCMeetingAddAttendee, &api.MeetingAddAttendeeRequest{
+		ctx, api.RPCMeetingAddAttendee(&api.MeetingAddAttendeeRequest{
 			InternalMeetingID: e.InternalMeetingID,
 			Attendee:          e.Attendee,
-		})
+		}))
 	if err != nil {
 		return err
 	}
@@ -170,10 +170,10 @@ func (h *EventHandler) onUserLeftMeeting(
 		Msg("user left meeting")
 
 	_, err := h.api.AgentRPC(
-		ctx, api.RPCMeetingRemoveAttendee, &api.MeetingRemoveAttendeeRequest{
+		ctx, api.RPCMeetingRemoveAttendee(&api.MeetingRemoveAttendeeRequest{
 			InternalMeetingID: e.InternalMeetingID,
 			InternalUserID:    e.InternalUserID,
-		})
+		}))
 	if err != nil {
 		return err
 	}
