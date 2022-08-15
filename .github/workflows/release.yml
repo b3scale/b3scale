@@ -1,0 +1,35 @@
+
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        os: [ linux, darwin, windows ]
+        arch: [ arm64, amd64 ]
+        executable: [ b3scalectl, b3scaled, b3scalenoded ]
+        exclude:
+          - os: windows
+            executable: b3scaled
+          - os: windows
+            executable: b3scalenoded
+    name: Build Releases
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wangyoucao577/go-release-action@v1.30
+        env:
+          CGO_ENABLED: "0"
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.os }}
+          goarch: ${{ matrix.arch }}
+          project_path: "./cmd/${{ matrix.executable }}"
+          binary_name: "${{ matrix.executable }}"
+          md5sum: false
+          extra_files: LICENSE README.md
+          ldflags: "-X 'github.com/b3scale/b3scale/pkg/config.Version=${{ github.ref_name }}' -X 'github.com/b3scale/b3scale/pkg/config.Build=${{ github.sha }}'"
