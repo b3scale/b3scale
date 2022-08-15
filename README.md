@@ -58,6 +58,10 @@ For backends nodes, b3scale provides `b3scalenoded`, an agent for backend nodes
 that monitors certain parameters straight from redis and reports them to
 b3scale in an inexpensive, resource conserving fashion.
 
+*DEPRECATION NOTICE:*
+The `b3scalenoded` will be deprecated in favour of the `b3scaleagent`,
+which does the same thing, but uses the HTTP API.
+
 ## Terminology
 
 * *Frontend:* A BigBlueButton frontend such as Greenlight
@@ -127,6 +131,29 @@ the environment variable for the file is:
     `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`
 
 This file must be readable for the b3scalenoded.
+
+ * `B3SCALE_ACCESS_TOKEN` stores the authorized access token for a
+    node.
+
+You can authorize a new agent using b3scalectl:
+
+    b3scalectl auth authorize_node_agent
+
+Unless the `B3SCALE_API_JWT_SECRET` environment variable is set,
+you will be prompted to enter the API secret.
+
+As an alternative the secret can be provided through the `--secret`
+flag when authorizing a new agent.
+
+A custom agent identifier can be provided through the `--ref` option.
+If none is provided, it will be generated.
+
+A full example would be
+
+    b3scalectl auth authorize_node_agent --ref backend23 --secret my-api-secret
+
+Please note, that the `ref` identifier must be unique, as only one backend
+can be associated with an agent.
 
 The load factor of the backend can be set through:
 
