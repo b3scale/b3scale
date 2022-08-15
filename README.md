@@ -61,6 +61,12 @@ b3scale in an inexpensive, resource conserving fashion.
 *DEPRECATION NOTICE:*
 The `b3scalenoded` will be deprecated in favour of the `b3scaleagent`,
 which does the same thing, but uses the HTTP API.
+ 
+Please note, that the agents need unique access tokens for each
+backend.
+
+A new access token can be crated using `b3scalectl auth authorize_node_agent`.
+
 
 ## Terminology
 
@@ -124,7 +130,7 @@ file. The following environment variables can be configured:
 Same applies for the `b3scalenoded`, however only `B3SCALE_DB_URL`
 is required.
 
-The `b3scalenoded` uses the same configuration as BigBlueButton,
+The `b3scalenoded` and `b3scaleagent` use the same configuration as BigBlueButton,
 the environment variable for the file is:
 
  * `BBB_CONFIG`, which defaults to:
@@ -154,6 +160,9 @@ A full example would be
 
 Please note, that the `ref` identifier must be unique, as only one backend
 can be associated with an agent.
+
+ * `B3SCALE_API_URL` must be provided for the `b3scaleagent` to find the API.
+    Only the host part is required: e.g. `https://b3scale.example/`
 
 The load factor of the backend can be set through:
 
@@ -198,9 +207,12 @@ The load factor of the backend can be set through:
 
 ### Using the node agent
 
-Adding a backend using the node agent `b3scalenoded` can be as simple
-as starting it with the `-register` option for autoregistering the
+Adding a backend using the node agent `b3scalenoded` / `b3scaleagent`
+can be as simple as starting it with the `-register` option for autoregistering the
 new node.
+
+For the `b3scaleagent` the `B3SCALE_ACCESS_TOKEN` and `B3SCALE_API_URL` needs to be
+provided.
 
 The node is identified through the `BBB_CONFIG` file from bbb-web.
 
