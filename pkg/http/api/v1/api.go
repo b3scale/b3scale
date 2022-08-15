@@ -16,7 +16,7 @@ import (
 	// Until the echo middleware is updated, we have to use the
 	// old repo of the jwt module.
 	// "github.com/golang-jwt/jwt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
