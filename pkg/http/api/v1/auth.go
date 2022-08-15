@@ -1,9 +1,6 @@
 package v1
 
 import (
-	// Until the echo middleware is updated, we have to use the
-	// old repo of the jwt module.
-	// "github.com/golang-jwt/jwt"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
