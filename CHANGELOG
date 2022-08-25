@@ -1,4 +1,16 @@
 
+0.16.0: B3Scale nodeagent
+
+As an alternative to the b3scale noded the nodeagent was
+introduced: While the noded connects to the database directly,
+the nodeagent uses the API which simplifies the deployment.
+
+A database migration is required:
+
+ALTER TABLE backends ADD agent_ref VARCHAR(64) NULL UNIQUE;
+
+See: db/schema/0002_node_agent_api.sql
+
 
 0.15.0: `recordings` table requires an additional field `record_id`.
 
