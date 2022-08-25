@@ -39,6 +39,22 @@ var (
 			// MeetingID
 			"meeting",
 		}, nil)
+
+	frontendMeetingsDesc = prometheus.NewDesc(
+		"frontend_meetings",
+		"Number of meetings per frontend",
+		[]string{
+			// Frontend Key
+			"frontend",
+		}, nil)
+
+	backendMeetingsDesc = prometheus.NewDesc(
+		"backend_meetings",
+		"Number of meetings per backend",
+		[]string{
+			// Backend Host
+			"backend",
+		}, nil)
 )
 
 // The Collector will gather metrics from the b3scale
@@ -52,6 +68,7 @@ type Collector struct{}
 func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- meetingAttendeesDesc
 	ch <- meetingDurationsDesc
+	ch <- frontendMeetingsDesc
 }
 
 // Collect metrics from store
@@ -101,7 +118,11 @@ func (c Collector) collectMeetingMetrics(
 		return err
 	}
 
-	// For each meeeting count audio and video attendees
+	// Collect meeting count per frontend and backend
+	feMeetings := map[string]float64{}
+	beMeetings := map[string]float64{}
+
+	// For each meeting count audio and video attendees
 	for _, m := range meetings {
 		var ac, vc float64
 		for _, a := range m.Meeting.Attendees {
@@ -120,6 +141,16 @@ func (c Collector) collectMeetingMetrics(
 		if m.BackendID != nil {
 			host = beHosts[*m.BackendID]
 		}
+
+		// Count meetings per frontend and backend
+		if _, ok := feMeetings[fkey]; !ok {
+			feMeetings[fkey] = 0
+		}
+		feMeetings[fkey]++
+		if _, ok := beMeetings[host]; !ok {
+			beMeetings[host] = 0
+		}
+		beMeetings[host]++
 
 		duration := time.Now().UTC().Sub(m.CreatedAt)
 
@@ -141,7 +172,20 @@ func (c Collector) collectMeetingMetrics(
 				duration.Seconds(), fkey, host, m.ID,
 			)
 		}
+	}
 
+	for fkey, count := range feMeetings {
+		ch <- prometheus.MustNewConstMetric(
+			frontendMeetingsDesc, prometheus.GaugeValue,
+			count, fkey,
+		)
+	}
+
+	for host, count := range beMeetings {
+		ch <- prometheus.MustNewConstMetric(
+			backendMeetingsDesc, prometheus.GaugeValue,
+			count, host,
+		)
 	}
 
 	return nil
