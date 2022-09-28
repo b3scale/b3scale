@@ -1,4 +1,7 @@
 
+0.15.3:
+    Removed lecho dependency and added own logging middleware.
+    This fixes a broken http error response.
 
 0.15.0: `recordings` table requires an additional field `record_id`.
 
