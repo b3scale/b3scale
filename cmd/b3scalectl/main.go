@@ -33,7 +33,7 @@ func main() {
 	// Start the CLI
 	cli := NewCli()
 	if err := cli.Run(context.Background(), os.Args); err != nil {
-		log.Fatal().Err(err).Msg("this is fatal")
+		log.Fatal().Err(err).Msg("exit with fatal error")
 	}
 
 	// A note about the return code:
