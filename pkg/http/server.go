@@ -11,13 +11,13 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	pclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
-	"github.com/ziflex/lecho/v2"
 	"golang.org/x/net/http2"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/config"
-	"github.com/b3scale/b3scale/pkg/http/api/v1"
+	v1 "github.com/b3scale/b3scale/pkg/http/api/v1"
+	"github.com/b3scale/b3scale/pkg/logging"
 	"github.com/b3scale/b3scale/pkg/metrics"
 	"github.com/b3scale/b3scale/pkg/templates"
 )
@@ -42,8 +42,6 @@ func NewServer(
 	ctrl *cluster.Controller,
 	gateway *cluster.Gateway,
 ) *Server {
-	logger := lecho.From(log.Logger)
-
 	// Setup and configure echo framework
 	e := echo.New()
 	e.HideBanner = true
@@ -51,11 +49,9 @@ func NewServer(
 	// Middleware order: The middlewares are executed
 	// in order of Use.
 	e.Use(middleware.Recover())
+	e.Use(logging.Middleware())
 	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 		Timeout: RequestTimeout,
-	}))
-	e.Use(lecho.Middleware(lecho.Config{
-		Logger: logger,
 	}))
 
 	// Prometheus Middleware - Find it under /metrics
