@@ -19,7 +19,7 @@ import (
 
 func init() {
 	if err := store.ConnectTest(); err != nil {
-		panic(err)
+		fmt.Println("WARNING: can not connect to DB. tests will fail.")
 	}
 }
 

@@ -17,7 +17,7 @@ import (
 type FrontendState struct {
 	ID string `json:"id"`
 
-	Active   bool          `json:"active"`
+	Active   bool          `json:"active" doc:"If false, the frontend can not longer use the API"`
 	Frontend *bbb.Frontend `json:"bbb"`
 
 	Settings FrontendSettings `json:"settings"`
