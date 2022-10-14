@@ -144,7 +144,6 @@ func Init(e *echo.Echo) error {
 	ResourceAgentRPC.Mount(v1, "/agent/rpc")
 	ResourceAgentBackend.Mount(v1, "/agent/backend")
 	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
-
 	return nil
 }
 

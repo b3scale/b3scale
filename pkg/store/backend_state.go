@@ -38,7 +38,7 @@ type BackendState struct {
 
 	LoadFactor float64 `json:"load_factor"`
 
-	Backend *bbb.Backend `json:"bbb"`
+	Backend *bbb.Backend `json:"bbb" api:"BackendConfig"`
 
 	Settings BackendSettings `json:"settings"`
 

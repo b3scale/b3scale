@@ -7,7 +7,7 @@ import (
 
 func TestSerializeOpenAPISpec(t *testing.T) {
 	spec := NewAPISpec()
-	result, err := json.Marshal(spec)
+	result, err := json.MarshalIndent(spec, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,6 +6,59 @@ const ApplicationJSON = "application/json"
 // Schema defines an api object
 type Schema map[string]interface{}
 
+// Patch rewrites a reference for a Patch operation
+func (s Schema) Patch(prop string) Schema {
+	current := s["properties"].(Properties)
+	schema := current[prop].(FieldProperty)
+	ref := schema["$ref"].(string)
+	schema["$ref"] = ref + "Patch"
+	current[prop] = schema
+	return s
+}
+
+// Only creates a new object schema with properties filtered
+func (s Schema) Only(props ...string) Schema {
+	current := s["properties"].(Properties)
+	next := Properties{}
+	for _, name := range props {
+		next[name] = current[name]
+	}
+	s["properties"] = next
+
+	return s
+}
+
+// Require will mark properties as required
+func (s Schema) Require(props ...string) Schema {
+	s["required"] = props
+	return s
+}
+
+// RequireFrom sets required field from an object
+func (s Schema) RequireFrom(obj interface{}) Schema {
+	s["required"] = RequiredFrom(obj)
+	return s
+}
+
+// ArraySchema creates a schema for an array type
+func ArraySchema(description string, items interface{}) Schema {
+	return Schema{
+		"type":        "array",
+		"description": description,
+		"items":       items,
+	}
+}
+
+// ObjectSchema creates a new schema from an object
+func ObjectSchema(description string, obj interface{}) Schema {
+	props := PropertiesFrom(obj)
+	return Schema{
+		"type":        "object",
+		"description": description,
+		"properties":  props,
+	}
+}
+
 // Properties is a key value mapping from string to property
 type Properties map[string]interface{}
 
@@ -19,15 +72,22 @@ type Property struct {
 	Description string `json:"description"`
 }
 
-// SchemaRef references a schema from within the components tree
-type SchemaRef struct {
+// Ref is a reference  within the openapi document
+type Ref struct {
 	Ref string `json:"$ref"`
+}
+
+// SchemaRef creates a new ref to a schema
+func SchemaRef(schema string) Ref {
+	return Ref{
+		Ref: "#/components/schemas/" + schema,
+	}
 }
 
 // MediaType is the body of a respones object, e.g. a JSON payload
 // with a schema. All schemas here are referenced.
 type MediaType struct {
-	Schema SchemaRef `json:"schema"`
+	Schema interface{} `json:"schema"`
 }
 
 // Response encode a mapping between a status code and a
@@ -37,11 +97,33 @@ type Response struct {
 	Content     map[string]MediaType `json:"content,omitempty"`
 }
 
-// A PathItem describes an api endpoint in a mapping
+// ResponseRef is a reference to a response defined
+// in components
+func ResponseRef(response string) Ref {
+	return Ref{
+		Ref: "#/components/responses/" + response,
+	}
+}
+
+// ResponseRefs is a mapping from status code to
+// a response reference
+type ResponseRefs map[string]Ref
+
+// Request describes a request body
+type Request struct {
+	Content map[string]MediaType `json:"content"`
+}
+
+// An Operation describes an api endpoint in a mapping
 // of HTTP verb to sdescription
-type PathItem map[string]struct {
-	Description string              `json:"description"`
-	Responses   map[string]Response `json:"responses"`
+type Operation struct {
+	Description string       `json:"description"`
+	Responses   ResponseRefs `json:"responses"`
+	OperationID string       `json:"operationId"`
+	Parameters  []Schema     `json:"parameters,omitempty"`
+	RequestBody *Request     `json:"requestBody,omitempty"`
+	Summary     string       `json:"summary,omitempty"`
+	Tags        []string     `json:"tags,omitempty"`
 }
 
 // SecurityScheme describes a security scheme
@@ -84,10 +166,14 @@ type SecuritySpec map[string][]interface{}
 type Security []SecuritySpec
 
 // Path is a mapping of http verb to response
+type Path map[string]interface{}
+
+/*
 type Path map[string]struct {
-	Description string              `json:"description"`
-	Responses   map[string]Response `json:"responses"`
+	Description string                  `json:"description"`
+	Responses   map[string]ResponseRefs `json:"responses"`
 }
+*/
 
 // License information
 type License struct {
@@ -112,4 +198,17 @@ type Spec struct {
 	Tags       []Tag           `json:"tags"`
 	Servers    []Server        `json:"servers,omitempty"`
 	Security   Security        `json:"security"`
+}
+
+// ParamID creates an 'id' path parameter
+func ParamID() Schema {
+	return Schema{
+		"name":        "id",
+		"in":          "path",
+		"description": "the identifier of the object",
+		"required":    true,
+		"schema": Schema{
+			"type": "string",
+		},
+	}
 }

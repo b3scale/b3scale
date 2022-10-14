@@ -1,20 +1,29 @@
 package openapi
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-func TestPropertiesFromObject(t *testing.T) {
-	props := PropertiesFromObject(store.FrontendState{})
+func jsonProps(p Properties) string {
+	j, _ := json.MarshalIndent(p, "", "  ")
+	return string(j)
+}
+
+func TestPropertiesFromStruct(t *testing.T) {
 	// The test will fail if this panics.
-	t.Log(props)
+	props := PropertiesFrom(store.FrontendState{})
+	t.Log(jsonProps(props))
 
-	props = PropertiesFromObject(store.FrontendSettings{})
-	t.Log(props)
+	props = PropertiesFrom(store.FrontendSettings{})
+	t.Log(jsonProps(props))
 
-	props = PropertiesFromObject(bbb.Frontend{})
-	t.Log(props)
+	props = PropertiesFrom(bbb.Frontend{})
+	t.Log(jsonProps(props))
+
+	props = PropertiesFrom(store.DefaultPresentationSettings{})
+	t.Log(jsonProps(props))
 }
