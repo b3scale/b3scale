@@ -387,6 +387,26 @@ func NewAgentAPISchema() map[string]oa.Path {
 				},
 			},
 		},
+		"/agent/rpc": oa.Path{
+			"post": oa.Operation{
+				Summary:     "RPC",
+				Description: "Perform a remote procedure call.\n\nThis API allows for remote procedures that involve complex that can not be expressed sufficiently through resource manipulation.\n\n**Warning:** this API is only meant to be used by the agent.\n\nOnly the envelope format is described here. For details, please check the source in `http/api/rpc.go`.",
+				Tags:        []string{"Agent"},
+				RequestBody: &oa.Request{
+					Content: map[string]oa.MediaType{
+						oa.ApplicationJSON: oa.MediaType{
+							Schema: oa.SchemaRef("RPCRequest"),
+						},
+					},
+				},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("RPCResponse"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+		},
 	}
 }
 
@@ -515,6 +535,15 @@ func NewAPIResponses() map[string]oa.Response {
 			Content: map[string]oa.MediaType{
 				oa.ApplicationJSON: oa.MediaType{
 					Schema: oa.SchemaRef("Heartbeat"),
+				},
+			},
+		},
+
+		"RPCResponse": oa.Response{
+			Description: "RPCResponse",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("RPCResponse"),
 				},
 			},
 		},
@@ -677,10 +706,56 @@ func NewAPISchemas() map[string]oa.Schema {
 			"Hearbeat", store.AgentHeartbeat{}).
 			RequireFrom(store.AgentHeartbeat{}),
 
+		"RPCRequest":  NewRPCRequestSchema(),
+		"RPCResponse": NewRPCResponseSchema(),
+
 		"Error":           NewErrorSchema(),
 		"NotFoundError":   NewNotFoundErrorSchema(),
 		"ValidationError": NewValidationErrorSchema(),
 		"ServerError":     NewServerErrorSchema(),
+	}
+}
+
+// RPC
+
+// NewRPCRequestSchema creates the RPCRequest schema
+func NewRPCRequestSchema() oa.Schema {
+	return oa.Schema{
+		"description": "RPCRequest Envelope",
+		"type":        "object",
+		"properties": oa.Properties{
+			"action": oa.FieldProperty{
+				"type":        "string",
+				"description": "The name of the procedure to invoke.",
+			},
+			"payload": oa.FieldProperty{
+				"type":                 "object",
+				"additionalProperties": true,
+				"description":          "An object with the RPC request parameters.",
+			},
+		},
+		"required": []string{"action", "payload"},
+	}
+}
+
+// NewRPCResponseSchema creates the RPC response schema
+func NewRPCResponseSchema() oa.Schema {
+	return oa.Schema{
+		"description": "RPCResponse Envelope",
+		"type":        "object",
+		"properties": oa.Properties{
+			"status": oa.FieldProperty{
+				"type":        "string",
+				"description": "The name of the procedure to invoke.",
+				"enum":        []string{"ok", "error"},
+			},
+			"result": oa.FieldProperty{
+				"type":                 "object",
+				"description":          "An object with the encoded result of the call.",
+				"additionalProperties": true,
+			},
+		},
+		"required": []string{"status", "result"},
 	}
 }
 

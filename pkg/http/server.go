@@ -74,8 +74,7 @@ func NewServer(
 
 	// Register routes
 	e.GET("/", s.httpIndex)
-	e.GET("/docs/api", s.apiDocsShow)
-	e.GET("/docs/api/v1/b3scale-openapi-v1.json", s.apiDocsSpecShow)
+	e.GET("/docs/api/v1", s.apiDocsShow)
 	e.GET("/static/*", echo.WrapHandler(static.AssetsHTTPHandler("/static")))
 	e.GET("/b3s/retry-join/:req", s.httpRetryJoin)
 
@@ -126,13 +125,7 @@ func (s *Server) httpIndex(c echo.Context) error {
 }
 
 func (s *Server) apiDocsShow(c echo.Context) error {
-	return c.HTML(http.StatusOK, static.RedocHTML)
-}
-
-func (s *Server) apiDocsSpecShow(c echo.Context) error {
-	spec := api.NewAPISpec()
-	return c.JSON(http.StatusOK, spec)
-
+	return c.Redirect(http.StatusFound, "/static/docs/api-v1.html")
 }
 
 // Internal / Retry Join Handler

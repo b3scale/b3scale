@@ -54,7 +54,6 @@ func propFromStructType(field reflect.StructField, ftype reflect.Type) FieldProp
 
 // Slice
 func propFromSliceType(ftype reflect.Type) FieldProperty {
-	fmt.Println("SLICE TYPE:", ftype.Elem())
 	elem := ftype.Elem()
 	if elem.Kind() == reflect.Pointer {
 		elem = elem.Elem()
@@ -197,8 +196,6 @@ func propsFromStruct(obj interface{}) Properties {
 
 // PropertiesFrom produces schema properties
 func PropertiesFrom(obj interface{}) Properties {
-	objType := reflect.TypeOf(obj)
-	fmt.Println("obj kind:", objType.Kind())
 	props := propsFromStruct(obj)
 	return props
 }
