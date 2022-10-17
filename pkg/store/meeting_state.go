@@ -25,7 +25,7 @@ type MeetingState struct {
 	ID         string `json:"id"`
 	InternalID string `json:"internal_id"`
 
-	Meeting *bbb.Meeting `json:"meeting"`
+	Meeting *bbb.Meeting `json:"meeting" api:"MeetingInfo"`
 
 	FrontendID *string `json:"frontend_id"`
 	frontend   *FrontendState

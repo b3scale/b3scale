@@ -27,3 +27,18 @@ func TestPropertiesFromStruct(t *testing.T) {
 	props = PropertiesFrom(store.DefaultPresentationSettings{})
 	t.Log(jsonProps(props))
 }
+
+func TestPropsFromStructMeetingstate(t *testing.T) {
+	props := PropertiesFrom(store.MeetingState{})
+	t.Log(jsonProps(props))
+}
+
+func TestPropsFromStructMeeting(t *testing.T) {
+	props := PropertiesFrom(bbb.Meeting{})
+	t.Log(jsonProps(props))
+}
+
+func TestPropsFromStructCommand(t *testing.T) {
+	props := PropertiesFrom(store.Command{})
+	t.Log(jsonProps(props))
+}

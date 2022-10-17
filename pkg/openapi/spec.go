@@ -28,6 +28,17 @@ func (s Schema) Only(props ...string) Schema {
 	return s
 }
 
+// Nullable marks some props as nullable
+func (s Schema) Nullable(props ...string) Schema {
+	current := s["properties"].(Properties)
+	for _, prop := range props {
+		schema := current[prop].(FieldProperty)
+		schema["nullable"] = true
+		// current[prop] = schema
+	}
+	return s
+}
+
 // Require will mark properties as required
 func (s Schema) Require(props ...string) Schema {
 	s["required"] = props
@@ -87,7 +98,8 @@ func SchemaRef(schema string) Ref {
 // MediaType is the body of a respones object, e.g. a JSON payload
 // with a schema. All schemas here are referenced.
 type MediaType struct {
-	Schema interface{} `json:"schema"`
+	Schema      interface{} `json:"schema"`
+	Description string      `json:"description,omitempty"`
 }
 
 // Response encode a mapping between a status code and a
@@ -198,30 +210,4 @@ type Spec struct {
 	Tags       []Tag           `json:"tags"`
 	Servers    []Server        `json:"servers,omitempty"`
 	Security   Security        `json:"security"`
-}
-
-// ParamID creates an 'id' path parameter
-func ParamID() Schema {
-	return Schema{
-		"name":        "id",
-		"in":          "path",
-		"description": "the identifier of the object",
-		"required":    true,
-		"schema": Schema{
-			"type": "string",
-		},
-	}
-}
-
-// ParamQuery creates a query parameter
-func ParamQuery(name, description string) Schema {
-	return Schema{
-		"name":        name,
-		"in":          "query",
-		"description": description,
-		"required":    false,
-		"schema": Schema{
-			"type": "string",
-		},
-	}
 }

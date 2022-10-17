@@ -150,11 +150,11 @@ func Init(e *echo.Echo) error {
 // StatusResponse returns information about the
 // API implementation and the current user.
 type StatusResponse struct {
-	Version    string `json:"version"`
-	Build      string `json:"build"`
-	API        string `json:"api"`
-	AccountRef string `json:"account_ref"`
-	IsAdmin    bool   `json:"is_admin"`
+	Version    string `json:"version" doc:"The current b3scale server version."`
+	Build      string `json:"build" doc:"Build identifier of the server."`
+	API        string `json:"api" doc:"The API version." example:"v1"`
+	AccountRef string `json:"account_ref" doc:"The currently authenticated subject."`
+	IsAdmin    bool   `json:"is_admin" doc:"True if the subject has admin privileges."`
 }
 
 // apiStatusShow will respond with the api version and b3scale

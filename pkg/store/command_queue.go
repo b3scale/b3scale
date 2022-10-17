@@ -31,13 +31,13 @@ type Command struct {
 	ID  string `json:"id"`
 	Seq int    `json:"seq"`
 
-	State string `json:"state"`
+	State string `json:"state" doc:"The current state of the command." enum:"requested,success,error"`
 
-	Action string      `json:"action"`
-	Params interface{} `json:"params"`
-	Result interface{} `json:"result"`
+	Action string      `json:"action" doc:"The operation to perform." enum:"end_all_meetings"`
+	Params interface{} `json:"params" doc:"Key value options for the command. See example above."`
+	Result interface{} `json:"result" doc:"The result of the command. as key value object."`
 
-	Deadline  time.Time  `json:"deadline"`
+	Deadline  time.Time  `json:"deadline" doc:"The commands need to be processed before the deadline is reached. The deadline is optional."`
 	StartedAt *time.Time `json:"started_at"`
 	StoppedAt *time.Time `json:"stopped_at"`
 	CreatedAt time.Time  `json:"created_at"`

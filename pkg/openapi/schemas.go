@@ -9,6 +9,9 @@ import (
 // Use the json: tag to retrieve the name of the prop
 func propNameFromField(field reflect.StructField) string {
 	name := strings.Split(field.Tag.Get("json"), ",")[0]
+	if name == "" {
+		name = field.Name
+	}
 	return name
 }
 
@@ -53,6 +56,9 @@ func propFromStructType(field reflect.StructField, ftype reflect.Type) FieldProp
 func propFromSliceType(ftype reflect.Type) FieldProperty {
 	fmt.Println("SLICE TYPE:", ftype.Elem())
 	elem := ftype.Elem()
+	if elem.Kind() == reflect.Pointer {
+		elem = elem.Elem()
+	}
 
 	itemProps := FieldProperty{}
 	switch elem.Kind() {
@@ -75,7 +81,7 @@ func propFromSliceType(ftype reflect.Type) FieldProperty {
 }
 
 // Int
-func propFromIntType(unsigned bool) FieldProperty {
+func propFromIntType(field reflect.StructField, unsigned bool) FieldProperty {
 	p := FieldProperty{
 		"type": "integer",
 	}
@@ -116,9 +122,13 @@ func propFromField(field reflect.StructField) FieldProperty {
 	case reflect.Struct:
 		prop = propFromStructType(field, ftype)
 	case reflect.Int64:
-		prop = propFromIntType(false)
+		prop = propFromIntType(field, false)
 	case reflect.Uint:
-		prop = propFromIntType(false)
+		prop = propFromIntType(field, false)
+	case reflect.Uint64:
+		prop = propFromIntType(field, false)
+	case reflect.Int:
+		prop = propFromIntType(field, false)
 	case reflect.Float64:
 		prop = propFromFloatType()
 	case reflect.Bool:
@@ -131,6 +141,8 @@ func propFromField(field reflect.StructField) FieldProperty {
 	case reflect.Slice:
 		prop = propFromSliceType(ftype)
 	case reflect.Map:
+		prop = propFromMapType(ftype)
+	case reflect.Interface:
 		prop = propFromMapType(ftype)
 	default:
 		panic(fmt.Sprintf("unsupported field type: %s, %s", ftype, ftype.Kind()))
@@ -167,8 +179,17 @@ func propsFromStruct(obj interface{}) Properties {
 	props := Properties{}
 	// Iterate over fields
 	for _, field := range fields {
-		prop := propFromField(field)
+		if !field.IsExported() {
+			continue
+		}
+		if field.Name == "XMLName" {
+			continue
+		}
 		pname := propNameFromField(field)
+		if pname == "-" {
+			continue
+		}
+		prop := propFromField(field)
 		props[pname] = prop
 	}
 	return props
@@ -190,7 +211,16 @@ func RequiredFrom(obj interface{}) []string {
 	// Iterate over fields
 	required := []string{}
 	for _, field := range fields {
+		if !field.IsExported() {
+			continue
+		}
+		if field.Name == "XMLName" {
+			continue
+		}
 		pname := propNameFromField(field)
+		if pname == "-" {
+			continue
+		}
 		flags := strings.Split(field.Tag.Get("json"), ",")
 		if len(flags) > 1 {
 			if flags[1] == "omitempty" {

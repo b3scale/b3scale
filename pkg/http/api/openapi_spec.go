@@ -17,6 +17,8 @@ func NewFrontendsAPISchema() map[string]oa.Path {
 				Tags:        []string{"Frontends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Frontends"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
 				},
 				Parameters: []oa.Schema{
 					oa.ParamQuery(
@@ -44,6 +46,8 @@ func NewFrontendsAPISchema() map[string]oa.Path {
 				},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Frontend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
 				},
 			},
 		},
@@ -58,6 +62,9 @@ func NewFrontendsAPISchema() map[string]oa.Path {
 				Tags:        []string{"Frontends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Frontend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
 				},
 			},
 			"patch": oa.Operation{
@@ -74,6 +81,9 @@ func NewFrontendsAPISchema() map[string]oa.Path {
 				},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Frontend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
 				},
 			},
 			"delete": oa.Operation{
@@ -83,6 +93,9 @@ func NewFrontendsAPISchema() map[string]oa.Path {
 				Tags:        []string{"Frontends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Frontend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
 				},
 			},
 		},
@@ -96,11 +109,13 @@ func NewBackendsAPISchema() map[string]oa.Path {
 		"/backends": oa.Path{
 			"get": oa.Operation{
 				Description: "Fetch all backends",
-				OperationID: "frontendsList",
+				OperationID: "backendsList",
 				Summary:     "List",
 				Tags:        []string{"Backends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Backends"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
 				},
 				Parameters: []oa.Schema{
 					oa.ParamQuery(
@@ -128,6 +143,8 @@ func NewBackendsAPISchema() map[string]oa.Path {
 				},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Backend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
 				},
 			},
 		},
@@ -142,6 +159,9 @@ func NewBackendsAPISchema() map[string]oa.Path {
 				Tags:        []string{"Backends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Backend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
 				},
 			},
 			"patch": oa.Operation{
@@ -158,6 +178,9 @@ func NewBackendsAPISchema() map[string]oa.Path {
 				},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Backend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
 				},
 			},
 			"delete": oa.Operation{
@@ -167,6 +190,9 @@ func NewBackendsAPISchema() map[string]oa.Path {
 				Tags:        []string{"Backends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Backend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
 				},
 				Parameters: []oa.Schema{
 					oa.ParamQuery(
@@ -178,17 +204,236 @@ func NewBackendsAPISchema() map[string]oa.Path {
 	}
 }
 
+// NewMeetingsAPISchema create the endpoint schema for meetings
+func NewMeetingsAPISchema() map[string]oa.Path {
+	backendIDParam := oa.ParamQuery(
+		"backend_id",
+		"The ID of the backend where the meetings are located.\n\n*Either this or `backend_host` is required.*")
+	backendHostParam := oa.ParamQuery(
+		"backend_host",
+		"The full host of the backend where the meetings are located. *Either this or `backend_id` is required.*")
+	return map[string]oa.Path{
+		"/meetings": oa.Path{
+			"get": oa.Operation{
+				Description: "Fetch all meetings",
+				OperationID: "meetingsList",
+				Summary:     "List",
+				Tags:        []string{"Meetings"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Meetings"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+				Parameters: []oa.Schema{
+					backendIDParam, backendHostParam,
+				},
+			},
+		},
+		"/meetings/{id}": oa.Path{
+			"parameters": []oa.Schema{
+				oa.ParamID(),
+			},
+			"get": oa.Operation{
+				Description: "Fetch a single meeting identified by ID.",
+				OperationID: "meetingsRead",
+				Summary:     "Read",
+				Tags:        []string{"Meetings"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Meeting"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+			"patch": oa.Operation{
+				Description: "Update parts of a meeting.",
+				OperationID: "meetingsPatch",
+				Summary:     "Update",
+				Tags:        []string{"Meetings"},
+				RequestBody: &oa.Request{
+					Content: map[string]oa.MediaType{
+						oa.ApplicationJSON: oa.MediaType{
+							Schema: oa.SchemaRef("MeetingPatch"),
+						},
+					},
+				},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Meeting"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+			"delete": oa.Operation{
+				Description: "Remove a meeting.",
+				OperationID: "meetingsDestroy",
+				Summary:     "Delete",
+				Tags:        []string{"Meetings"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Meeting"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+		},
+	}
+}
+
+// NewCommandsAPISchema create the endpoint schema for commands
+func NewCommandsAPISchema() map[string]oa.Path {
+	return map[string]oa.Path{
+		"/commands": oa.Path{
+			"get": oa.Operation{
+				Description: "Fetch current command queue.",
+				OperationID: "commandsList",
+				Summary:     "List",
+				Tags:        []string{"Commands"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Commands"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+			},
+			"post": oa.Operation{
+				Description: "Insert a new command into the queue.\n\nCurrently only `end_all_meetings` for a given backend is supported.\n\nExample: `{\"action\": \"end_all_meetings\", \"params\": {\"BackendID\": \"b056bc5e-372e-4562-b23a-bd6a92634e7b\"}}`",
+				OperationID: "commandsCreate",
+				Summary:     "Create",
+				Tags:        []string{"Commands"},
+				RequestBody: &oa.Request{
+					Content: map[string]oa.MediaType{
+						oa.ApplicationJSON: oa.MediaType{
+							Schema: oa.SchemaRef("CommandRequest"),
+						},
+					},
+				},
+				Responses: oa.ResponseRefs{
+					"202": oa.ResponseRef("Command"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+			},
+		},
+		"/commands/{id}": oa.Path{
+			"parameters": []oa.Schema{
+				oa.ParamID(),
+			},
+			"get": oa.Operation{
+				Description: "Fetch a single command identified by ID.",
+				OperationID: "commandsRead",
+				Summary:     "Read",
+				Tags:        []string{"Commands"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Command"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+		},
+	}
+}
+
+// NewRecordingsImportAPISchema creates the api schema for
+// accepting a BBB recodrings metadata document
+func NewRecordingsImportAPISchema() map[string]oa.Path {
+	return map[string]oa.Path{
+		"/recordings-import": oa.Path{
+			"post": oa.Operation{
+				Summary:     "Import Recording Meta",
+				Description: "Upload an recordings metadata XML document. The recording will be imported.\n\nThese are typically read from `/var/bigbluebutton/published/presentation/...meetingID.../metadata.xml`, see `post_publish_b3scale_import.rb` script.",
+				RequestBody: &oa.Request{
+					Content: map[string]oa.MediaType{
+						"application/xml": oa.MediaType{},
+					},
+				},
+				Tags: []string{"Recordings"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Recording"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+			},
+		},
+	}
+}
+
+// NewAgentAPISchema creates the API schema for the node agent
+func NewAgentAPISchema() map[string]oa.Path {
+	return map[string]oa.Path{
+		"/agent/backend": oa.Path{
+			"get": oa.Operation{
+				Summary:     "Read Backend",
+				Description: "Get the backend associated with the agent.",
+				Tags:        []string{"Agent"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Backend"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+		},
+		"/agent/heartbeat": oa.Path{
+			"post": oa.Operation{
+				Summary:     "Create Heartbeat",
+				Description: "Notify b3scale, that the agent is still alive.",
+				Tags:        []string{"Agent"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Heartbeat"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+		},
+	}
+}
+
+// NewMetaEndpointsSchema creates the api meta endpoints
+func NewMetaEndpointsSchema() map[string]oa.Path {
+	return map[string]oa.Path{
+		"/": oa.Path{
+			"get": oa.Operation{
+				Description: "Retrieve an API status",
+				OperationID: "statusRead",
+				Summary:     "Read Status",
+				Tags:        []string{"API"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Status"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+			},
+		},
+	}
+}
+
 // NewAPIEndpointsSchema combines all the endpoints schemas
 func NewAPIEndpointsSchema() map[string]oa.Path {
 	return oa.Endpoints(
+		NewMetaEndpointsSchema(),
 		NewFrontendsAPISchema(),
 		NewBackendsAPISchema(),
+		NewMeetingsAPISchema(),
+		NewCommandsAPISchema(),
+		NewRecordingsImportAPISchema(),
+		NewAgentAPISchema(),
 	)
 }
 
 // NewAPIResponses creates all default (error) responses
 func NewAPIResponses() map[string]oa.Response {
 	return map[string]oa.Response{
+		"Status": oa.Response{
+			Description: "API and Server Status",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Status"),
+				},
+			},
+		},
+
 		"Frontends": oa.Response{
 			Description: "List Of Frontends",
 			Content: map[string]oa.MediaType{
@@ -221,11 +466,81 @@ func NewAPIResponses() map[string]oa.Response {
 				},
 			},
 		},
+
+		"Meetings": oa.Response{
+			Description: "List of Meetings",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Meetings"),
+				},
+			},
+		},
+		"Meeting": oa.Response{
+			Description: "Meeting",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Meeting"),
+				},
+			},
+		},
+
+		"Commands": oa.Response{
+			Description: "List of Commands",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Commands"),
+				},
+			},
+		},
+		"Command": oa.Response{
+			Description: "Command",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Command"),
+				},
+			},
+		},
+
+		"Recording": oa.Response{
+			Description: "Recording",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Recording"),
+				},
+			},
+		},
+
+		"Heartbeat": oa.Response{
+			Description: "Heartbeat",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Heartbeat"),
+				},
+			},
+		},
+
 		"NotFoundError": oa.Response{
-			Description: "The requested resource could not be found",
+			Description: "The requested resource could not be found.",
 			Content: map[string]oa.MediaType{
 				oa.ApplicationJSON: oa.MediaType{
 					Schema: oa.SchemaRef("NotFoundError"),
+				},
+			},
+		},
+		"InvalidJWTError": oa.Response{
+			Description: "The JWT authorization token was invalid or expired.",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("ServerError"),
+				},
+			},
+		},
+		"BadRequest": oa.Response{
+			Description: "The request was invalid. Maybe a JWT authorization header was not provided or a validation failed.",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Description: "Foo",
+					Schema:      oa.SchemaRef("ServerError"),
 				},
 			},
 		},
@@ -235,6 +550,11 @@ func NewAPIResponses() map[string]oa.Response {
 // NewAPISchemas creates the schemas we use in the API
 func NewAPISchemas() map[string]oa.Schema {
 	return map[string]oa.Schema{
+		"Status": oa.ObjectSchema(
+			"Server Status",
+			StatusResponse{}).
+			RequireFrom(StatusResponse{}),
+
 		"Frontends": oa.ArraySchema(
 			"A list of frontends",
 			oa.SchemaRef("Frontend")),
@@ -292,9 +612,91 @@ func NewAPISchemas() map[string]oa.Schema {
 			store.BackendSettings{}).
 			RequireFrom(store.BackendSettings{}),
 
+		"Meetings": oa.ArraySchema(
+			"List Of Meetings",
+			oa.SchemaRef("Meeting")),
+		"Meeting": oa.ObjectSchema(
+			"Meeting",
+			store.MeetingState{}).
+			RequireFrom(store.MeetingState{}),
+		"MeetingPatch": oa.ObjectSchema(
+			"Meeting Update",
+			store.MeetingState{}).
+			Only("meeting").
+			Patch("meeting").
+			Require("meeting"),
+		"MeetingInfo": oa.ObjectSchema(
+			"Meeting Info",
+			bbb.Meeting{}).
+			RequireFrom(bbb.Meeting{}),
+		"MeetingInfoPatch": oa.ObjectSchema(
+			"Meeting Info",
+			bbb.Meeting{}),
+		"Attendee": oa.ObjectSchema(
+			"Meeting Attendee",
+			bbb.Attendee{}).
+			RequireFrom(bbb.Attendee{}),
+		"Breakout": oa.ObjectSchema(
+			"Meeting Breakout Room",
+			bbb.Breakout{}).
+			RequireFrom(bbb.Breakout{}),
+
+		"Commands": oa.ArraySchema(
+			"List Of Commands",
+			oa.SchemaRef("Command")),
+		"Command": oa.ObjectSchema(
+			"Command",
+			store.Command{}).
+			RequireFrom(store.Command{}).
+			Nullable("result", "started_at", "stopped_at"),
+		"CommandRequest": oa.ObjectSchema(
+			"Command Request",
+			store.Command{}).
+			Only("action", "params").
+			Require("action", "params"),
+
+		"Recording": oa.ObjectSchema(
+			"Recording",
+			bbb.Recording{}).
+			RequireFrom(bbb.Recording{}),
+		"Format": oa.ObjectSchema(
+			"Format",
+			bbb.Format{}).
+			RequireFrom(bbb.Format{}),
+		"Preview": oa.ObjectSchema(
+			"Preview",
+			bbb.Preview{}).RequireFrom(bbb.Preview{}),
+		"Images": oa.ObjectSchema(
+			"Images",
+			bbb.Images{}).RequireFrom(bbb.Images{}),
+		"Image": oa.ObjectSchema(
+			"Image",
+			bbb.Images{}).RequireFrom(bbb.Image{}),
+
+		"Heartbeat": oa.ObjectSchema(
+			"Hearbeat", store.AgentHeartbeat{}).
+			RequireFrom(store.AgentHeartbeat{}),
+
 		"Error":           NewErrorSchema(),
 		"NotFoundError":   NewNotFoundErrorSchema(),
 		"ValidationError": NewValidationErrorSchema(),
+		"ServerError":     NewServerErrorSchema(),
+	}
+}
+
+// NewServerErrorSchema creates a fallback error schema with
+// only contains the error message.
+func NewServerErrorSchema() oa.Schema {
+	return oa.Schema{
+		"description": "A Server Error",
+		"type":        "object",
+		"properties": oa.Properties{
+			"message": oa.Property{
+				Type: "string",
+				Description: "A human readable message with details " +
+					"about the error.",
+			},
+		},
 	}
 }
 
@@ -386,12 +788,32 @@ func NewAPISpec() *oa.Spec {
 		},
 		Tags: []oa.Tag{
 			{
+				Name:        "API",
+				Description: "Get meta information about the API.",
+			},
+			{
 				Name:        "Frontends",
 				Description: "B3scale tenants are called frontends. In the following section you can find all frontend related operations.",
 			},
 			{
 				Name:        "Backends",
 				Description: "Big Blue Button (BBB) servers are called backends. Each is a node in the cluster, having an agent running.\n\nThe following endpoints are for managing backends.",
+			},
+			{
+				Name:        "Meetings",
+				Description: "The meetings API can be used to update and query meetings. Creating new meetings is not supported at the time.",
+			},
+			{
+				Name:        "Recordings",
+				Description: "Currently only importing recording by uploading a `metadata.xml` is supported.",
+			},
+			{
+				Name:        "Commands",
+				Description: "The commands API is used queue asynchronous commands. Currently only `end_all_meetings` for a given backend is supported.",
+			},
+			{
+				Name:        "Agent",
+				Description: "This API is used by the agent, running on each node.",
 			},
 		},
 		Security: []oa.SecuritySpec{
