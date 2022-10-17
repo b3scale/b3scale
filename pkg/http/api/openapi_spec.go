@@ -435,7 +435,7 @@ func NewAPIResponses() map[string]oa.Response {
 		},
 
 		"Frontends": oa.Response{
-			Description: "List Of Frontends",
+			Description: "List of Frontends",
 			Content: map[string]oa.MediaType{
 				oa.ApplicationJSON: oa.MediaType{
 					Schema: oa.SchemaRef("Frontends"),
@@ -451,7 +451,7 @@ func NewAPIResponses() map[string]oa.Response {
 			},
 		},
 		"Backends": oa.Response{
-			Description: "List Of Backends",
+			Description: "List of Backends",
 			Content: map[string]oa.MediaType{
 				oa.ApplicationJSON: oa.MediaType{
 					Schema: oa.SchemaRef("Backends"),
@@ -589,7 +589,7 @@ func NewAPISchemas() map[string]oa.Schema {
 			RequireFrom(store.DefaultPresentationSettings{}),
 
 		"Backends": oa.ArraySchema(
-			"List Of Backends",
+			"List of Backends",
 			oa.SchemaRef("Backend")),
 		"BackendRequest": oa.ObjectSchema(
 			"Backend Request",
@@ -613,7 +613,7 @@ func NewAPISchemas() map[string]oa.Schema {
 			RequireFrom(store.BackendSettings{}),
 
 		"Meetings": oa.ArraySchema(
-			"List Of Meetings",
+			"List of Meetings",
 			oa.SchemaRef("Meeting")),
 		"Meeting": oa.ObjectSchema(
 			"Meeting",
@@ -642,7 +642,7 @@ func NewAPISchemas() map[string]oa.Schema {
 			RequireFrom(bbb.Breakout{}),
 
 		"Commands": oa.ArraySchema(
-			"List Of Commands",
+			"List of Commands",
 			oa.SchemaRef("Command")),
 		"Command": oa.ObjectSchema(
 			"Command",
