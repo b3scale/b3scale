@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -188,6 +189,10 @@ func NewCli() *Cli {
 				Action: c.showVersion,
 			},
 			{
+				Name:   "export-openapi-schema",
+				Action: c.exportOpenAPISchema,
+			},
+			{
 				Name: "auth",
 				Subcommands: []*cli.Command{
 					{
@@ -372,6 +377,17 @@ func (c *Cli) showVersion(ctx *cli.Context) error {
 	}
 	fmt.Println("API status:")
 	fmt.Println(status)
+	return nil
+}
+
+// Export the current openapi schema
+func (c *Cli) exportOpenAPISchema(ctx *cli.Context) error {
+	spec := api.NewAPISpec()
+	doc, err := json.MarshalIndent(spec, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(doc))
 	return nil
 }
 
