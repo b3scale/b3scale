@@ -6,8 +6,8 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-// NewAPIEndpointsSchema generates all the endpoints for the schema
-func NewAPIEndpointsSchema() map[string]oa.Path {
+// NewFrontendsAPISchema generates the endpoints for the frontend
+func NewFrontendsAPISchema() map[string]oa.Path {
 	return map[string]oa.Path{
 		"/frontends": oa.Path{
 			"get": oa.Operation{
@@ -17,6 +17,17 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 				Tags:        []string{"Frontends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Frontends"),
+				},
+				Parameters: []oa.Schema{
+					oa.ParamQuery(
+						"account_ref",
+						"Filter by account_ref"),
+					oa.ParamQuery(
+						"key",
+						"Show only frontends matching the exact key"),
+					oa.ParamQuery(
+						"key__like",
+						"Show only frontends matching parts of a key"),
 				},
 			},
 			"post": oa.Operation{
@@ -41,7 +52,7 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 				oa.ParamID(),
 			},
 			"get": oa.Operation{
-				Description: "Fetch a single frontend identified by ID",
+				Description: "Fetch a single frontend identified by ID.",
 				OperationID: "frontendsRead",
 				Summary:     "Read",
 				Tags:        []string{"Frontends"},
@@ -50,7 +61,7 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 				},
 			},
 			"patch": oa.Operation{
-				Description: "Update parts of a frontend",
+				Description: "Update parts of a frontend.",
 				OperationID: "frontendsPatch",
 				Summary:     "Update",
 				Tags:        []string{"Frontends"},
@@ -66,7 +77,7 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 				},
 			},
 			"delete": oa.Operation{
-				Description: "Remove a frontend",
+				Description: "Remove a frontend.\n\nAll stored recordings will also be removed.",
 				OperationID: "frontendsDestroy",
 				Summary:     "Delete",
 				Tags:        []string{"Frontends"},
@@ -75,7 +86,13 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 				},
 			},
 		},
+	}
+}
 
+// NewBackendsAPISchema generates the schema for backend
+// related endpoint.
+func NewBackendsAPISchema() map[string]oa.Path {
+	return map[string]oa.Path{
 		"/backends": oa.Path{
 			"get": oa.Operation{
 				Description: "Fetch all backends",
@@ -84,6 +101,17 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 				Tags:        []string{"Backends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Backends"),
+				},
+				Parameters: []oa.Schema{
+					oa.ParamQuery(
+						"host",
+						"List backends matching this exact host."),
+					oa.ParamQuery(
+						"host__like",
+						"List backend partially matching the host."),
+					oa.ParamQuery(
+						"host__ilike",
+						"List backends partially matching the host, case insensitive."),
 				},
 			},
 			"post": oa.Operation{
@@ -133,16 +161,29 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 				},
 			},
 			"delete": oa.Operation{
-				Description: "Remove a backend",
+				Description: "Remove a backend.\n\nWhen not forced, decommissioning the backend will be requested.",
 				OperationID: "backendsDestroy",
 				Summary:     "Delete",
 				Tags:        []string{"Backends"},
 				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Backend"),
 				},
+				Parameters: []oa.Schema{
+					oa.ParamQuery(
+						"force",
+						"When `true`, the backend will be forcefully removed from the cluster."),
+				},
 			},
 		},
 	}
+}
+
+// NewAPIEndpointsSchema combines all the endpoints schemas
+func NewAPIEndpointsSchema() map[string]oa.Path {
+	return oa.Endpoints(
+		NewFrontendsAPISchema(),
+		NewBackendsAPISchema(),
+	)
 }
 
 // NewAPIResponses creates all default (error) responses
@@ -198,17 +239,17 @@ func NewAPISchemas() map[string]oa.Schema {
 			"A list of frontends",
 			oa.SchemaRef("Frontend")),
 		"FrontendRequest": oa.ObjectSchema(
-			"A frontend request",
+			"A Frontend Request",
 			store.FrontendState{}).
 			Only("active", "bbb", "settings", "account_ref").
 			Require("bbb"),
 		"FrontendPatch": oa.ObjectSchema(
-			"A frontend update",
+			"A Frontend Update",
 			store.FrontendState{}).
 			Only("active", "bbb", "settings", "account_ref").
 			Patch("bbb"),
 		"Frontend": oa.ObjectSchema(
-			"A frontend",
+			"Frontend",
 			store.FrontendState{}).
 			RequireFrom(store.FrontendState{}),
 		"FrontendConfig": oa.ObjectSchema(
@@ -219,7 +260,7 @@ func NewAPISchemas() map[string]oa.Schema {
 			"A BBB frontend configuration",
 			bbb.Frontend{}),
 		"FrontendSettings": oa.ObjectSchema(
-			"Frontend settings",
+			"Frontend Settings",
 			store.FrontendSettings{}).
 			RequireFrom(store.FrontendSettings{}),
 		"DefaultPresentationSettings": oa.ObjectSchema(
@@ -347,6 +388,10 @@ func NewAPISpec() *oa.Spec {
 			{
 				Name:        "Frontends",
 				Description: "B3scale tenants are called frontends. In the following section you can find all frontend related operations.",
+			},
+			{
+				Name:        "Backends",
+				Description: "Big Blue Button (BBB) servers are called backends. Each is a node in the cluster, having an agent running.\n\nThe following endpoints are for managing backends.",
 			},
 		},
 		Security: []oa.SecuritySpec{

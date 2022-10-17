@@ -24,19 +24,19 @@ var (
 type BackendState struct {
 	ID string `json:"id"`
 
-	NodeState  string `json:"node_state"`
-	AdminState string `json:"admin_state"`
+	NodeState  string `json:"node_state" doc:"The current state of the node." example:"ready" enum:"init,ready,error,stopped,decommissioned"`
+	AdminState string `json:"admin_state" doc:"The desired state of the node. If none given, it will be assumed 'ready'." example:"ready" enum:"init,ready,stopped,decommissioned"`
 
-	AgentHeartbeat time.Time `json:"agent_heartbeat"`
-	AgentRef       *string   `json:"agent_ref"`
+	AgentHeartbeat time.Time `json:"agent_heartbeat" doc:"The last time we heared from the node agent."`
+	AgentRef       *string   `json:"agent_ref" doc:"The identifier of the agent running on the backend. Used for backend authorization and agent authentication."`
 
-	LastError *string `json:"last_error"`
+	LastError *string `json:"last_error" doc:"The last error that happend. For example destination host not reachable."`
 
-	Latency        time.Duration `json:"latency"`
-	MeetingsCount  uint          `json:"meetings_count"`
-	AttendeesCount uint          `json:"attendees_count"`
+	Latency        time.Duration `json:"latency" doc:"The amount of milliseconds when polling the current node state."`
+	MeetingsCount  uint          `json:"meetings_count" doc:"Number of meetings on the backend."`
+	AttendeesCount uint          `json:"attendees_count" doc:"Number of participants in meetings on the backend."`
 
-	LoadFactor float64 `json:"load_factor"`
+	LoadFactor float64 `json:"load_factor" doc:"The load factor influences the probability of selecting this backend when a meeting is created. The amount of meetings and attendees on the node will be multiplied with the load factor, when calculating the backend stress."`
 
 	Backend *bbb.Backend `json:"bbb" api:"BackendConfig"`
 

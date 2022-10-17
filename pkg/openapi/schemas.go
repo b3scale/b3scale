@@ -136,9 +136,24 @@ func propFromField(field reflect.StructField) FieldProperty {
 		panic(fmt.Sprintf("unsupported field type: %s, %s", ftype, ftype.Kind()))
 	}
 
+	// Add example if present
+	example, hasExample := field.Tag.Lookup("example")
+	if hasExample {
+		prop["example"] = example
+	}
+
+	// Add enum
+	enum, hasEnum := field.Tag.Lookup("enum")
+	if hasEnum {
+		prop["enum"] = strings.Split(enum, ",")
+	}
+
 	// Add description
-	desc, ok := field.Tag.Lookup("doc")
-	if ok {
+	desc, hasDescription := field.Tag.Lookup("doc")
+	if hasDescription {
+		if hasExample {
+			desc += "\n\n**Example**: `" + example + "`"
+		}
 		prop["description"] = desc
 	}
 

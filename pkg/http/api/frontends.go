@@ -47,7 +47,7 @@ func apiFrontendsList(
 	}
 
 	// Query parameter filters
-	queryRef := api.QueryParam("subject_ref")
+	queryRef := api.QueryParam("account_ref")
 	if queryRef != "" {
 		q = q.Where("account_ref = ?", queryRef)
 	}

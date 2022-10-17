@@ -212,3 +212,16 @@ func ParamID() Schema {
 		},
 	}
 }
+
+// ParamQuery creates a query parameter
+func ParamQuery(name, description string) Schema {
+	return Schema{
+		"name":        name,
+		"in":          "query",
+		"description": description,
+		"required":    false,
+		"schema": Schema{
+			"type": "string",
+		},
+	}
+}

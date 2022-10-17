@@ -17,12 +17,12 @@ import (
 type FrontendState struct {
 	ID string `json:"id"`
 
-	Active   bool          `json:"active" doc:"If false, the frontend can not longer use the API"`
+	Active   bool          `json:"active" doc:"When false, the frontend can not longer use the API."`
 	Frontend *bbb.Frontend `json:"bbb" api:"FrontendConfig"`
 
 	Settings FrontendSettings `json:"settings"`
 
-	AccountRef *string `json:"account_ref"`
+	AccountRef *string `json:"account_ref" doc:"If not null, the frontend is bound to an account reference. The reference is freeform string. It is recommended to encode it as base64, but this is optional."`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
