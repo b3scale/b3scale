@@ -15,7 +15,7 @@ import (
 // Metric descriptors used by the metrics collector
 var (
 	meetingAttendeesDesc = prometheus.NewDesc(
-		"meeting_attendees",
+		"b3scale_meeting_attendees",
 		"Number of attendees in the cluster",
 		[]string{
 			// Frontend Key
@@ -29,7 +29,7 @@ var (
 		}, nil)
 
 	meetingDurationsDesc = prometheus.NewDesc(
-		"meeting_durations",
+		"b3scale_meeting_durations",
 		"Duration of meetings in the cluster",
 		[]string{
 			// Frontend Key
@@ -41,7 +41,7 @@ var (
 		}, nil)
 
 	frontendMeetingsDesc = prometheus.NewDesc(
-		"frontend_meetings",
+		"b3scale_frontend_meetings",
 		"Number of meetings per frontend",
 		[]string{
 			// Frontend Key
@@ -49,7 +49,7 @@ var (
 		}, nil)
 
 	backendMeetingsDesc = prometheus.NewDesc(
-		"backend_meetings",
+		"b3scale_backend_meetings",
 		"Number of meetings per backend",
 		[]string{
 			// Backend Host
