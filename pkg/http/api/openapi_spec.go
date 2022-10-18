@@ -850,7 +850,7 @@ func NewAPISpec() *oa.Spec {
 		OpenAPI: "3.0.1",
 		Info: oa.Info{
 			Title:       "b3scale api v1",
-			Description: "This document describes the specifications for the b3scale API v1",
+			Description: "This document describes the specifications for the b3scale API v1.",
 			Version:     "1.0.0",
 			License: oa.License{
 				Name: "Apache 2.0",
