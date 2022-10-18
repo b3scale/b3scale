@@ -7,10 +7,15 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "description": "This document describes the specifications for the b3scale API v1"
+    "description": "This document describes the specifications for the b3scale API v1",
+    "contact": {
+      "name": "The B3Scale Developers",
+      "url": "https://b3scale.io",
+      "email": "mail@infra.run"
+    }
   },
   "paths": {
-    "/": {
+    "/v1": {
       "get": {
         "description": "Retrieve an API status",
         "responses": {
@@ -31,7 +36,7 @@
         ]
       }
     },
-    "/agent/backend": {
+    "/v1/agent/backend": {
       "get": {
         "description": "Get the backend associated with the agent.",
         "responses": {
@@ -48,14 +53,14 @@
             "$ref": "#/components/responses/NotFoundError"
           }
         },
-        "operationId": "",
+        "operationId": "agentBackendRead",
         "summary": "Read Backend",
         "tags": [
           "Agent"
         ]
       }
     },
-    "/agent/heartbeat": {
+    "/v1/agent/heartbeat": {
       "post": {
         "description": "Notify b3scale, that the agent is still alive.",
         "responses": {
@@ -72,14 +77,14 @@
             "$ref": "#/components/responses/NotFoundError"
           }
         },
-        "operationId": "",
+        "operationId": "agentHeartbeatCreate",
         "summary": "Create Heartbeat",
         "tags": [
           "Agent"
         ]
       }
     },
-    "/agent/rpc": {
+    "/v1/agent/rpc": {
       "post": {
         "description": "Perform a remote procedure call.\n\nThis API allows for remote procedures that involve complex that can not be expressed sufficiently through resource manipulation.\n\n**Warning:** this API is only meant to be used by the agent.\n\nOnly the envelope format is described here. For details, please check the source in `http/api/rpc.go`.",
         "responses": {
@@ -96,7 +101,7 @@
             "$ref": "#/components/responses/NotFoundError"
           }
         },
-        "operationId": "",
+        "operationId": "agentRpc",
         "requestBody": {
           "content": {
             "application/json": {
@@ -112,7 +117,7 @@
         ]
       }
     },
-    "/backends": {
+    "/v1/backends": {
       "get": {
         "description": "Fetch all backends",
         "responses": {
@@ -190,7 +195,7 @@
         ]
       }
     },
-    "/backends/{id}": {
+    "/v1/backends/{id}": {
       "delete": {
         "description": "Remove a backend.\n\nWhen not forced, decommissioning the backend will be requested.",
         "responses": {
@@ -289,7 +294,7 @@
         ]
       }
     },
-    "/commands": {
+    "/v1/commands": {
       "get": {
         "description": "Fetch current command queue.",
         "responses": {
@@ -338,7 +343,7 @@
         ]
       }
     },
-    "/commands/{id}": {
+    "/v1/commands/{id}": {
       "get": {
         "description": "Fetch a single command identified by ID.",
         "responses": {
@@ -373,7 +378,7 @@
         }
       ]
     },
-    "/frontends": {
+    "/v1/frontends": {
       "get": {
         "description": "Fetch all frontends",
         "responses": {
@@ -451,7 +456,7 @@
         ]
       }
     },
-    "/frontends/{id}": {
+    "/v1/frontends/{id}": {
       "delete": {
         "description": "Remove a frontend.\n\nAll stored recordings will also be removed.",
         "responses": {
@@ -539,7 +544,7 @@
         ]
       }
     },
-    "/meetings": {
+    "/v1/meetings": {
       "get": {
         "description": "Fetch all meetings",
         "responses": {
@@ -580,7 +585,7 @@
         ]
       }
     },
-    "/meetings/{id}": {
+    "/v1/meetings/{id}": {
       "delete": {
         "description": "Remove a meeting.",
         "responses": {
@@ -668,7 +673,7 @@
         ]
       }
     },
-    "/recordings-import": {
+    "/v1/recordings-import": {
       "post": {
         "description": "Upload an recordings metadata XML document. The recording will be imported.\n\nThese are typically read from `/var/bigbluebutton/published/presentation/...meetingID.../metadata.xml`, see `post_publish_b3scale_import.rb` script.",
         "responses": {
@@ -682,11 +687,13 @@
             "$ref": "#/components/responses/InvalidJWTError"
           }
         },
-        "operationId": "",
+        "operationId": "recordingsImport",
         "requestBody": {
           "content": {
             "application/xml": {
-              "schema": null
+              "schema": {
+                "type": "object"
+              }
             }
           }
         },
@@ -982,7 +989,6 @@
             "type": "array"
           }
         },
-        "required": [],
         "type": "object"
       },
       "Backends": {
@@ -1330,7 +1336,6 @@
             "type": "array"
           }
         },
-        "required": [],
         "type": "object"
       },
       "Frontends": {
@@ -1874,8 +1879,7 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/ServerError"
-            },
-            "description": "Foo"
+            }
           }
         }
       },
@@ -2002,10 +2006,9 @@
     },
     "securitySchemes": {
       "jwt": {
-        "type": "bearer",
+        "type": "http",
         "description": "Authorization using a JWT bearer token",
-        "name": "JWT bearer token",
-        "in": "header",
+        "scheme": "bearer",
         "bearerFormat": "JWT"
       }
     }
@@ -2042,7 +2045,7 @@
   ],
   "servers": [
     {
-      "url": "/api/v1",
+      "url": "/api",
       "description": "default server location"
     }
   ],

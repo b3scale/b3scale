@@ -9,7 +9,7 @@ import (
 // NewFrontendsAPISchema generates the endpoints for the frontend
 func NewFrontendsAPISchema() map[string]oa.Path {
 	return map[string]oa.Path{
-		"/frontends": oa.Path{
+		"/v1/frontends": oa.Path{
 			"get": oa.Operation{
 				Description: "Fetch all frontends",
 				OperationID: "frontendsList",
@@ -51,7 +51,7 @@ func NewFrontendsAPISchema() map[string]oa.Path {
 				},
 			},
 		},
-		"/frontends/{id}": oa.Path{
+		"/v1/frontends/{id}": oa.Path{
 			"parameters": []oa.Schema{
 				oa.ParamID(),
 			},
@@ -106,7 +106,7 @@ func NewFrontendsAPISchema() map[string]oa.Path {
 // related endpoint.
 func NewBackendsAPISchema() map[string]oa.Path {
 	return map[string]oa.Path{
-		"/backends": oa.Path{
+		"/v1/backends": oa.Path{
 			"get": oa.Operation{
 				Description: "Fetch all backends",
 				OperationID: "backendsList",
@@ -148,7 +148,7 @@ func NewBackendsAPISchema() map[string]oa.Path {
 				},
 			},
 		},
-		"/backends/{id}": oa.Path{
+		"/v1/backends/{id}": oa.Path{
 			"parameters": []oa.Schema{
 				oa.ParamID(),
 			},
@@ -213,7 +213,7 @@ func NewMeetingsAPISchema() map[string]oa.Path {
 		"backend_host",
 		"The full host of the backend where the meetings are located. *Either this or `backend_id` is required.*")
 	return map[string]oa.Path{
-		"/meetings": oa.Path{
+		"/v1/meetings": oa.Path{
 			"get": oa.Operation{
 				Description: "Fetch all meetings",
 				OperationID: "meetingsList",
@@ -229,7 +229,7 @@ func NewMeetingsAPISchema() map[string]oa.Path {
 				},
 			},
 		},
-		"/meetings/{id}": oa.Path{
+		"/v1/meetings/{id}": oa.Path{
 			"parameters": []oa.Schema{
 				oa.ParamID(),
 			},
@@ -283,7 +283,7 @@ func NewMeetingsAPISchema() map[string]oa.Path {
 // NewCommandsAPISchema create the endpoint schema for commands
 func NewCommandsAPISchema() map[string]oa.Path {
 	return map[string]oa.Path{
-		"/commands": oa.Path{
+		"/v1/commands": oa.Path{
 			"get": oa.Operation{
 				Description: "Fetch current command queue.",
 				OperationID: "commandsList",
@@ -314,7 +314,7 @@ func NewCommandsAPISchema() map[string]oa.Path {
 				},
 			},
 		},
-		"/commands/{id}": oa.Path{
+		"/v1/commands/{id}": oa.Path{
 			"parameters": []oa.Schema{
 				oa.ParamID(),
 			},
@@ -338,13 +338,18 @@ func NewCommandsAPISchema() map[string]oa.Path {
 // accepting a BBB recodrings metadata document
 func NewRecordingsImportAPISchema() map[string]oa.Path {
 	return map[string]oa.Path{
-		"/recordings-import": oa.Path{
+		"/v1/recordings-import": oa.Path{
 			"post": oa.Operation{
 				Summary:     "Import Recording Meta",
 				Description: "Upload an recordings metadata XML document. The recording will be imported.\n\nThese are typically read from `/var/bigbluebutton/published/presentation/...meetingID.../metadata.xml`, see `post_publish_b3scale_import.rb` script.",
+				OperationID: "recordingsImport",
 				RequestBody: &oa.Request{
 					Content: map[string]oa.MediaType{
-						"application/xml": oa.MediaType{},
+						"application/xml": oa.MediaType{
+							Schema: oa.Schema{
+								"type": "object",
+							},
+						},
 					},
 				},
 				Tags: []string{"Recordings"},
@@ -361,8 +366,9 @@ func NewRecordingsImportAPISchema() map[string]oa.Path {
 // NewAgentAPISchema creates the API schema for the node agent
 func NewAgentAPISchema() map[string]oa.Path {
 	return map[string]oa.Path{
-		"/agent/backend": oa.Path{
+		"/v1/agent/backend": oa.Path{
 			"get": oa.Operation{
+				OperationID: "agentBackendRead",
 				Summary:     "Read Backend",
 				Description: "Get the backend associated with the agent.",
 				Tags:        []string{"Agent"},
@@ -374,8 +380,9 @@ func NewAgentAPISchema() map[string]oa.Path {
 				},
 			},
 		},
-		"/agent/heartbeat": oa.Path{
+		"/v1/agent/heartbeat": oa.Path{
 			"post": oa.Operation{
+				OperationID: "agentHeartbeatCreate",
 				Summary:     "Create Heartbeat",
 				Description: "Notify b3scale, that the agent is still alive.",
 				Tags:        []string{"Agent"},
@@ -387,8 +394,9 @@ func NewAgentAPISchema() map[string]oa.Path {
 				},
 			},
 		},
-		"/agent/rpc": oa.Path{
+		"/v1/agent/rpc": oa.Path{
 			"post": oa.Operation{
+				OperationID: "agentRpc",
 				Summary:     "RPC",
 				Description: "Perform a remote procedure call.\n\nThis API allows for remote procedures that involve complex that can not be expressed sufficiently through resource manipulation.\n\n**Warning:** this API is only meant to be used by the agent.\n\nOnly the envelope format is described here. For details, please check the source in `http/api/rpc.go`.",
 				Tags:        []string{"Agent"},
@@ -410,10 +418,10 @@ func NewAgentAPISchema() map[string]oa.Path {
 	}
 }
 
-// NewMetaEndpointsSchema creates the api meta endpoints
+// NewMetaEndpointsSchema creates the api meta /v1endpoints
 func NewMetaEndpointsSchema() map[string]oa.Path {
 	return map[string]oa.Path{
-		"/": oa.Path{
+		"/v1": oa.Path{
 			"get": oa.Operation{
 				Description: "Retrieve an API status",
 				OperationID: "statusRead",
@@ -568,8 +576,7 @@ func NewAPIResponses() map[string]oa.Response {
 			Description: "The request was invalid. Maybe a JWT authorization header was not provided or a validation failed.",
 			Content: map[string]oa.MediaType{
 				oa.ApplicationJSON: oa.MediaType{
-					Description: "Foo",
-					Schema:      oa.SchemaRef("ServerError"),
+					Schema: oa.SchemaRef("ServerError"),
 				},
 			},
 		},
@@ -827,11 +834,12 @@ func NewValidationErrorSchema() oa.Schema {
 func NewAPISecuritySchemes() map[string]oa.SecurityScheme {
 	return map[string]oa.SecurityScheme{
 		"jwt": oa.SecurityScheme{
-			Type:         "bearer",
+			Type:         "http",
+			Scheme:       "bearer",
 			Description:  "Authorization using a JWT bearer token",
 			BearerFormat: "JWT",
-			In:           "header",
-			Name:         "JWT bearer token",
+			// In:           "header",
+			// Name:         "JWT bearer token",
 		},
 	}
 }
@@ -848,11 +856,16 @@ func NewAPISpec() *oa.Spec {
 				Name: "Apache 2.0",
 				URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
 			},
+			Contact: oa.Contact{
+				Name:  "The B3Scale Developers",
+				URL:   "https://b3scale.io",
+				Email: "mail@infra.run",
+			},
 		},
 		Servers: []oa.Server{
 			{
 				Description: "default server location",
-				URL:         "/api/v1",
+				URL:         "/api",
 			},
 		},
 		Paths: NewAPIEndpointsSchema(),

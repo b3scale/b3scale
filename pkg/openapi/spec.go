@@ -47,7 +47,10 @@ func (s Schema) Require(props ...string) Schema {
 
 // RequireFrom sets required field from an object
 func (s Schema) RequireFrom(obj interface{}) Schema {
-	s["required"] = RequiredFrom(obj)
+	required := RequiredFrom(obj)
+	if len(required) > 0 {
+		s["required"] = required
+	}
 	return s
 }
 
@@ -142,9 +145,9 @@ type Operation struct {
 type SecurityScheme struct {
 	Type        string `json:"type"`
 	Description string `json:"description"`
-	Name        string `json:"name"`
-	In          string `json:"in"` // query, header cookie
-	// Scheme       string `json:"scheme"` // RFC7235
+	//	Name         string `json:"name"`
+	// In           string `json:"in"`     // query, header cookie
+	Scheme       string `json:"scheme"` // RFC7235
 	BearerFormat string `json:"bearerFormat"`
 }
 
@@ -193,12 +196,20 @@ type License struct {
 	URL  string `json:"url"`
 }
 
+// Contact information
+type Contact struct {
+	Name  string `json:"name"`
+	URL   string `json:"url"`
+	Email string `json:"email"`
+}
+
 // Info about the API
 type Info struct {
 	Title       string  `json:"title"`
 	Version     string  `json:"version"`
 	License     License `json:"license"`
 	Description string  `json:"description"`
+	Contact     Contact `json:"contact"`
 }
 
 // Spec is the OpenAPI document describing the b3scale API
