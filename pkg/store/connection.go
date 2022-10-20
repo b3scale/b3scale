@@ -82,7 +82,7 @@ func ConnectTest(ctx context.Context) error {
 	if err := m.ClearDatabase(ctx, m.DB); err != nil {
 		return err
 	}
-	if err := m.Migrate(ctx, m.DB, 0); err != nil {
+	if err := m.Migrate(ctx, m.DB); err != nil {
 		return err
 	}
 

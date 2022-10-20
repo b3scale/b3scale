@@ -47,12 +47,12 @@ func MigrationStateFromDB(ctx context.Context, conn *pgx.Conn) (*MigrationState,
 
 // Status is the current status of the database
 type Status struct {
-	Available  bool      `json:"available"`
-	Database   string    `json:"database"`
-	Migrated   bool      `json:"migrated"`
-	Version    int       `json:"version"`
-	Error      error     `json:"error"`
-	MigratedAt time.Time `json:"migrated_at"`
+	Available         bool            `json:"available"`
+	Database          string          `json:"database"`
+	Migrated          bool            `json:"migrated"`
+	Migration         *MigrationState `json:"migration"`
+	PendingMigrations int             `json:"pending_migrations"`
+	Error             error           `json:"error"`
 }
 
 // Manager is a migration manager
@@ -104,22 +104,31 @@ func (m *Manager) ClearDatabase(ctx context.Context, db string) error {
 func (m *Manager) Migrate(
 	ctx context.Context,
 	db string,
-	start int,
 ) error {
-	if start > len(m.migrations) {
-		return fmt.Errorf("no migrations after version: %d", start)
-	}
-	log.Info().
-		Str("name", db).
-		Msg("migrating database")
-
 	conn, err := m.Connect(ctx, db)
 	if err != nil {
 		return err
 	}
 	defer conn.Close(ctx)
 
-	migrations := m.migrations[start:]
+	// Get current version
+	version := 0
+	state, err := MigrationStateFromDB(ctx, conn)
+	if err == nil {
+		version = state.Version
+	}
+	if len(m.migrations) <= version {
+		log.Info().Msg("database already migrated")
+		return nil
+	}
+
+	log.Info().
+		Str("name", db).
+		Int("from_version", version).
+		Msg("migrating database")
+
+	migrations := m.migrations[version:]
+
 	for _, mig := range migrations {
 		log.Info().
 			Int("version", mig.Seq).
@@ -156,8 +165,14 @@ func (m *Manager) Status(
 		Database:  m.DB,
 	}
 	state, err := MigrationStateFromDB(ctx, conn)
-	fmt.Println(state)
-	fmt.Println(err)
+	if err != nil {
+		log.Error().Err(err).Msg("could not get migration state")
+		status.PendingMigrations = len(m.migrations)
+	} else {
+		status.Migration = state
+		status.PendingMigrations = len(m.migrations) - state.Version
+		status.Migrated = status.PendingMigrations == 0
+	}
 
 	return status
 }

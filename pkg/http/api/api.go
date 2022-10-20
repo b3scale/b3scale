@@ -21,6 +21,7 @@ import (
 
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/store/schema"
 )
 
 // Errors
@@ -150,22 +151,26 @@ func Init(e *echo.Echo) error {
 // StatusResponse returns information about the
 // API implementation and the current user.
 type StatusResponse struct {
-	Version    string `json:"version" doc:"The current b3scale server version."`
-	Build      string `json:"build" doc:"Build identifier of the server."`
-	API        string `json:"api" doc:"The API version." example:"v1"`
-	AccountRef string `json:"account_ref" doc:"The currently authenticated subject."`
-	IsAdmin    bool   `json:"is_admin" doc:"True if the subject has admin privileges."`
+	Version    string         `json:"version" doc:"The current b3scale server version."`
+	Build      string         `json:"build" doc:"Build identifier of the server."`
+	API        string         `json:"api" doc:"The API version." example:"v1"`
+	AccountRef string         `json:"account_ref" doc:"The currently authenticated subject."`
+	IsAdmin    bool           `json:"is_admin" doc:"True if the subject has admin privileges."`
+	Database   *schema.Status `json:"database" doc:"Status of the database"`
 }
 
 // apiStatusShow will respond with the api version and b3scale
 // version.
 func apiStatusShow(ctx context.Context, api *API) error {
+	dbURL := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
+	m := schema.NewManager(dbURL)
 	status := &StatusResponse{
 		Version:    config.Version,
 		Build:      config.Build,
 		API:        "v1",
 		AccountRef: api.Ref,
 		IsAdmin:    api.HasScope(ScopeAdmin),
+		Database:   m.Status(ctx),
 	}
 	return api.JSON(http.StatusOK, status)
 }

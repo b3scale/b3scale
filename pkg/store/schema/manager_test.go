@@ -34,7 +34,7 @@ func TestMigrationStateFromDB(t *testing.T) {
 	conn.Close(ctx)
 
 	// Apply Migrations
-	if err := m.Migrate(ctx, db, 0); err != nil {
+	if err := m.Migrate(ctx, db); err != nil {
 		t.Fatal(err)
 	}
 
@@ -53,4 +53,9 @@ func TestMigrationStateFromDB(t *testing.T) {
 	}
 
 	t.Log("migration:", state.Description, "version:", state.Version)
+
+	// Apply Migrations again - nothing should happen
+	if err := m.Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
 }
