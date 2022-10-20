@@ -10,4 +10,3 @@
 ALTER TABLE backends
   ADD agent_ref VARCHAR(64) NULL UNIQUE;
  
-

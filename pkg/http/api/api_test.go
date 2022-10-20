@@ -18,7 +18,8 @@ import (
 )
 
 func init() {
-	if err := store.ConnectTest(); err != nil {
+	ctx := context.Background()
+	if err := store.ConnectTest(ctx); err != nil {
 		fmt.Println("WARNING: can not connect to DB. tests will fail.")
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/b3scale/b3scale/pkg/store/schema"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/rs/zerolog/log"
@@ -58,11 +59,8 @@ func Connect(opts *ConnectOpts) error {
 
 	p, err := pgxpool.ConnectConfig(context.Background(), cfg)
 	if err != nil {
-		return err
-	}
-
-	// TODO: This should not be done here.
-	if err = AssertDatabaseVersion(p, 1); err != nil {
+		// This error can not be ignored. It is not possible to acquire
+		// a connection later, even if the database becomes available.
 		return err
 	}
 
@@ -73,11 +71,21 @@ func Connect(opts *ConnectOpts) error {
 
 // ConnectTest to pgx db pool. Use b3scale defaults if
 // environment variable is not set.
-func ConnectTest() error {
+func ConnectTest(ctx context.Context) error {
 	url := os.Getenv("B3SCALE_TEST_DB_URL")
 	if url == "" {
 		url = "postgres://postgres:postgres@localhost:5432/b3scale_test"
 	}
+	m := schema.NewManager(url)
+
+	// Clear database and apply migrations
+	if err := m.ClearDatabase(ctx, m.DB); err != nil {
+		return err
+	}
+	if err := m.Migrate(ctx, m.DB, 0); err != nil {
+		return err
+	}
+
 	return Connect(&ConnectOpts{
 		URL:      url,
 		MinConns: 2,

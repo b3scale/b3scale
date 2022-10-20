@@ -244,6 +244,3 @@ CREATE TABLE __meta__ (
     applied_at  TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO __meta__ (version, description)
-     VALUES (1, 'initial schema');
-
