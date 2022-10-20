@@ -52,7 +52,7 @@ type Status struct {
 	Migrated          bool            `json:"migrated"`
 	Migration         *MigrationState `json:"migration"`
 	PendingMigrations int             `json:"pending_migrations"`
-	Error             error           `json:"error"`
+	Error             *string         `json:"error"`
 }
 
 // Manager is a migration manager
@@ -155,9 +155,10 @@ func (m *Manager) Status(
 	// Try to connect to primary database
 	conn, err := m.Connect(ctx, m.DB)
 	if err != nil {
+		errStr := err.Error()
 		return &Status{
 			Database: m.DB,
-			Error:    err,
+			Error:    &errStr,
 		}
 	}
 	status := &Status{

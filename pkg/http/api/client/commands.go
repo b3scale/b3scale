@@ -6,6 +6,7 @@ import (
 
 	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/store/schema"
 )
 
 // Commands creates a new commands resource
@@ -61,4 +62,17 @@ func (c *Client) BackendMeetingsEnd(
 		BackendID: backendID,
 	})
 	return c.CommandCreate(ctx, cmd)
+}
+
+// CtrlMigrate applies all pending migrations
+func (c *Client) CtrlMigrate(ctx context.Context) (*schema.Status, error) {
+	res, err := c.Request(ctx, Create(Resource("ctrl/migrate", nil), nil))
+	if err != nil {
+		return nil, err
+	}
+	status := &schema.Status{}
+	if err := res.JSON(status); err != nil {
+		return nil, err
+	}
+	return status, nil
 }

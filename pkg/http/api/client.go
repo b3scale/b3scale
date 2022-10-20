@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/b3scale/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/store/schema"
 )
 
 // FrontendResourceClient defines methods for using
@@ -103,6 +104,11 @@ type CommandResourceClient interface {
 		ctx context.Context,
 		id string,
 	) (*store.Command, error)
+
+	// Control commands
+	CtrlMigrate(
+		ctx context.Context,
+	) (*schema.Status, error)
 }
 
 // AgentResourceClient defines node agent specific

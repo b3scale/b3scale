@@ -1,3 +1,12 @@
+1.0.0:
+OpenAPI schema for b3scale API.
+You can access a static version through /static/docs/api-v1.html
+Or you can export the schema using b3scalectl: `b3scalectl export-openapi-schema`
+
+Migrate the database using `b3scalectl`:
+Invoking `b3scalectl` will now warn you if the database is not migrated.
+All pending migrations can be applied with `b3scalectl db migrate`.
+
 
 0.16.0: B3Scale nodeagent
 

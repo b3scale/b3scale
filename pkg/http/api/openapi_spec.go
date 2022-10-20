@@ -4,6 +4,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/bbb"
 	oa "github.com/b3scale/b3scale/pkg/openapi"
 	"github.com/b3scale/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/store/schema"
 )
 
 // NewFrontendsAPISchema generates the endpoints for the frontend
@@ -418,7 +419,7 @@ func NewAgentAPISchema() map[string]oa.Path {
 	}
 }
 
-// NewMetaEndpointsSchema creates the api meta /v1endpoints
+// NewMetaEndpointsSchema creates the api meta endpoints
 func NewMetaEndpointsSchema() map[string]oa.Path {
 	return map[string]oa.Path{
 		"/v1": oa.Path{
@@ -437,6 +438,25 @@ func NewMetaEndpointsSchema() map[string]oa.Path {
 	}
 }
 
+// NewCtrlEndpointsSchema creates the api ctrl endpoints
+func NewCtrlEndpointsSchema() map[string]oa.Path {
+	return map[string]oa.Path{
+		"/v1/ctrl/migrate": oa.Path{
+			"post": oa.Operation{
+				OperationID: "ctrlMigrate",
+				Summary:     "Migrate Database",
+				Tags:        []string{"CTRL"},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("MigrateStatus"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+			},
+		},
+	}
+
+}
+
 // NewAPIEndpointsSchema combines all the endpoints schemas
 func NewAPIEndpointsSchema() map[string]oa.Path {
 	return oa.Endpoints(
@@ -447,6 +467,7 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 		NewCommandsAPISchema(),
 		NewRecordingsImportAPISchema(),
 		NewAgentAPISchema(),
+		NewCtrlEndpointsSchema(),
 	)
 }
 
@@ -552,6 +573,15 @@ func NewAPIResponses() map[string]oa.Response {
 			Content: map[string]oa.MediaType{
 				oa.ApplicationJSON: oa.MediaType{
 					Schema: oa.SchemaRef("RPCResponse"),
+				},
+			},
+		},
+
+		"MigrateStatus": oa.Response{
+			Description: "MigrateStatus",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("SchemaStatus"),
 				},
 			},
 		},
@@ -716,6 +746,14 @@ func NewAPISchemas() map[string]oa.Schema {
 		"RPCRequest":  NewRPCRequestSchema(),
 		"RPCResponse": NewRPCResponseSchema(),
 
+		"SchemaStatus": oa.ObjectSchema(
+			"SchemaStatus", schema.Status{}).
+			RequireFrom(schema.Status{}),
+
+		"MigrationState": oa.ObjectSchema(
+			"MigrationState", schema.MigrationState{}).
+			RequireFrom(schema.MigrationState{}),
+
 		"Error":           NewErrorSchema(),
 		"NotFoundError":   NewNotFoundErrorSchema(),
 		"ValidationError": NewValidationErrorSchema(),
@@ -851,7 +889,7 @@ func NewAPISpec() *oa.Spec {
 		Info: oa.Info{
 			Title:       "b3scale api v1",
 			Description: "This document describes the specifications for the b3scale API v1.",
-			Version:     "1.0.0",
+			Version:     "1.1.0",
 			License: oa.License{
 				Name: "Apache 2.0",
 				URL:  "https://www.apache.org/licenses/LICENSE-2.0.html",
@@ -902,6 +940,10 @@ func NewAPISpec() *oa.Spec {
 			{
 				Name:        "Agent",
 				Description: "This API is used by the agent, running on each node.",
+			},
+			{
+				Name:        "CTRL",
+				Description: "This api endpoint is for sending control commands to the server.",
 			},
 		},
 		Security: []oa.SecuritySpec{

@@ -11,6 +11,22 @@ import (
 	"golang.org/x/term"
 )
 
+// apiTokenFilename makes the full path and filename of the
+// local access token for the host
+func apiTokenFilename(ctx *cli.Context) string {
+	apiHost := ctx.String("api")
+	tokenFilename := apiHost + ".access_token"
+	return tokenFilename
+}
+
+// apiTokenGet checks if the access token is present,
+// and returns the token from the user dir.
+func apiTokenExists(ctx *cli.Context) bool {
+	filename := apiTokenFilename(ctx)
+	token, _ := config.UserDirGetString(filename)
+	return token != ""
+}
+
 // apiClient initializes the applications API client
 func apiClient(ctx *cli.Context) (api.Client, error) {
 	apiHost := ctx.String("api")

@@ -12,6 +12,7 @@ import (
 
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/api"
+	"github.com/b3scale/b3scale/pkg/http/api/client"
 )
 
 // RetNoChange indicates the return code, that no
@@ -37,7 +38,7 @@ func NewCli() *Cli {
 				Value:   "http://" + config.EnvListenHTTPDefault,
 			},
 		},
-		Action: c.showStatus,
+		Action: c.showStatusHelp,
 		Commands: []*cli.Command{
 			{
 				Name:    "show",
@@ -193,8 +194,23 @@ func NewCli() *Cli {
 				Action: c.exportOpenAPISchema,
 			},
 			{
+				Name: "db",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "migrate",
+						Usage:  "Apply all pending migrations to the database",
+						Action: c.applyMigrations,
+					},
+				},
+			},
+			{
 				Name: "auth",
 				Subcommands: []*cli.Command{
+					{
+						Name:   "authorize",
+						Usage:  "Authorize b3scalectl for the current API host",
+						Action: c.authorizeAPI,
+					},
 					{
 						Name:  "create_access_token",
 						Usage: "Create an access token for interacting with the API",
@@ -294,9 +310,32 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 	return nil
 }
 
+func (c *Cli) showStatusHelp(ctx *cli.Context) error {
+	// Show help text
+	cli.ShowAppHelp(ctx)
+	fmt.Println("")
+	return c.showStatus(ctx)
+}
+
 func (c *Cli) showStatus(ctx *cli.Context) error {
+	apiHost := ctx.String("api")
+	// Check if the token exists
+	if !apiTokenExists(ctx) {
+		fmt.Println("b3scalectl is not authorized: An API access token for this host is not present.")
+		fmt.Println("API host:", apiHost)
+		fmt.Println("\nUse `b3scalectl auth authorize` to create a new access token for this host.")
+		fmt.Println("")
+		return nil
+	}
+
+	// Show status
 	client, err := apiClient(ctx)
 	if err != nil {
+		if strings.Contains(err.Error(), "invalid or expired") {
+			fmt.Println("Authentication Error: The access token is not longer valid.")
+			fmt.Println("Reauthenticate using: `b3scalectl auth authorize`")
+			fmt.Println("")
+		}
 		return err
 	}
 	status, err := client.Status(ctx.Context)
@@ -304,14 +343,95 @@ func (c *Cli) showStatus(ctx *cli.Context) error {
 		return err
 	}
 
-	apiHost := ctx.String("api")
-
 	// Print server info
 	fmt.Println("b3scale @", apiHost)
 	fmt.Println("")
 	fmt.Println("server version:", status.Version, "\tbuild:", status.Build)
 	fmt.Println("   api version:", status.API)
 	fmt.Println("")
+
+	// Show migrations status
+	dbStatus := status.Database
+	dbVersion := "not initialized"
+	if dbStatus.Error != nil {
+		fmt.Println("Database Error:", *dbStatus.Error)
+	}
+	if dbStatus.Migration != nil {
+		m := dbStatus.Migration
+		dbVersion = fmt.Sprintf("v%d, '%s', applied at: %s", m.Version, m.Description, m.AppliedAt)
+	}
+
+	fmt.Println("Database:", dbStatus.Database)
+	fmt.Println("Version: ", dbVersion)
+	if dbStatus.PendingMigrations > 0 {
+		fmt.Println("")
+		fmt.Println("WARNING: The database is not migrated.")
+		fmt.Println("         There are", dbStatus.PendingMigrations, "pending migrations.")
+		fmt.Println("")
+		fmt.Println("Use `b3scalectl db migrate` to apply all pending migrations.")
+	}
+	fmt.Println("")
+
+	return nil
+}
+
+// applyMigrations applies all pending migrations
+func (c *Cli) applyMigrations(ctx *cli.Context) error {
+	client, err := apiClient(ctx)
+	if err != nil {
+		return nil
+	}
+
+	status, err := client.Status(ctx.Context)
+	if err != nil {
+		return err
+	}
+	dbStatus := status.Database
+
+	if dbStatus.PendingMigrations == 0 {
+		fmt.Println("There are currently no migrations to apply.")
+		fmt.Println("The database is up to date.")
+		return nil
+	}
+	fmt.Println("Applying", dbStatus.PendingMigrations, "pending migrations to the database.")
+
+	if _, err := client.CtrlMigrate(ctx.Context); err != nil {
+		return err
+	}
+	fmt.Println("Migration successful.")
+	fmt.Println("")
+
+	return c.showStatus(ctx)
+}
+
+// authorizeAPI b3scalectl for the current API host
+func (c *Cli) authorizeAPI(ctx *cli.Context) error {
+	apiHost := ctx.String("api")
+	tokenFilename := apiTokenFilename(ctx)
+
+	var accessToken string
+	for {
+		token, err := acquireToken(apiHost)
+		if err != nil {
+			return err
+		}
+
+		client := client.New(apiHost, token)
+		_, err = client.Status(ctx.Context)
+		if err != nil {
+			fmt.Println("error using the token:", err)
+		} else {
+			accessToken = token
+			break
+		}
+	}
+
+	fmt.Println("Secret accepted, b3scalectl is now authorized.")
+
+	// Persist token
+	if err := config.UserDirPut(tokenFilename, []byte(accessToken)); err != nil {
+		return err
+	}
 
 	return nil
 }

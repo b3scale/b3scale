@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "b3scale api v1",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "license": {
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
@@ -377,6 +377,27 @@
           }
         }
       ]
+    },
+    "/v1/ctrl/migrate": {
+      "post": {
+        "description": "",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/MigrateStatus"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "ctrlMigrate",
+        "summary": "Migrate Database",
+        "tags": [
+          "CTRL"
+        ]
+      }
     },
     "/v1/frontends": {
       "get": {
@@ -1673,6 +1694,27 @@
         },
         "type": "array"
       },
+      "MigrationState": {
+        "description": "MigrationState",
+        "properties": {
+          "applied_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied_at",
+          "description",
+          "version"
+        ],
+        "type": "object"
+      },
       "NotFoundError": {
         "allOf": [
           {
@@ -1798,6 +1840,39 @@
         ],
         "type": "object"
       },
+      "SchemaStatus": {
+        "description": "SchemaStatus",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "database": {
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          },
+          "migrated": {
+            "type": "boolean"
+          },
+          "migration": {
+            "$ref": "#/components/schemas/MigrationState"
+          },
+          "pending_migrations": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "database",
+          "migrated",
+          "migration",
+          "pending_migrations",
+          "error"
+        ],
+        "type": "object"
+      },
       "ServerError": {
         "description": "A Server Error",
         "properties": {
@@ -1824,6 +1899,10 @@
             "description": "Build identifier of the server.",
             "type": "string"
           },
+          "database": {
+            "$ref": "#/components/schemas/SchemaStatus",
+            "description": "Status of the database"
+          },
           "is_admin": {
             "description": "True if the subject has admin privileges.",
             "type": "boolean"
@@ -1838,7 +1917,8 @@
           "build",
           "api",
           "account_ref",
-          "is_admin"
+          "is_admin",
+          "database"
         ],
         "type": "object"
       },
@@ -1963,6 +2043,16 @@
           }
         }
       },
+      "MigrateStatus": {
+        "description": "MigrateStatus",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SchemaStatus"
+            }
+          }
+        }
+      },
       "NotFoundError": {
         "description": "The requested resource could not be found.",
         "content": {
@@ -2041,6 +2131,10 @@
     {
       "name": "Agent",
       "description": "This API is used by the agent, running on each node."
+    },
+    {
+      "name": "CTRL",
+      "description": "This api endpoint is for sending control commands to the server."
     }
   ],
   "servers": [

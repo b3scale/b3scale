@@ -53,6 +53,16 @@ func UserDirPut(filename string, data []byte) error {
 	return ioutil.WriteFile(fullPath, data, 0600)
 }
 
+// UserDirFilename gets the full path to a filename in the userdir
+func UserDirFilename(filename string) (string, error) {
+	configPath, err := UserDirPath("")
+	if err != nil {
+		return "", err
+	}
+	fullPath := path.Join(configPath, SafeFilename(filename))
+	return fullPath, err
+}
+
 // UserDirGet retrievs content from a file in the
 // b3scale user config directory
 func UserDirGet(filename string) ([]byte, error) {

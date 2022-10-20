@@ -145,6 +145,7 @@ func Init(e *echo.Echo) error {
 	ResourceAgentRPC.Mount(v1, "/agent/rpc")
 	ResourceAgentBackend.Mount(v1, "/agent/backend")
 	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
+	ResourceCtlMigrate.Mount(v1, "/ctrl/migrate")
 	return nil
 }
 
@@ -156,7 +157,7 @@ type StatusResponse struct {
 	API        string         `json:"api" doc:"The API version." example:"v1"`
 	AccountRef string         `json:"account_ref" doc:"The currently authenticated subject."`
 	IsAdmin    bool           `json:"is_admin" doc:"True if the subject has admin privileges."`
-	Database   *schema.Status `json:"database" doc:"Status of the database"`
+	Database   *schema.Status `json:"database" doc:"Status of the database" api:"SchemaStatus"`
 }
 
 // apiStatusShow will respond with the api version and b3scale
