@@ -9,9 +9,7 @@ import (
 
 func beginTest(ctx context.Context, t *testing.T) pgx.Tx {
 	if pool == nil {
-		if err := ConnectTest(ctx); err != nil {
-			panic(err)
-		}
+		panic("pool not initialized")
 	}
 
 	tx, err := pool.Begin(ctx)
