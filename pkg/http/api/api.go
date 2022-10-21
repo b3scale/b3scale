@@ -135,6 +135,7 @@ func Init(e *echo.Echo) error {
 
 	// Status
 	v1.GET("", Endpoint(apiStatusShow))
+	v1.GET("/status", Endpoint(apiStatusShow))
 
 	// API resources
 	ResourceFrontends.Mount(v1, "/frontends")
