@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 
@@ -50,7 +49,7 @@ func (c *Cli) setFrontend(ctx *cli.Context) error {
 
 	// Get or create frontend
 	state, err := getFrontendByKey(ctx.Context, client, key)
-	if errors.Is(err, api.ErrNotFound) {
+	if state == nil && err == nil {
 		fmt.Println("creating frontend")
 		// Create frontend
 		if secret == "" {
