@@ -81,8 +81,15 @@ Please find the API documentation in the [REST API](doc/rest_api.md) file.
 
 ## Configuration
 
-b3scale is configured through environment variables and does not use a config
-file. The following environment variables can be configured:
+b3scale daemons are configured through environment variables and do not use a config file. Example environment files for use with Docker, Kubernetes or systemd with all eligable settings can be found here:
+
+* [Environment for b3scaled](doc/example.env.b3scaled)
+* [Environment for b3scaleagent](doc/example.env.b3scaleagent)
+* [Environment for b3scalenoded](doc/example.env.b3scalenoded)
+
+Find more documentation below.
+
+### Environment variables
 
  * `B3SCALE_LISTEN_HTTP` Accept http connections here.
     Default: `127.0.0.1:42353`
@@ -98,19 +105,13 @@ file. The following environment variables can be configured:
     ### Example URL
     `postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca`
 
+    (b3scaled and b3scalenoded only)
 
  * `B3SCALE_DB_POOL_SIZE` the number of maximum parallel connections
     we will allocate. Please note that one connection per request will
     be blocked and returned to the pool afterwards.
 
     Default: 128
-
- * `B3SCALE_REVERSE_PROXY_MODE` if set to `yes` or `1` or `true` it will
-   enable the reverse proxy mode in the cluster gateway.
-   You have to configure a reverse proxy e.g. nginx to handle
-   subsequent client requests. (Deprecated, see the
-   [Cluster Proxy Setup](https://docs.bigbluebutton.org/admin/clusterproxy.html)
-   for a more efficient, load-balancer independent approach)
 
  * `B3SCALE_LOG_LEVEL` set the log level. Possible values are:
 
@@ -130,8 +131,7 @@ file. The following environment variables can be configured:
 Same applies for the `b3scalenoded`, however only `B3SCALE_DB_URL`
 is required.
 
-The `b3scalenoded` and `b3scaleagent` use the same configuration as BigBlueButton,
-the environment variable for the file is:
+The `b3scalenoded` and `b3scaleagent` read from the same configuration as BigBlueButton, the environment variable for the file is:
 
  * `BBB_CONFIG`, which defaults to:
     `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`
@@ -171,13 +171,9 @@ The load factor of the backend can be set through:
  * `B3SCALE_API_JWT_SECRET` if not empty, the API will be enabled
     and accessible through /api/v1/... with a JWT bearer token.
     You can set the jwt claim `scope` to `b3scale:admin` to create
-    an admin token.
+    an admin token. You can generate an access token using `b3scalectl`:
 
-    TOKEN=`pyjwt --key=$B3SCALE_API_JWT_SECRET encode sub="123456789" scope="b3scale b3scale:admin b3scale:node"`
-
-    For convenience you can generate an access token using `b3scalectl`:
-
-        b3scalectl auth create_access_token --sub node42 --scopes b3scale,b3scale:admin,b3scale:node
+       b3scalectl auth create_access_token --sub node42 --scopes b3scale,b3scale:admin,b3scale:node
 
     You are then prompted to paste the `B3SCALE_API_JWT_SECRET`.
 
