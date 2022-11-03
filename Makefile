@@ -56,6 +56,10 @@ b3scaleagent_static:
 	cd cmd/b3scaleagent && CGO_ENABLED=0 GOOS=linux go build $(CFLAGS) -a -ldflags '$(LDFLAGS_STATIC)'
 
 
+update_openapi_static:
+	go run ./cmd/b3scalectl export-openapi-schema > ./pkg/http/static/assets/docs/b3scale-openapi-v1.json
+
+
 .PHONY: clean test
 
 test:
