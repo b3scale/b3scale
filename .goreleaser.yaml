@@ -60,8 +60,24 @@ builds:
       - -s -w -X "github.com/b3scale/b3scale/pkg/config.Version={{ .Version }}" -X "github.com/b3scale/b3scale/pkg/config.Build={{ .Commit }}"
 
 archives:
-  - format: zip
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+  - id: b3scalectl
+    builds: [ b3scalectl ]
+    name_template: 'b3scalectl_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    format_overrides:
+      - goos: windows
+        format: zip
+
+  - id: b3scaled
+    builds: [ b3scaled ]
+    name_template: 'b3scaled_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+  - id: b3scalenoded
+    builds: [ b3scalenoded ]
+    name_template: 'b3scalenoded_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+  - id: b3scaleagent
+    builds: [ b3scaleagent ]
+    name_template: 'b3scaleagent_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
