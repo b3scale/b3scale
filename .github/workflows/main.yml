@@ -53,15 +53,15 @@ jobs:
           golint -set_exit_status ./cmd/...
 
       # Test environment
-      - name: Setup Test Database
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgres
-        working-directory: ./dev
-        run: |
-          ./db_create.sh -c -t
+      # - name: Setup Test Database
+      #  env:
+      #    PGHOST: localhost
+      #    PGPORT: 5432
+      #    PGUSER: postgres
+      #    PGPASSWORD: postgres
+      #  working-directory: ./dev
+      #  run: |
+      #    ./db_create.sh -c -t
 
       # Run Tests
       - name: Tests
