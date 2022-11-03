@@ -59,9 +59,9 @@ jobs:
           PGPORT: 5432
           PGUSER: postgres
           PGPASSWORD: postgres
-        working-directory: ./db
+        working-directory: ./dev
         run: |
-          ./init.sh -c -t
+          ./db_create.sh -c -t
 
       # Run Tests
       - name: Tests
