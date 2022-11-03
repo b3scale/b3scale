@@ -1,3 +1,4 @@
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
 # Goreleaser configuration
 
 before:
@@ -5,21 +6,58 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - main: ./cmd/b3scalectl
+    env:
       - CGO_ENABLED=0
+    id: "b3scalectl"
+    binary: b3scalectl
     goos:
       - linux
+      - darwin
       - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X "github.com/b3scale/b3scale/pkg/config.Version={{ .Version }}" -X "github.com/b3scale/b3scale/pkg/config.Build={{ .Commit }}"
+
+  - main: ./cmd/b3scalenoded
+    env:
+      - CGO_ENABLED=0
+    id: "b3scalenoded"
+    binary: b3scalenoded 
+    goos:
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w -X "github.com/b3scale/b3scale/pkg/config.Version={{ .Version }}" -X "github.com/b3scale/b3scale/pkg/config.Build={{ .Commit }}"
+
+  - main: ./cmd/b3scaleagent
+    env:
+      - CGO_ENABLED=0
+    id: "b3scaleagent"
+    binary: b3scaleagent
+    goos:
+      - linux
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w -X "github.com/b3scale/b3scale/pkg/config.Version={{ .Version }}" -X "github.com/b3scale/b3scale/pkg/config.Build={{ .Commit }}"
+
+  - main: ./cmd/b3scaled
+    env:
+      - CGO_ENABLED=0
+    id: "b3scaled"
+    binary: b3scaled
+    goos:
+      - linux
       - darwin
     goarch:
       - amd64
-      - '386'
-      - arm
       - arm64
-    ignore:
-      - goos: darwin
-        goarch: '386'
-    binary: '{{ .ProjectName }}_v{{ .Version }}'
+    ldflags:
+      - -s -w -X "github.com/b3scale/b3scale/pkg/config.Version={{ .Version }}" -X "github.com/b3scale/b3scale/pkg/config.Build={{ .Commit }}"
 
 archives:
   - format: zip
@@ -38,6 +76,13 @@ changelog:
       - '^docs:'
       - '^test:'
 
-# modelines, feel free to remove those if you don't want/use them:
-# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
-# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+signs:
+  - artifacts: checksum
+    args:
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}" 
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
