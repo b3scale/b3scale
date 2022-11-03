@@ -70,11 +70,7 @@ checksum:
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
+  skip: true
 
 signs:
   - artifacts: checksum
@@ -86,3 +82,7 @@ signs:
       - "${signature}"
       - "--detach-sign"
       - "${artifact}"
+
+release:
+  extra_files:
+    - glob: ./CHANGELOG
