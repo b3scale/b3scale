@@ -10,3 +10,5 @@ etc/b3scale/backends.conf
 etc/b3scale/frontends.conf
 
 .env
+
+dist/
