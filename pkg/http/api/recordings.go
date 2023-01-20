@@ -63,6 +63,7 @@ func apiRecordingsImport(
 
 	// Save to store
 	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
