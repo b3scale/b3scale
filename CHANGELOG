@@ -1,3 +1,7 @@
+1.0.1 - 2023-01-23
+
+* Fixed broken DB connection in recordings import endpoint 
+
 1.0.0 - 2022-11-03
 
 BREAKING CHANGES: metrics have been prefixed with `b3scale_`
