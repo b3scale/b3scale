@@ -245,6 +245,16 @@ be used for creating new sessions.
 
 It will be permanently deleted after the last session was closed.
 
+## Disable/Enable frontends
+
+Frontends can be disabled without removing it completly with
+
+`$ b3scalectl disable frontend frontend1`
+
+Disabled frontends can be enabled again with
+
+`$ b3scalectl enable frontend frontend1`
+
 
 ## Middleware Configuration
 
