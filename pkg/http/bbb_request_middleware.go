@@ -69,8 +69,8 @@ func BBBRequestMiddleware(
 				return handleAPIError(c, err)
 			}
 
-			// Check if the frontend could be identified
-			if frontend == nil {
+			// Check if the frontend could be identified and it is not disabled
+			if frontend == nil || (frontend != nil && frontend.Active() == false) {
 				return handleAPIError(c, fmt.Errorf(
 					"no such frontend for key: %s", frontendKey))
 			}

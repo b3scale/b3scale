@@ -193,7 +193,67 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 
 	for _, f := range frontends {
 		settings, _ := json.Marshal(f.Settings)
-		fmt.Printf("%s\t%s\t%s\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret, settings)
+		fmt.Printf("%s\t%s\t%s\t%t\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret, f.Active, settings)
 	}
 	return nil
+}
+
+// enableFrontend activates a frontend from the cluster
+func (c *Cli) enableFrontend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+
+	// Args should be host
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need frontend key for enable")
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+	state, err := getFrontendByKey(ctx.Context, client, key)
+	if err != nil {
+		return err
+	}
+
+	if dry {
+		fmt.Println("skipping enable (dry)")
+		return nil
+	}
+
+	fmt.Println("enable frontend:", state.ID)
+  state.Active = true
+  _, err = client.FrontendUpdate(ctx.Context, state)
+	return err
+}
+
+// disableFrontend deactivates a frontend from the cluster
+func (c *Cli) disableFrontend(ctx *cli.Context) error {
+	dry := ctx.Bool("dry")
+
+	// Args should be host
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need frontend key for disable")
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+	state, err := getFrontendByKey(ctx.Context, client, key)
+	if err != nil {
+		return err
+	}
+
+	if dry {
+		fmt.Println("skipping disable (dry)")
+		return nil
+	}
+
+	fmt.Println("disable frontend:", state.ID)
+  state.Active = false
+  _, err = client.FrontendUpdate(ctx.Context, state)
+	return err
 }
