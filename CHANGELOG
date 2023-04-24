@@ -1,3 +1,7 @@
+1.0.2 - 2023-04-24
+
+* Fixed meeting stats are destroyed by calling BBB create endpoint multiple times
+
 1.0.1 - 2023-01-23
 
 * Fixed broken DB connection in recordings import endpoint 
