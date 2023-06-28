@@ -291,6 +291,9 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if state == nil {
+		return fmt.Errorf("backend not found")
+	}
 
 	// Check if we should hard delete. This can be either
 	// the case when the deletion is forced, or when
