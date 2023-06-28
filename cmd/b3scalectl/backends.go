@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -51,7 +50,10 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 
 	// Check if backend exists
 	state, err := getBackendByHost(ctx.Context, client, host)
-	if errors.Is(err, api.ErrNotFound) {
+	if err != nil {
+		return err
+	}
+	if state == nil {
 		if !ctx.IsSet("secret") {
 			return fmt.Errorf("need secret to create host")
 		}
@@ -79,9 +81,6 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			fmt.Println("skipped creating backend")
 		}
 		return nil // we are done here
-	}
-	if err != nil {
-		return err
 	}
 
 	// The state is known to use. Just make updates
