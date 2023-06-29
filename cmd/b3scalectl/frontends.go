@@ -145,6 +145,9 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if state == nil {
+		return fmt.Errorf("frontend not found")
+	}
 
 	if dry {
 		fmt.Println("skipping delete (dry)")
