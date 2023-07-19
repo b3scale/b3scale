@@ -1,6 +1,7 @@
 site_name: b3scale - Multi tenant load balancer for BigBlueButton™
 theme:
   name: material
+  logo: assets/images/logo.svg
   font: false
   features:
     - content.code.copy
