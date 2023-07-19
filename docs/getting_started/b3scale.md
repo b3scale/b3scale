@@ -2,42 +2,38 @@
 
 ## Installing b3scale
 
-### Debian/Ubuntu
+=== "Debian/Ubuntu"
 
-Starting with version 1.0.3, b3scale provides `.deb` packages for use in Ubuntu. Download the `b3scaled-*.deb` asset from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. On an Intel/AMD 64 Bit system, install the `.deb` package like this:
+    Starting with version 1.0.3, b3scale provides `.deb` packages for use in Ubuntu. Download the `b3scaled-*.deb` asset from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. On an Intel/AMD 64 Bit system, install the `.deb` package like this:
 
-```bash
-sudo dpkg -i b3scaled_1.0.2_linux_amd64.deb
-```
+    ```bash
+    sudo dpkg -i b3scaled_1.0.2_linux_amd64.deb
+    ```
 
-### openSUSE
+=== "openSUSE"
 
-For openSUSE Tumbleweed run the following as root:
+    For openSUSE Tumbleweed run the following as root:
 
-```bash
-zypper addrepo https://download.opensuse.org/repositories/home:dmolkentin:infrarun/openSUSE_Tumbleweed/home:dmolkentin:infrarun.repo
-zypper refresh
-zypper install b3scale
-```
+    ```bash
+    zypper addrepo https://download.opensuse.org/repositories/home:dmolkentin:infrarun/openSUSE_Tumbleweed/home:dmolkentin:infrarun.repo
+    zypper refresh
+    zypper install b3scale
+    ```
 
-For openSUSE Leap 15.4 run the following as root:
-```bash
-zypper addrepo https://download.opensuse.org/repositories/home:dmolkentin:infrarun/15.4/home:dmolkentin:infrarun.repo
-zypper refresh
-zypper install b3scale
-```
-### Other distributions
+    For openSUSE Leap 15.4 run the following as root:
+    ```bash
+    zypper addrepo https://download.opensuse.org/repositories/home:dmolkentin:infrarun/15.4/home:dmolkentin:infrarun.repo
+    zypper refresh
+    zypper install b3scale
+    ```
 
-Pre-compiled binaries are available from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. While you can use those binaries, you will need to setup systemd services by yourself. You can find the skeleton files [here](https://github.com/b3scale/b3scale/tree/main/doc).
+=== "Other distributions"
 
-### Kubernetes/Docker
+    Pre-compiled binaries are available from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. While you can use those binaries, you will need to setup systemd services by yourself. You can find the skeleton files [here](https://github.com/b3scale/b3scale/tree/main/doc).
 
-Starting with version 1.0.3, we provide an experimental, scratch-based container image, available from the GitHub image registry (link)
+=== "Kubernetes/Docker"
 
-## Setting up reverse proxy / HTTP load balancer
-
-By default, b3scale binds to port `42352` on localhost.
-
+    Starting with version 1.0.3, we provide an experimental, scratch-based container image, available from the GitHub image registry (link).
 
 ## Configuring the service
 
@@ -78,26 +74,9 @@ Finally, start the service:
 systemctl start b3scale
 ```
 
-## Bootstrapping and migrations
-
-For the next step, you will need the `b3scalectl` command like utility. Download it from the GitHub release page.
-
-```bash
-b3scalectl --api https://api.bbb.example.org
-```
-
-!!! note
-    Set up a convenience alias like this: 
-    ```bash
-    export b3scalectl_example='b3scalectl --api https://api.bbb.example.org'
-    ```
-
-`b3scalectl` will now ask for the shared API secret that you provided to `b3scaled` as `B3SCALE_API_JWT_SECRET`. It uses this secret to derive
-a JWT token. The secret itself will not be stored. Next, run `b3scalectl --api https://api.bbb.example.org db migrate` to apply the initial
-database structure. b3scale is now operational.
-
 ## TLS termination
 
+By default, b3scale binds to port `42352` on `localhost`. Use a reverse-proxy capable web server for TLS termination.
 ### nginx
 
 To use nginx as a frontend proxy and TLS termination, adjust and use the following snippet:
@@ -159,3 +138,21 @@ While a single instance of `b3scaled` has worked fine during the Covid 19 pandem
 
 !!! note
     Your database and your TLS terminator are also single points of failure. Make sure to make them redundant as well if you aim for systematic redundancy, and make sure they don't become your weakest link if you scale up `b3scaled`.
+
+## Bootstrapping and migrations
+
+For the next step, you will need the `b3scalectl` command like utility. Download it from the GitHub release page.
+
+```bash
+b3scalectl --api https://api.bbb.example.org
+```
+
+!!! note
+    Set up a convenience alias like this:
+    ```bash
+    export b3scalectl_example='b3scalectl --api https://api.bbb.example.org'
+    ```
+
+`b3scalectl` will now ask for the shared API secret that you provided to `b3scaled` as `B3SCALE_API_JWT_SECRET`. It uses this secret to derive
+a JWT token. The secret itself will not be stored. Next, run `b3scalectl --api https://api.bbb.example.org db migrate` to apply the initial
+database structure. b3scale is now operational.
