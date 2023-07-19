@@ -35,7 +35,9 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/b3scale/b3scale
 plugins:
-- search
+  - search
+  - render_swagger
+
 markdown_extensions:
   - admonition
   - attr_list
@@ -60,11 +62,14 @@ nav:
   - getting_started/b3scaleagent.md
   - getting_started/recording.md
   - getting_started/k8s_integration.md
-
 - Maintenance:
   - maintenance/backends.md
   - maintenance/frontends.md
+- API: api-v1.md
 - Sponsors: sponsors.md
 - Privacy: https://infra.run/datenschutz/
 - Imprint: https://infra.run/impressum/
-
+extra_javascript:
+  - assets/js/swagger-ui-bundle.js
+extra_css:
+  - assets/css/swagger-ui.css
