@@ -37,7 +37,10 @@ func main() {
 	revProxyEnabled := config.IsEnabled(config.EnvOpt(
 		config.EnvReverseProxy, config.EnvReverseProxyDefault))
 
-	dbPoolSize, err := strconv.Atoi(dbPoolSizeStr)
+	dbPoolSize, err := strconv.ParseInt(dbPoolSizeStr, 10, 32)
+	if err != nil {
+		log.Fatal().Err(err).Msg("database pool size")
+	}
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{
@@ -57,7 +60,7 @@ func main() {
 	// Initialize postgres connection
 	err = store.Connect(&store.ConnectOpts{
 		URL:      dbConnStr,
-		MaxConns: int32(dbPoolSize),
+		MaxConns: dbPoolSize,
 		MinConns: 8,
 	})
 	if err != nil {
