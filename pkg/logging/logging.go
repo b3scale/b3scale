@@ -26,7 +26,7 @@ func parseLogLevel(level string) (zerolog.Level, error) {
 		loglevel zerolog.Level
 		err      error
 	)
-	value, err := strconv.Atoi(level)
+	value, err := strconv.ParseInt(level, 10, 8)
 	if err != nil {
 		// Try string parsing
 		loglevel, err = zerolog.ParseLevel(level)
