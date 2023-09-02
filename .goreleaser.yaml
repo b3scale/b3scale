@@ -117,7 +117,7 @@ nfpms:
     package_name: b3scaleagent
     vendor: "b3scale Authors"
     homepage: https://b3scale.io
-    maintainer: Infra.run <mailœinfra.run>
+    maintainer: infra.run <mail@infra.run>
     license: AGPL-3.0-or-later
     description: b3scale information gathering agent for BBB nodes
     builds:
