@@ -79,6 +79,65 @@ archives:
     builds: [ b3scaleagent ]
     name_template: 'b3scaleagent_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 
+dockers:
+  - id: b3scaled
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "b3scale/b3scaled:latest"
+      - "b3scale/b3scaled:{{ .Tag }}"
+
+nfpms:
+  - id: b3scale
+    package_name: b3scale
+    vendor: "b3scale Authors"
+    homepage: https://b3scale.io
+    maintainer: Infra.run <mailœinfra.run>
+    license: AGPL-3.0-or-later
+    description: b3scale daemon
+    builds:
+      - b3scaled
+    formats:
+      - deb
+    contents:
+      - src: doc/b3scale.service
+        dst: /lib/systemd/system/b3scale.service
+      - src: doc/example.env.b3scaled
+        dst: /etc/default/b3scaled
+        type: "config|noreplace"
+        file_info:
+          mode: 0600
+          owner: bigbluebutton
+          group: bigbluebutton
+    scripts:
+      preinstall: "scripts/preinstall.sh"
+      postinstall: "scripts/postinstall.sh"
+      postremove: "scripts/postremove.sh"
+  - id: b3scaleagent
+    package_name: b3scaleagent
+    vendor: "b3scale Authors"
+    homepage: https://b3scale.io
+    maintainer: Infra.run <mailœinfra.run>
+    license: AGPL-3.0-or-later
+    description: b3scale information gathering agent for BBB nodes
+    builds:
+      - b3scaleagent
+    formats:
+      - deb
+    contents:
+      - src: doc/b3scaleagent.service
+        dst: /lib/systemd/system/b3scaleagent.service
+      - src: doc/example.env.b3scaleagent
+        dst: /etc/default/b3scaleagent
+        type: "config|noreplace"
+        file_info:
+          mode: 0600
+          owner: bigbluebutton
+          group: bigbluebutton
+    scripts:
+      postinstall: "scripts/postinstall.sh"
+      postremove: "scripts/postremove.sh"
+
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
