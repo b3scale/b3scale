@@ -1,6 +1,6 @@
 # Overview
 
-![b3scale architecture](/assets/images/b3scale-architecture.png){ loading=lazy }
+![b3scale architecture](../assets/images/b3scale-architecture.png){ loading=lazy }
 <figure markdown>
   <figcaption>b3scale architecture overview</figcaption>
 </figure>
