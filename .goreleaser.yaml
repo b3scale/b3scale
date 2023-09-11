@@ -100,9 +100,9 @@ nfpms:
     formats:
       - deb
     contents:
-      - src: doc/b3scale.service
+      - src: examples/b3scale.service
         dst: /lib/systemd/system/b3scale.service
-      - src: doc/example.env.b3scaled
+      - src: examples/example.env.b3scaled
         dst: /etc/default/b3scaled
         type: "config|noreplace"
         file_info:
@@ -125,9 +125,9 @@ nfpms:
     formats:
       - deb
     contents:
-      - src: doc/b3scaleagent.service
+      - src: examples/b3scaleagent.service
         dst: /lib/systemd/system/b3scaleagent.service
-      - src: doc/example.env.b3scaleagent
+      - src: examples/example.env.b3scaleagent
         dst: /etc/default/b3scaleagent
         type: "config|noreplace"
         file_info:
