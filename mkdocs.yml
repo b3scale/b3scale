@@ -1,0 +1,80 @@
+site_name: b3scale - Multi tenant load balancer for BigBlueButton™
+theme:
+  name: material
+  custom_dir: docs/.overrides
+  logo: assets/images/logo.svg
+  font: false
+  features:
+    - content.code.copy
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    - toc.integrate
+    - navigation.top
+    - navigation.sections
+    - navigation.footer
+#    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - header.autohide
+
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/b3scale/b3scale
+
+plugins:
+  - search
+  - render_swagger
+  - offline
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.highlight:
+      linenums_style: pymdownx-inline
+      linenums: true
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.smartsymbols
+  - tables
+
+nav:
+- Home: index.md
+- Getting started:
+  - getting_started/overview.md
+  - getting_started/b3scale.md
+  - getting_started/b3scaleagent.md
+  - getting_started/recording.md
+  - getting_started/k8s_integration.md
+- Maintenance:
+  - maintenance/backends.md
+  - maintenance/frontends.md
+- API: api-v1.md
+- Sponsors: sponsors.md
+- Privacy: https://infra.run/datenschutz/
+- Imprint: https://infra.run/impressum/
+extra_javascript:
+  - assets/js/swagger-ui-bundle.js
+extra_css:
+  - assets/css/swagger-ui.css
