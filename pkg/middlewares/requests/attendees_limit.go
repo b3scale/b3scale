@@ -4,7 +4,7 @@ import (
 	"context"
   "net/http"
 
-	"github.com/jackc/pgx/v4/"
+	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
