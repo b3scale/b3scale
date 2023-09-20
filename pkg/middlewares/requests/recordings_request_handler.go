@@ -383,6 +383,9 @@ func (h *RecordingsHandler) DeleteRecordings(
 	}
 
 	res := &bbb.DeleteRecordingsResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: bbb.RetSuccess,
+		},
 		Deleted: true,
 	}
 	res.SetStatus(http.StatusOK)
