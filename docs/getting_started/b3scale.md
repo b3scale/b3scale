@@ -7,7 +7,7 @@
     Starting with version 1.0.3, b3scale provides `.deb` packages for use in Ubuntu. Download the `b3scaled-*.deb` asset from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. On an Intel/AMD 64 Bit system, install the `.deb` package like this:
 
     ```bash
-    sudo dpkg -i b3scaled_1.0.3_linux_amd64.deb
+    sudo dpkg -i b3scale_1.0.3_linux_amd64.deb
     ```
 
 === "openSUSE"
@@ -154,7 +154,7 @@ b3scalectl --api https://api.bbb.example.org
 !!! note
     Set up a convenience alias like this:
     ```bash
-    export b3scalectl_example='b3scalectl --api https://api.bbb.example.org'
+    alias b3scalectl_example='b3scalectl --api https://api.bbb.example.org'
     ```
 
 `b3scalectl` will now ask for the shared API secret that you provided to `b3scaled` as `B3SCALE_API_JWT_SECRET`. It uses this secret to derive
