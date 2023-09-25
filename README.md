@@ -134,9 +134,8 @@ is required.
 The `b3scalenoded` and `b3scaleagent` read from the same configuration as BigBlueButton, the environment variable for the file is:
 
  * `BBB_CONFIG`, which defaults to:
-    `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`
-   You probably want to specify the override file instead:
     `/etc/bigbluebutton/bbb-web.properties`
+   You probably want to keep this value.
 
 This file must be readable for the b3scalenoded.
 

@@ -36,7 +36,7 @@ const (
 	EnvLogFormatDefault    = "structured"
 	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
 	EnvReverseProxyDefault = "false"
-	EnvBBBConfigDefault    = "/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties"
+	EnvBBBConfigDefault    = "/etc/bigbluebutton/bbb-web.properties"
 	EnvLoadFactorDefault   = "1.0"
 )
 
