@@ -145,7 +145,7 @@ While a single instance of `b3scaled` has worked fine during the Covid 19 pandem
 
 ## Bootstrapping and migrations
 
-For the next step, you will need the `b3scalectl` command like utility. Download it from the GitHub release page.
+For the next step, you will need the `b3scalectl` client tool. Download it from the GitHub release page.
 
 ```bash
 b3scalectl --api https://api.bbb.example.org
