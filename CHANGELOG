@@ -1,10 +1,12 @@
-1.0.3 - 2023-09-??
+1.0.3 - 2023-10-??
 
 * Debian packages
 * Container image for b3scaled
 * Updated dependencies
 * New documentation (#9)
 * Fix incorrect integer conversions
+* Fix error when deleting recordings (#38)
+* Change default bbb-web property location for b3scaleagent,b3scalenode (#35)
 
 1.0.2 - 2023-04-24
 
