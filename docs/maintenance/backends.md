@@ -6,7 +6,7 @@ A backend is either autoregistered (by passing `-a` to `b3scaleagent`), ending u
 If autoregistration is disabled, a node can be added manually (see "Adding a backend").
 
 ```bash
-b3scalectl --api https://api.bbb.example.org add backend https://node23.bbb.example.org
+b3scalectl --api https://api.bbb.example.org add backend https://node23.bbb.example.org/bigbluebutton/api/
 ```
 
 ### Assigning tags
