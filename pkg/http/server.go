@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo-contrib/prometheus"
+	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	pclient "github.com/prometheus/client_golang/prometheus"
@@ -56,8 +56,8 @@ func NewServer(
 	}))
 
 	// Prometheus Middleware - Find it under /metrics
-	p := prometheus.NewPrometheus(serviceID, nil)
-	p.Use(e)
+	e.Use(echoprometheus.NewMiddleware(serviceID))
+	e.GET("/metrics", echoprometheus.NewHandler())
 
 	pclient.MustRegister(metrics.Collector{})
 
