@@ -43,7 +43,7 @@ func BBBRequestMiddleware(
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 
-			path := c.Path()
+			path := c.Request().URL.Path
 			if !strings.HasPrefix(path, mountPoint) {
 				return next(c) // nothing to do here.
 			}
