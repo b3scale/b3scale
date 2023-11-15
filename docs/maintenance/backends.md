@@ -67,8 +67,8 @@ b3scalectl --api https://api.bbb.example.org set frontend -j ' {"tags":["bbb_28"
 Backend nodes in b3scale can be in either of the following state:
 
 * **init**: The node was freshly initialized
-* **ready**: The node is has been enabled and is ready for use
-* **stopped**: The node has been disabled andd is stopped
+* **ready**: The node and is ready for use
+* **stopped**: The node has been disabled and is stopped
 * **error**: An error has occured
 * **decommissioned**: The node has been decomissioned
 
