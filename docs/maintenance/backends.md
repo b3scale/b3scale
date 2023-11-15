@@ -64,20 +64,21 @@ b3scalectl --api https://api.bbb.example.org set frontend -j ' {"tags":["bbb_28"
 
 ## Backend states
 
-### NodeState
-
-* **init**: The node was freshly initialized
-* **error**: The node has encountered an error condition
-* **ready**: The node is ready for use
-* **stopped**: The node has been stopped
-* **decommissioned**: The node has been decomissioned
-
-### AdminState
+Backend nodes in b3scale can be in either of the following state:
 
 * **init**: The node was freshly initialized
 * **ready**: The node is has been enabled and is ready for use
 * **stopped**: The node has been disabled andd is stopped
+* **error**: An error has occured
 * **decommissioned**: The node has been decomissioned
+
+The current state is expressed in the `NodeState`, which is the acutal state a
+node. The `AdminState` however is the *desired*  state, usually mandated by an
+administrative change. The two might not be identical all the time, e.g. when a node
+loses connection to b3scale, the `NodeState` will be `error`, but the AdminState
+will still be `ready`. Since `error` is not a desirable state, AdminState cannot be
+`error`.
+
 ## Enabling a backend
 
 ```bash
