@@ -390,13 +390,6 @@ func (b *Backend) Create(
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		// Update state, associate with backend and frontend
-		meetingState.Meeting = createRes.Meeting
-		meetingState.SyncedAt = time.Now().UTC()
-		if err := meetingState.Save(ctx, tx); err != nil {
-			return nil, err
-		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
