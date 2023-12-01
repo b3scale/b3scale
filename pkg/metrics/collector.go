@@ -69,7 +69,6 @@ var (
 // cluster about current meetings
 //   - attendees [ frontend, backend, type, meeting ]
 //   - durations [ meeting ]
-//
 type Collector struct{}
 
 // Describe the collector
@@ -130,7 +129,7 @@ func (c Collector) collectMeetingMetrics(
 	feMeetings := map[string]float64{}
 	beMeetings := map[string]float64{}
 
-  // Collect attendees per frontend
+	// Collect attendees per frontend
 	feAttendees := map[string]float64{}
 
 	// For each meeting count audio and video attendees
@@ -167,7 +166,7 @@ func (c Collector) collectMeetingMetrics(
 		if _, ok := feAttendees[fkey]; !ok {
 			feAttendees[fkey] = 0
 		}
-    feAttendees[fkey] += ac
+		feAttendees[fkey] += ac
 
 		duration := time.Now().UTC().Sub(m.CreatedAt)
 
