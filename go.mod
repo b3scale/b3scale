@@ -12,7 +12,7 @@ require (
 	github.com/labstack/echo/v4 v4.11.3
 	github.com/prometheus/client_golang v1.17.0
 	github.com/rs/zerolog v1.31.0
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.26.0
 	golang.org/x/net v0.18.0
 	golang.org/x/term v0.15.0
 )
