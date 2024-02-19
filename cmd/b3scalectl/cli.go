@@ -36,6 +36,7 @@ func NewCli() *Cli {
 				Name:    "api",
 				Aliases: []string{"b"},
 				Value:   "http://" + config.EnvListenHTTPDefault,
+				EnvVars: []string{config.EnvAPIURL},
 			},
 		},
 		Action: c.showStatusHelp,
