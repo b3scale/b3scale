@@ -38,7 +38,6 @@ var (
 // It has a bbb.backend secret for request authentication,
 // stored in the backend state. The state is shared across all
 // instances.
-//
 type Backend struct {
 	state  *store.BackendState
 	client *bbb.Client
@@ -154,8 +153,10 @@ func (b *Backend) Stress() float64 {
 //   - It is assigned to this backend, everything is well.
 //     Update meeting stats with info retrieved from the backend.
 //   - Otherwise: reassign this meeting to this backend.
+//
 // If the meeting is not in our state:
 //   - Ignore.
+//
 // 2nd pass: for each meeting assigned to backend in store:
 // If the meeting is not present in the backend, remove meeting,
 // from store
