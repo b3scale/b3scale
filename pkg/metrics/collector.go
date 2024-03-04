@@ -61,7 +61,6 @@ var (
 // cluster about current meetings
 //   - attendees [ frontend, backend, type, meeting ]
 //   - durations [ meeting ]
-//
 type Collector struct{}
 
 // Describe the collector
