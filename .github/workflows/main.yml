@@ -62,13 +62,10 @@ jobs:
           PGPASSWORD: postgres
         working-directory: ./dev
         run: |
+          sudo apt update
+          sudo apt install -y postgresql-client
           ./db_create.sh -c -t
 
       # Run Tests
       - name: Tests
         run: make test
-
-      # Cleanup
-      - name: Cleanup
-        run: docker-compose down
-        working-directory: ./dev
