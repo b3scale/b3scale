@@ -13,9 +13,8 @@ import (
 // a XML snippet into the request body of a create request.
 // There are two frontend setting variables:
 //
-//   default_presentation.url = https://path-to-presentation
-//   default_presentation.force = true | false
-//
+//	default_presentation.url = https://path-to-presentation
+//	default_presentation.force = true | false
 func SetDefaultPresentation() cluster.RequestMiddleware {
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
 		return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {

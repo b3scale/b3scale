@@ -9,6 +9,7 @@ import (
 )
 
 // Embedded filesystem with all migrations files
+//
 //go:embed migrations/*
 var migrationsFs embed.FS
 
