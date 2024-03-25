@@ -52,9 +52,10 @@ func NewCli() *Cli {
 						Action: c.showBackends,
 					},
 					{
-						Name:   "backend",
-						Usage:  "show a specific cluster backend",
-						Action: c.showBackend,
+						Name:         "backend",
+						Usage:        "show a specific cluster backend",
+						Action:       c.showBackend,
+						BashComplete: c.completeBackend,
 					},
 					{
 						Name:   "frontends",
@@ -62,9 +63,10 @@ func NewCli() *Cli {
 						Action: c.showFrontends,
 					},
 					{
-						Name:   "frontend",
-						Usage:  "show frontend settings",
-						Action: c.showFrontend,
+						Name:         "frontend",
+						Usage:        "show frontend settings",
+						Action:       c.showFrontend,
+						BashComplete: c.completeFrontend,
 					},
 				},
 			},
@@ -131,9 +133,10 @@ func NewCli() *Cli {
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name:   "backend",
-						Usage:  "delete backend",
-						Action: c.deleteBackend,
+						Name:         "backend",
+						Usage:        "delete backend",
+						Action:       c.deleteBackend,
+						BashComplete: c.completeBackend,
 					},
 					{
 						Name:   "frontend",
