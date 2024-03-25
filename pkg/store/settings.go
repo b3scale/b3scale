@@ -8,7 +8,7 @@ type Tags []string
 
 // BackendSettings hold per backend runtime configuration.
 type BackendSettings struct {
-	Tags Tags `json:"tags,omitempty" doc:"The backend provides these tags. A frontend can require a list of tags. This can be used to dedicate parts of the cluster."`
+	Tags Tags `json:"tags" doc:"The backend provides these tags. A frontend can require a list of tags. This can be used to dedicate parts of the cluster."`
 }
 
 // DefaultPresentationSettings configure a per frontend
@@ -21,9 +21,9 @@ type DefaultPresentationSettings struct {
 // FrontendSettings hold all well known settings for a
 // frontend.
 type FrontendSettings struct {
-	RequiredTags        Tags                         `json:"required_tags,omitempty" doc:"When selecting a backend for creating a meeting, only consider nodes providing all of the required tags."`
-	DefaultPresentation *DefaultPresentationSettings `json:"default_presentation,omitempty"`
+	RequiredTags        Tags                         `json:"required_tags" doc:"When selecting a backend for creating a meeting, only consider nodes providing all of the required tags."`
+	DefaultPresentation *DefaultPresentationSettings `json:"default_presentation"`
 
-	CreateDefaultParams  bbb.Params `json:"create_default_params,omitempty" doc:"Provide key value params, which will be used as a default when a meeting is created. See the BBB api documentation for which params are valid. The param value must be encoded as string."`
-	CreateOverrideParams bbb.Params `json:"create_override_params,omitempty" doc:"A key value set of params which will override parameters from the frontend when a meeting is created."`
+	CreateDefaultParams  bbb.Params `json:"create_default_params" doc:"Provide key value params, which will be used as a default when a meeting is created. See the BBB api documentation for which params are valid. The param value must be encoded as string."`
+	CreateOverrideParams bbb.Params `json:"create_override_params" doc:"A key value set of params which will override parameters from the frontend when a meeting is created."`
 }
