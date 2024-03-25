@@ -116,6 +116,7 @@ func NewCli() *Cli {
 			},
 			{
 				Name:    "delete",
+				Usage:   "deletes a backend or frontend config in the cluster",
 				Aliases: []string{"d", "del", "rm"},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
@@ -143,6 +144,7 @@ func NewCli() *Cli {
 			},
 			{
 				Name:    "enable",
+				Usage:   "enables a backend in the cluster",
 				Aliases: []string{"en", "start"},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
@@ -161,6 +163,7 @@ func NewCli() *Cli {
 			{
 				Name:    "disable",
 				Aliases: []string{"dis", "stop"},
+				Usage:   "disables a backend in the cluster",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:  "dry",
@@ -203,14 +206,17 @@ func NewCli() *Cli {
 			},
 			{
 				Name:   "version",
+				Usage:  "show version information",
 				Action: c.showVersion,
 			},
 			{
 				Name:   "export-openapi-schema",
+				Usage:  "exports as OpenAPI Schema for the b3scale API",
 				Action: c.exportOpenAPISchema,
 			},
 			{
-				Name: "db",
+				Name:  "db",
+				Usage: "control database operations on the server",
 				Subcommands: []*cli.Command{
 					{
 						Name:   "migrate",
@@ -220,7 +226,8 @@ func NewCli() *Cli {
 				},
 			},
 			{
-				Name: "auth",
+				Name:  "auth",
+				Usage: "authorize users and node agents",
 				Subcommands: []*cli.Command{
 					{
 						Name:   "authorize",
