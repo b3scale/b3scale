@@ -200,3 +200,24 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 	}
 	return nil
 }
+
+func (c *Cli) completeFrontend(ctx *cli.Context) {
+	// This will complete if no args are passed
+	if ctx.NArg() > 0 {
+		return
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return
+	}
+	// Check if backend exists
+	frontends, err := client.FrontendsList(ctx.Context, nil)
+	if err != nil {
+		return
+
+	}
+	for _, f := range frontends {
+		fmt.Println(f.Frontend.Key)
+	}
+}

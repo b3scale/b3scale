@@ -329,3 +329,23 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	fmt.Println("backend marked for decommissioning")
 	return nil
 }
+
+func (c *Cli) completeBackend(ctx *cli.Context) {
+	// This will complete if no args are passed
+	if ctx.NArg() > 0 {
+		return
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return
+	}
+	// Check if backend exists
+	backends, err := client.BackendsList(ctx.Context)
+	if err != nil {
+		return
+	}
+	for _, b := range backends {
+		fmt.Println(b.Backend.Host)
+	}
+}
