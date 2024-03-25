@@ -187,6 +187,21 @@ func NewCli() *Cli {
 				},
 			},
 			{
+				Name:  "completions",
+				Usage: "shell completion for b3scalectl",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "bash",
+						Usage:  "completions for BASH",
+						Action: c.printBashCompletion,
+					}, {
+						Name:   "zsh",
+						Usage:  "completions for ZSH",
+						Action: c.printZshCompletion,
+					},
+				},
+			},
+			{
 				Name:   "version",
 				Action: c.showVersion,
 			},
