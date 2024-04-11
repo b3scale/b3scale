@@ -1,3 +1,11 @@
+1.0.5 - 2024-04-11
+
+* b3scaled: remove omitempty for struct handling
+* b3scaled: make checksum error BBB compliant
+* b3scalectl: add descriptions for all first level commands
+* b3scalectl: add shell completion via "b3scalectl completions"
+* Updated dependencies
+
 1.0.5 - 2024-03-05
 
 * Updated to golang 1.22

@@ -52,9 +52,10 @@ func NewCli() *Cli {
 						Action: c.showBackends,
 					},
 					{
-						Name:   "backend",
-						Usage:  "show a specific cluster backend",
-						Action: c.showBackend,
+						Name:         "backend",
+						Usage:        "show a specific cluster backend",
+						Action:       c.showBackend,
+						BashComplete: c.completeBackend,
 					},
 					{
 						Name:   "frontends",
@@ -62,9 +63,10 @@ func NewCli() *Cli {
 						Action: c.showFrontends,
 					},
 					{
-						Name:   "frontend",
-						Usage:  "show frontend settings",
-						Action: c.showFrontend,
+						Name:         "frontend",
+						Usage:        "show frontend settings",
+						Action:       c.showFrontend,
+						BashComplete: c.completeFrontend,
 					},
 				},
 			},
@@ -116,6 +118,7 @@ func NewCli() *Cli {
 			},
 			{
 				Name:    "delete",
+				Usage:   "deletes a backend or frontend config in the cluster",
 				Aliases: []string{"d", "del", "rm"},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
@@ -130,9 +133,10 @@ func NewCli() *Cli {
 				},
 				Subcommands: []*cli.Command{
 					{
-						Name:   "backend",
-						Usage:  "delete backend",
-						Action: c.deleteBackend,
+						Name:         "backend",
+						Usage:        "delete backend",
+						Action:       c.deleteBackend,
+						BashComplete: c.completeBackend,
 					},
 					{
 						Name:   "frontend",
@@ -143,6 +147,7 @@ func NewCli() *Cli {
 			},
 			{
 				Name:    "enable",
+				Usage:   "enables a backend in the cluster",
 				Aliases: []string{"en", "start"},
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
@@ -161,6 +166,7 @@ func NewCli() *Cli {
 			{
 				Name:    "disable",
 				Aliases: []string{"dis", "stop"},
+				Usage:   "disables a backend in the cluster",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:  "dry",
@@ -187,15 +193,33 @@ func NewCli() *Cli {
 				},
 			},
 			{
+				Name:  "completions",
+				Usage: "shell completion for b3scalectl",
+				Subcommands: []*cli.Command{
+					{
+						Name:   "bash",
+						Usage:  "completions for BASH",
+						Action: c.printBashCompletion,
+					}, {
+						Name:   "zsh",
+						Usage:  "completions for ZSH",
+						Action: c.printZshCompletion,
+					},
+				},
+			},
+			{
 				Name:   "version",
+				Usage:  "show version information",
 				Action: c.showVersion,
 			},
 			{
 				Name:   "export-openapi-schema",
+				Usage:  "exports as OpenAPI Schema for the b3scale API",
 				Action: c.exportOpenAPISchema,
 			},
 			{
-				Name: "db",
+				Name:  "db",
+				Usage: "control database operations on the server",
 				Subcommands: []*cli.Command{
 					{
 						Name:   "migrate",
@@ -205,7 +229,8 @@ func NewCli() *Cli {
 				},
 			},
 			{
-				Name: "auth",
+				Name:  "auth",
+				Usage: "authorize users and node agents",
 				Subcommands: []*cli.Command{
 					{
 						Name:   "authorize",
