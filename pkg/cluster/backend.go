@@ -409,7 +409,7 @@ func (b *Backend) Join(
 	// Joining a meeting is a process entirely handled by the
 	// client. Because of a JSESSIONID which is used for preventing
 	// session stealing, just passing through the location response
-	// does not work. The JSESSIONID cookie is not associtated with
+	// does not work. The JSESSIONID cookie is not associated with
 	// the backend domain and thus the sessionToken is not accepted
 	// as valid.
 	req = req.WithBackend(b.state.Backend)
