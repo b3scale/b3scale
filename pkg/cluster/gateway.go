@@ -19,14 +19,14 @@ var (
 
 	// ErrNoFrontendInContext will be returned when no frontend
 	// is associated with the request.
-	ErrNoFrontendInContext = errors.New("no fontend in context")
+	ErrNoFrontendInContext = errors.New("no frontend in context")
 
-	// ErrBackendNotReady will only occure when the routing
+	// ErrBackendNotReady will only occur when the routing
 	// selected a backend that can not accept any requests
 	ErrBackendNotReady = errors.New("backend not ready")
 )
 
-// GatewayOptions have flags for customizing the gateway behaviour.
+// GatewayOptions have flags for customizing the gateway behavior.
 type GatewayOptions struct {
 }
 

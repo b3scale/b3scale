@@ -44,7 +44,7 @@ func ContextWithBackend(
 	return context.WithValue(ctx, backendContextKey, backend)
 }
 
-// BackendFromContext retrievs a backend from a context
+// BackendFromContext retrieves a backend from a context
 func BackendFromContext(ctx context.Context) *Backend {
 	backend, ok := ctx.Value(backendContextKey).(*Backend)
 	if !ok {
