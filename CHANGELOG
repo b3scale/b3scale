@@ -1,4 +1,8 @@
-1.0.5 - 2024-04-11
+1.0.7 - 2024-05-13
+* Fix spelling errors
+* Update dependencies
+
+1.0.6 - 2024-04-11
 
 * b3scaled: remove omitempty for struct handling
 * b3scaled: make checksum error BBB compliant
