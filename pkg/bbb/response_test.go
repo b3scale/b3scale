@@ -601,7 +601,9 @@ func TestMergeRecordings(t *testing.T) {
 	rec2 := meta.ToRecording()
 
 	rec2.Merge(rec1)
-
+	if rec2.Name != rec1.Name {
+		t.Error("Unexpected Name:", rec2.Name)
+	}
 	if rec2.RecordID != rec1.RecordID {
 		t.Error("Unexpected RecordID:", rec2.RecordID)
 	}

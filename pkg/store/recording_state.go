@@ -148,8 +148,11 @@ func (s *RecordingState) Exists(ctx context.Context, tx pgx.Tx) (bool, error) {
 }
 
 // Merge will combine the state and also fill in missing fields
-func (s *RecordingState) Merge(other *RecordingState) *RecordingState {
-	s.Recording.Merge(other.Recording)
+func (s *RecordingState) Merge(other *RecordingState) error {
+	err := s.Recording.Merge(other.Recording)
+	if err != nil {
+		return err
+	}
 	if other.MeetingID != "" {
 		s.MeetingID = other.MeetingID
 	}
@@ -165,8 +168,7 @@ func (s *RecordingState) Merge(other *RecordingState) *RecordingState {
 	if !other.UpdatedAt.IsZero() {
 		s.UpdatedAt = other.UpdatedAt
 	}
-
-	return s
+	return nil
 }
 
 // Save the recording state

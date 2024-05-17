@@ -1104,7 +1104,7 @@ func (r *Recording) Merge(other *Recording) error {
 	if other.InternalMeetingID != "" {
 		r.InternalMeetingID = other.InternalMeetingID
 	}
-	if other.Name == "" {
+	if other.Name != "" {
 		r.Name = other.Name
 	}
 	r.State = other.State
