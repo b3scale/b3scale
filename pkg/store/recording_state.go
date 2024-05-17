@@ -35,7 +35,7 @@ func InitRecordingState(init *RecordingState) *RecordingState {
 	return init
 }
 
-// StateFromRecording will initialize a recording state
+// NewStateFromRecording will initialize a recording state
 // with a recording.
 func NewStateFromRecording(
 	recording *bbb.Recording,
@@ -147,7 +147,7 @@ func (s *RecordingState) Exists(ctx context.Context, tx pgx.Tx) (bool, error) {
 	return true, nil
 }
 
-// Merg will combine the state and also fill in missing fields
+// Merge will combine the state and also fill in missing fields
 func (s *RecordingState) Merge(other *RecordingState) *RecordingState {
 	s.Recording.Merge(other.Recording)
 	if other.MeetingID != "" {
