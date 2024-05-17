@@ -1092,6 +1092,46 @@ func (r *Recording) SetPlaybackHost(host string) {
 	}
 }
 
+// Merge two recordings
+func (r *Recording) Merge(other *Recording) error {
+	if other.RecordID != r.RecordID {
+		return fmt.Errorf("RecordID must match for merge")
+	}
+	if other.MeetingID != "" {
+		r.MeetingID = other.MeetingID
+		r.IsBreakout = other.IsBreakout
+	}
+	if other.InternalMeetingID != "" {
+		r.InternalMeetingID = other.InternalMeetingID
+	}
+	if other.Name == "" {
+		r.Name = other.Name
+	}
+	r.State = other.State
+	r.Published = other.Published
+	if other.Participants > 0 {
+		r.Participants = other.Participants
+	}
+	r.Metadata = other.Metadata
+
+	// And append all formats from the other state, if not
+	// already present.
+	for _, f := range other.Formats {
+		present := false
+		for _, f2 := range r.Formats {
+			if f2.Type == f.Type {
+				present = true
+				break
+			}
+		}
+		if !present {
+			r.Formats = append(r.Formats, f)
+		}
+	}
+
+	return nil
+}
+
 // Format contains a link to the playable media
 type Format struct {
 	XMLName        xml.Name `xml:"format"`

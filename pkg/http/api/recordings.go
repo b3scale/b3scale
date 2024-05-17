@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
@@ -39,7 +39,7 @@ func apiRecordingsImport(
 	if api.Request().Body == nil { // Read
 		return ErrRequestBodyRequired
 	}
-	body, err := ioutil.ReadAll(api.Request().Body)
+	body, err := io.ReadAll(api.Request().Body)
 	if err != nil {
 		return err
 	}
@@ -68,16 +68,16 @@ func apiRecordingsImport(
 	}
 	defer tx.Rollback(ctx)
 
-	state := store.StateFromRecording(rec)
+	state := store.NewStateFromRecording(rec)
 
-	// Check if recording exists, to prevent overriding
-	// metadatachanges from the user.
-	present, err := state.Exists(ctx, tx)
+	// Check if recording exists, if so merge it with the new
+	// recording state from the import.
+	current, err := store.GetRecordingStateByID(ctx, tx, state.RecordID)
 	if err != nil {
 		return err
 	}
-	if present {
-		return api.JSON(http.StatusOK, rec)
+	if current != nil {
+		state.Merge(current)
 	}
 
 	// Lookup frontendID for this recording

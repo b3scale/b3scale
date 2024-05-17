@@ -30,20 +30,31 @@ func UnmarshalRecordingMetadata(
 
 // ToRecording converts a recording metadata into a recording
 func (m *RecordingMetadata) ToRecording() *Recording {
+	var meetingID, internalMeetingID, name string
+	var isBreakout bool
+
+	if m.Meeting != nil {
+		meetingID = m.Meeting.MeetingID
+		internalMeetingID = m.Meeting.InternalMeetingID
+		name = m.Meeting.Name
+		isBreakout = m.Meeting.Breakout
+	}
+
 	r := &Recording{
 		RecordID:          m.RecordID,
-		MeetingID:         m.Meeting.MeetingID,
-		InternalMeetingID: m.Meeting.InternalMeetingID,
-		Name:              m.Meeting.Name,
-		IsBreakout:        m.Meeting.Breakout,
-		Published:         m.Published,
-		State:             m.State,
-		StartTime:         m.StartTime,
-		EndTime:           m.EndTime,
-		Participants:      m.Participants,
-		Metadata:          m.Meta,
+		MeetingID:         meetingID,
+		InternalMeetingID: internalMeetingID,
+		Name:              name,
+		IsBreakout:        isBreakout,
+
+		Published:    m.Published,
+		State:        m.State,
+		StartTime:    m.StartTime,
+		EndTime:      m.EndTime,
+		Participants: m.Participants,
+		Metadata:     m.Meta,
 		Formats: []*Format{
-			&Format{
+			{
 				Type:           m.Playback.Format,
 				URL:            m.Playback.Link,
 				ProcessingTime: m.Playback.ProcessingTime,

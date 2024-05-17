@@ -2,7 +2,7 @@ package bbb
 
 import (
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 )
@@ -11,7 +11,7 @@ func readTestResponse(name string) []byte {
 	filename := path.Join(
 		"../../testdata/responses/",
 		name)
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
@@ -582,5 +582,38 @@ func TestMarshalPutRecordingTextTrackResponse(t *testing.T) {
 	}
 	if len(data) != 56 {
 		t.Error("Unexpected:", string(data), len(data))
+	}
+}
+
+func TestMergeRecordings(t *testing.T) {
+	data := readTestResponse("../recordings/metadata.xml")
+	meta, err := UnmarshalRecordingMetadata(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec1 := meta.ToRecording()
+
+	data = readTestResponse("../recordings/metadata.m4v.xml")
+	meta, err = UnmarshalRecordingMetadata(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec2 := meta.ToRecording()
+
+	rec2.Merge(rec1)
+
+	if rec2.RecordID != rec1.RecordID {
+		t.Error("Unexpected RecordID:", rec2.RecordID)
+	}
+	if rec2.MeetingID != rec1.MeetingID {
+		t.Error("Unexpected MeetingID:", rec2.MeetingID)
+	}
+
+	if len(rec2.Formats) != 2 {
+		t.Error("Unexpected formats:", rec2.Formats)
+	}
+
+	for _, f := range rec2.Formats {
+		t.Log(f)
 	}
 }
