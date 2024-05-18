@@ -33,6 +33,12 @@ func (m *RecordingMetadata) ToRecording() *Recording {
 	var meetingID, internalMeetingID, name string
 	var isBreakout bool
 
+	// I really do not like, that some of the properties we
+	// require are not in the metadata.xml for the
+	// `video` format. Our approach works, however, we rely on
+	// the publish event for the `presentation` format being
+	// fired before the `video` format. Then we can just merge
+	// the state from the `presentation` format into the `video`.
 	if m.Meeting != nil {
 		meetingID = m.Meeting.MeetingID
 		internalMeetingID = m.Meeting.InternalMeetingID
