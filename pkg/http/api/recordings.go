@@ -124,9 +124,7 @@ func apiProtectedRecordingsShow(
 	// Get the request token as path parameter and
 	// decode the JWT.
 	token, _ := api.ParamID()
-	cfg, err := NewAPIJWTConfig()
-	if err != nil {
-		return err
-	}
+	log.Info().Str("token", token).Msg("protected recording token")
 
+	return nil
 }
