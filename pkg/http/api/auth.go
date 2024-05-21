@@ -17,9 +17,10 @@ type Scopes []string
 
 // Scopes
 const (
-	ScopeUser  = "b3scale"
-	ScopeAdmin = "b3scale:admin"
-	ScopeNode  = "b3scale:node"
+	ScopeUser       = "b3scale"
+	ScopeAdmin      = "b3scale:admin"
+	ScopeNode       = "b3scale:node"
+	ScopeRecordings = "b3scale:recordings"
 )
 
 // ErrScopeRequired will be returned when a scope is missing
