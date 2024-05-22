@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -97,13 +98,14 @@ func GetEnvOpt(key string) (string, bool) {
 }
 
 // MustEnv gets a configuration from the environment
-// and will return an error if the variable is empty.
-func MustEnv(key string) (string, error) {
+// and will panic if the variable is empty.
+func MustEnv(key string) string {
 	value, ok := GetEnvOpt(key)
 	if !ok {
-		return "", fmt.Errorf("missing environment configuration: %s", key)
+		err := fmt.Errorf("missing environment configuration: %s", key)
+		panic(err)
 	}
-	return value, nil
+	return value
 }
 
 // IsEnabled returns true if the input is trueish
@@ -130,4 +132,22 @@ func GetLoadFactor() float64 {
 		return 1.0
 	}
 	return factor
+}
+
+// HostnameOf returns the hostname of the given address or URL.
+func DomainOf(addr string) string {
+	u, err := url.Parse(addr)
+	if err != nil {
+		panic(err)
+	}
+	host := u.Hostname()
+	if host == "" {
+		host = addr
+	}
+	tokens := strings.Split(host, ".")
+	if len(tokens) < 2 {
+		return tokens[0]
+	}
+	domain := tokens[len(tokens)-2] + "." + tokens[len(tokens)-1]
+	return domain
 }

@@ -19,3 +19,27 @@ func TestIsEnabled(t *testing.T) {
 		t.Error("no should be false")
 	}
 }
+
+func TestDomainOf(t *testing.T) {
+	host := "https://cluster.bbb.foo.example"
+	if DomainOf(host) != "foo.example" {
+		t.Error("DomainOf failed:", DomainOf(host))
+	}
+	host = "https://cluster.bbb.foo.example/"
+	if DomainOf(host) != "foo.example" {
+		t.Error("DomainOf failed:", DomainOf(host))
+	}
+	host = "https://cluster.bbb.foo.example:8080"
+	if DomainOf(host) != "foo.example" {
+		t.Error("DomainOf failed:", DomainOf(host))
+	}
+	host = "foo.example"
+	if DomainOf(host) != "foo.example" {
+		t.Error("DomainOf failed:", host, DomainOf(host))
+	}
+	host = "foo"
+	if DomainOf(host) != "foo" {
+		t.Error("DomainOf failed:", host, DomainOf(host))
+	}
+
+}
