@@ -96,6 +96,16 @@ func GetEnvOpt(key string) (string, bool) {
 	return value, true
 }
 
+// MustEnv gets a configuration from the environment
+// and will return an error if the variable is empty.
+func MustEnv(key string) (string, error) {
+	value, ok := GetEnvOpt(key)
+	if !ok {
+		return "", fmt.Errorf("missing environment configuration: %s", key)
+	}
+	return value, nil
+}
+
 // IsEnabled returns true if the input is trueish
 func IsEnabled(value string) bool {
 	value = strings.ToLower(value)

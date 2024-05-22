@@ -10,24 +10,24 @@ import (
 	"golang.org/x/term"
 )
 
-func readSecret() ([]byte, error) {
+func readSecret() (string, error) {
 	fmt.Fprintln(os.Stderr, "Please paste your shared secret.")
 	fmt.Fprintf(os.Stderr, "Secret: ")
 	secret, err := term.ReadPassword(int(syscall.Stdin))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	fmt.Fprintln(os.Stderr, "") // add missing newline
-	return secret, nil
+	return string(secret), nil
 }
 
-func readSecretOrEnv(ctx *cli.Context) ([]byte, error) {
-	secretStr := ctx.String("secret")
-	if secretStr == "" { // Try env
-		secretStr = config.EnvOpt(config.EnvJWTSecret, "")
+func readSecretOrEnv(ctx *cli.Context) (string, error) {
+	secret := ctx.String("secret")
+	if secret == "" { // Try env
+		secret = config.EnvOpt(config.EnvJWTSecret, "")
 	}
-	if secretStr == "" { // Read from STDIN
+	if secret == "" { // Read from STDIN
 		return readSecret()
 	}
-	return []byte(secretStr), nil
+	return secret, nil
 }

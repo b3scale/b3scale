@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/b3scale/b3scale/pkg/config"
 )
@@ -36,44 +38,93 @@ func ErrScopeRequired(scopes ...string) *echo.HTTPError {
 // with a well-known `scope` claim.
 type AuthClaims struct {
 	Scope string `json:"scope"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
-// NewAPIJWTConfig creates a new JWT middleware config.
-// Parameters like shared secrets, public keys, etc..
-// are retrieved from the environment.
-func NewAPIJWTConfig() (middleware.JWTConfig, error) {
-	secret := config.EnvOpt(config.EnvJWTSecret, "")
-	if secret == "" {
-		return middleware.JWTConfig{}, ErrMissingJWTSecret
-	}
-
-	cfg := middleware.DefaultJWTConfig
-	cfg.SigningMethod = "HS384"
-	cfg.Claims = &AuthClaims{}
-	cfg.SigningKey = []byte(secret)
-
-	return cfg, nil
-}
-
-// SignAdminAccessToken creates a new authorized
-// JWT with an admin scope.
-func SignAdminAccessToken(sub string, secret []byte) (string, error) {
-	return SignAccessToken(sub, ScopeAdmin, secret)
-}
-
-// SignAccessToken creates an authorized JWT
-func SignAccessToken(sub string, scope string, secret []byte) (string, error) {
+func NewAuthClaims(sub string) *AuthClaims {
 	id := GenerateNonce(24)
-	claims := &AuthClaims{
-		Scope: scope,
-		StandardClaims: jwt.StandardClaims{
-			Subject: sub,
-			Id:      id,
+	return &AuthClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:       id,
+			Subject:  sub,
+			IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS384, claims)
-	return token.SignedString(secret)
+}
+
+// Scopes returns the list of scopes.
+func (c *AuthClaims) Scopes() []string {
+	return strings.Split(c.Scope, " ")
+}
+
+// WithScopes adds a list of scopes to the claims.
+func (c *AuthClaims) WithScopes(scopes ...string) *AuthClaims {
+	c.Scope = strings.Join(scopes, " ")
+	return c
+}
+
+// WithScopesCSV adds a list of scopes to the claims,
+// separated by a delimiter.
+func (c *AuthClaims) WithScopesCSV(scopes string) *AuthClaims {
+	tokens := strings.Split(scopes, ",")
+	trimmed := make([]string, 0, len(tokens))
+	for _, t := range tokens {
+		trimmed = append(trimmed, strings.TrimSpace(t))
+	}
+
+	return c.WithScopes(trimmed...)
+}
+
+// WithLifetime adds a lifetime to the claims.
+func (c *AuthClaims) WithLifetime(ttl time.Duration) *AuthClaims {
+	expiresAt := c.RegisteredClaims.IssuedAt.Add(ttl)
+	c.RegisteredClaims.ExpiresAt = jwt.NewNumericDate(expiresAt)
+	return c
+}
+
+// WithAudience adds an audience to the claims.
+func (c *AuthClaims) WithAudience(aud string) *AuthClaims {
+	c.RegisteredClaims.Audience = jwt.ClaimStrings{aud}
+	return c
+}
+
+// Sign will create a new JWT from the claims.
+func (c *AuthClaims) Sign(secret string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS384, c)
+	return token.SignedString([]byte(secret))
+}
+
+// ParseAPIToken validates and parses a JWT token.
+func ParseAPIToken(data string, secret string) (*AuthClaims, error) {
+	token, err := jwt.ParseWithClaims(data, &AuthClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	claims, ok := token.Claims.(*AuthClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+	return claims, nil
+}
+
+// NewJWTAuthMiddleware creates a new instance of the
+// echojwt middleware.
+// Parameters like shared secrets, public keys, etc..
+// are retrieved from the environment.
+func NewJWTAuthMiddleware() echo.MiddlewareFunc {
+	secret, err := config.MustEnv(config.EnvJWTSecret)
+	if err != nil {
+		panic(err)
+	}
+	cfg := echojwt.Config{
+		SigningKey: []byte(secret),
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return &AuthClaims{}
+		},
+	}
+	return echojwt.WithConfig(cfg)
 }
 
 // RequireScope creates a middleware to ensure the presence of

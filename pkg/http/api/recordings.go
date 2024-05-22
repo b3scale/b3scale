@@ -103,28 +103,3 @@ func apiRecordingsImport(
 
 	return api.JSON(http.StatusOK, rec)
 }
-
-// RecordingsGetProtected checks the issued request token,
-// creates a new auth token and writes it as a cookie. Then the
-// user is redirected to the recording URL.
-var ResourceProtectedRecordings = &Resource{
-	Show: apiProtectedRecordingsShow,
-}
-
-func apiProtectedRecordingsShow(
-	ctx context.Context,
-	api *API,
-) error {
-	tx, err := api.Conn.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	// Get the request token as path parameter and
-	// decode the JWT.
-	token, _ := api.ParamID()
-	log.Info().Str("token", token).Msg("protected recording token")
-
-	return nil
-}

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 
 	"github.com/b3scale/b3scale/pkg/store"
@@ -195,7 +195,7 @@ func (api *API) Authorize(
 	scopes []string,
 ) *API {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &AuthClaims{
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Subject: sub,
 		},
 		Scope: strings.Join(scopes, " "),

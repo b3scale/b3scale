@@ -13,22 +13,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/store"
 	"github.com/b3scale/b3scale/pkg/store/schema"
-)
-
-// Errors
-var (
-	// ErrMissingJWTSecret will be returned if a JWT secret
-	// could not be found in the environment.
-	ErrMissingJWTSecret = errors.New("missing JWT secret")
 )
 
 const (
@@ -90,10 +82,16 @@ func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		ctx := c.Request().Context()
 
 		// Add authorization to context
-		user := c.Get("user").(*jwt.Token)
-		claims := user.Claims.(*AuthClaims)
+		token, ok := c.Get("user").(*jwt.Token)
+		if !ok {
+			return errors.New("JWT missing")
+		}
+		claims, ok := token.Claims.(*AuthClaims)
+		if !ok {
+			return errors.New("invalid token claims")
+		}
 		scopes := strings.Split(claims.Scope, " ")
-		ref := claims.StandardClaims.Subject
+		ref := claims.RegisteredClaims.Subject
 
 		// Acquire connection
 		conn, err := store.Acquire(ctx)
@@ -118,19 +116,13 @@ func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 // Init sets up a group with authentication
 // for a restful management interface.
 func Init(e *echo.Echo) error {
-	// Initialize JWT middleware config
-	jwtConfig, err := NewAPIJWTConfig()
-	if err != nil {
-		return err
-	}
-
 	// Register routes
 	log.Info().Str("path", "/api/v1").Msg("initializing http api v1")
 	v1 := e.Group("/api/v1")
 
 	// API Auth and Context Middlewares
-	v1.Use(middleware.JWTWithConfig(jwtConfig))
 	v1.Use(ErrorHandler)
+	v1.Use(NewJWTAuthMiddleware())
 	v1.Use(ContextMiddleware)
 
 	// Status
