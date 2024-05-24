@@ -1104,15 +1104,14 @@ func (r *Recording) Protect(frontendKey string) {
 	secret := config.MustEnv(config.EnvJWTSecret)
 
 	for _, f := range r.Formats {
-		// Create resource token and update target URL
-		resource := fmt.Sprintf(
-			"%s:%s",
-			f.Type,
-			r.RecordID,
-		)
-
+		// Create resource token and update target URL.
+		// A note on the token lifetime:
+		//  - The link is actually shareable for this time.
+		//  - Scalelite uses a default of 60 minutes.
+		//  - Maybe make configurable.
+		resource := auth.EncodeResource(f.Type, r.RecordID)
 		token, err := auth.NewAuthClaims(frontendKey).
-			WithLifetime(1 * time.Minute).
+			WithLifetime(60 * time.Minute).
 			WithAudience(resource).
 			Sign(secret)
 		if err != nil {
@@ -1125,6 +1124,16 @@ func (r *Recording) Protect(frontendKey string) {
 			apiURL,
 			token)
 	}
+}
+
+// GetFormat returns the format with the given type
+func (r *Recording) GetFormat(format string) *Format {
+	for _, f := range r.Formats {
+		if f.Type == format {
+			return f
+		}
+	}
+	return nil
 }
 
 // Merge two recordings

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
@@ -17,7 +19,7 @@ import (
 
 // Cookies
 const (
-	CookieKeyProtected = "_b3scale_protected"
+	CookieKeyProtected = "_b3s_protected"
 )
 
 // Errors
@@ -112,38 +114,40 @@ func apiRecordingsImport(
 	return api.JSON(http.StatusOK, rec)
 }
 
-// ResourceProtectedRecordings is rest resource
-// handling access to a protected recording.
-var ResourceProtectedRecordings = &Resource{
-	Show: apiProtectedRecordingsShow,
-}
-
 // Associate the temporary request token with
 // the user session and redirect to the protected
 // recording resource. The URL returned from the
 // BBB operation getRecordings?... will point to this
 // resource.
-func apiProtectedRecordingsShow(
-	ctx context.Context,
-	api *API,
-) error {
-	tx, err := api.Conn.Begin(ctx)
+func apiProtectedRecordingsShow(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// Acquire connection and begin database transaction
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
+
+	// Get configuration and request token
 	secret := config.MustEnv(config.EnvJWTSecret)
 	playbackHost := config.MustEnv(config.EnvRecordingsPlaybackHost)
 	playbackDomain := config.DomainOf(playbackHost)
 
-	rawToken := api.Param("id")
+	rawToken := c.Param("token")
 	token, err := auth.ParseAPIToken(rawToken, secret)
 	if err != nil {
 		return err
 	}
 
 	// Get tenant ID from the auth token.
-	frontendID := api.Ref
+	frontendID := token.RegisteredClaims.Subject
 	if frontendID == "" {
 		return echo.ErrForbidden
 	}
@@ -154,22 +158,33 @@ func apiProtectedRecordingsShow(
 		return err
 	}
 	if frontend == nil {
-		return fmt.Errorf("could not find frontend by ID")
+		return fmt.Errorf("could not find frontend")
 	}
 
 	// Get the requested recording ID from the
 	// request token's audience:
-	recordingID := token.RegisteredClaims.Audience[0]
-	if recordingID == "" {
+	recordingRequest := token.RegisteredClaims.Audience[0]
+	if recordingRequest == "" {
 		return fmt.Errorf("no recording ID in token")
 	}
+	recordID, format := auth.MustDecodeResource(recordingRequest)
+
 	recordingState, err := store.GetRecordingState(ctx, tx, store.Q().
-		Where("recordings.id = ?", recordingID))
+		Where("recordings.record_id = ?", recordID))
 	if err != nil {
 		return err
 	}
+	if recordingState == nil {
+		return echo.ErrNotFound
+	}
+	if recordingState.FrontendID != frontend.ID {
+		return echo.ErrForbidden
+	}
+
 	rec := recordingState.Recording
 	rec.SetPlaybackHost(playbackHost)
+
+	recFormat := rec.GetFormat(format)
 
 	// Create access token and store it in the session
 	accessToken, err := auth.NewAuthClaims(frontendID).
@@ -179,10 +194,9 @@ func apiProtectedRecordingsShow(
 	if err != nil {
 		return err
 	}
-	log.Info().Str("accessToken", accessToken).Msg("created access token")
 
 	// Set cookie for top-level domain
-	api.SetCookie(&http.Cookie{
+	c.SetCookie(&http.Cookie{
 		Name:   CookieKeyProtected,
 		Value:  accessToken,
 		Path:   "/",
@@ -190,41 +204,84 @@ func apiProtectedRecordingsShow(
 	})
 
 	// Redirect to recording URL
-
-	return nil
+	return c.Redirect(http.StatusFound, recFormat.URL)
 }
 
-// ResourceProtectedAuth handles the NGINX auth_request.
-var ResourceProtectedAuth = &Resource{
-	List: apiProtectedAuthenticate,
+// RE_MATCH_RECORD_ID will match a recording ID in a path.
+var RE_MATCH_RECORD_ID = regexp.MustCompile(`\/([a-f0-9]+-\d+)`)
+
+// Parse the recording ID from the resource path.
+func parseRecordIDPath(path string) (string, bool) {
+	matches := RE_MATCH_RECORD_ID.FindStringSubmatch(path)
+	if len(matches) != 2 {
+		return "", false
+	}
+	return matches[1], true
 }
 
 // Authenticate the request using the provided token.
-func apiProtectedAuthenticate(
-	ctx context.Context,
-	api *API,
-) error {
-	// Get the original URL from the X-Original-URL header
-	// and the access token from the _b3scale_protected cookie.
-	originalURL := api.Request().Header.Get("X-Original-URL")
-	log.Info().Str("originalURL", originalURL).Msg("original URL")
-	cookie, err := api.Cookie(CookieKeyProtected)
+func apiProtectedRecordingsAuth(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	// Acquire connection and begin database transaction
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Get the requested path from X-Resource-Path header
+	// and the access token from the cookie.
+	resourcePath := c.Request().Header.Get("X-Resource-Path")
+	resourcePath = strings.TrimSuffix(resourcePath, "/")
+
+	// Parse resourcePath to get the recording ID, luckily
+	// it always ends in the recording ID.
+	recordID, ok := parseRecordIDPath(resourcePath)
+	if !ok {
+		// This is not a video file request and can be served
+		return c.NoContent(http.StatusOK)
+	}
+
+	// Get recording state
+	recordingState, err := store.GetRecordingState(ctx, tx, store.Q().
+		Where("recordings.record_id = ?", recordID))
+	if err != nil {
+		return err
+	}
+	if recordingState == nil {
+		return echo.ErrNotFound
+	}
+
+	// Check if the recording is acutally protected
+	isProtected, _ := recordingState.Recording.Metadata.GetBool(bbb.ParamProtect)
+	if !isProtected {
+		return c.NoContent(http.StatusOK) // Just go ahead!
+	}
+
+	// Get request cookie
+	cookie, err := c.Cookie(CookieKeyProtected)
 	if err != nil {
 		return echo.ErrForbidden
 	}
 	accessToken := cookie.Value
-	log.Info().Str("accessToken", accessToken).Msg("access token")
 	claims, err := auth.ParseAPIToken(
 		accessToken, config.MustEnv(config.EnvJWTSecret))
 	if err != nil {
 		return echo.ErrForbidden
 	}
-	log.Info().Interface("claims", claims).Msg("claims")
+	frontendID := claims.RegisteredClaims.Subject
 
-	// TODO: Check if claim contains the required scopes
+	// Check if the subject of the token matches the frontend
+	if recordingState.FrontendID != frontendID {
+		return echo.ErrForbidden
+	}
 
-	// Use context from api to return a response
-	// to the NGINX auth_request.
-
-	return nil
+	return c.NoContent(http.StatusOK)
 }

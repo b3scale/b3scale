@@ -213,7 +213,7 @@ func (h *RecordingsHandler) GetRecordings(
 		}
 		protect, _ := rec.Metadata.GetBool(bbb.ParamProtect)
 		if protect {
-			rec.Protect(req.Frontend.Key)
+			rec.Protect(state.FrontendID)
 		}
 
 		recordings = append(recordings, state.Recording)
