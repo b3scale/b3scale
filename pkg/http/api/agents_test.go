@@ -1,10 +1,14 @@
 package api
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/b3scale/b3scale/pkg/http/auth"
+)
 
 func TestAgentHeartbeatCreate(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("test-agent-2000", ScopeNode).
+		Authorize("test-agent-2000", auth.ScopeNode).
 		Context()
 	defer api.Release()
 

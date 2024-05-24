@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
@@ -47,7 +48,7 @@ func BackendFromAgentRef(
 	api *API,
 	tx pgx.Tx,
 ) (*store.BackendState, error) {
-	if !api.HasScope(ScopeNode) {
+	if !api.HasScope(auth.ScopeNode) {
 		return nil, nil // does not apply
 	}
 	q := store.Q().Where("agent_ref = ?", api.Ref)
@@ -67,7 +68,7 @@ func MeetingFromRequest(
 		return nil, err
 	}
 	// The backend must be available if the scope is node
-	if api.HasScope(ScopeNode) && backend == nil {
+	if api.HasScope(auth.ScopeNode) && backend == nil {
 		return nil, echo.ErrForbidden
 	}
 
@@ -78,7 +79,7 @@ func MeetingFromRequest(
 		q = q.Where("meetings.id = ?", id)
 	}
 
-	if api.HasScope(ScopeNode) {
+	if api.HasScope(auth.ScopeNode) {
 		q = q.Where("meetings.backend_id = ?", backend.ID)
 	}
 

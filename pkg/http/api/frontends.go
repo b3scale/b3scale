@@ -7,32 +7,33 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // ResourceFrontends is a restful group for frontend endpoints
 var ResourceFrontends = &Resource{
 	List: RequireScope(
-		ScopeAdmin,
-		ScopeUser,
+		auth.ScopeAdmin,
+		auth.ScopeUser,
 	)(apiFrontendsList),
 
 	Create: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiFrontendCreate),
 
 	Show: RequireScope(
-		ScopeAdmin,
-		ScopeUser,
+		auth.ScopeAdmin,
+		auth.ScopeUser,
 	)(apiFrontendShow),
 
 	Update: RequireScope(
-		ScopeAdmin,
-		ScopeUser,
+		auth.ScopeAdmin,
+		auth.ScopeUser,
 	)(apiFrontendUpdate),
 
 	Destroy: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiFrontendDestroy),
 }
 
@@ -42,7 +43,7 @@ func apiFrontendsList(
 ) error {
 	q := store.Q()
 	// Force filters if not admin account
-	if !api.HasScope(ScopeAdmin) {
+	if !api.HasScope(auth.ScopeAdmin) {
 		q = q.Where("account_ref = ?", api.Ref)
 	}
 
@@ -124,7 +125,7 @@ func apiFrontendShow(
 	defer tx.Rollback(ctx)
 
 	q := store.Q().Where("id = ?", id)
-	if !api.HasScope(ScopeAdmin) {
+	if !api.HasScope(auth.ScopeAdmin) {
 		q = q.Where("account_ref = ?", api.Ref)
 	}
 	frontend, err := store.GetFrontendState(ctx, tx, q)
@@ -146,8 +147,8 @@ func apiFrontendDestroy(
 ) error {
 	id := api.Param("id")
 
-	if !api.HasScope(ScopeAdmin) {
-		return ErrScopeRequired(ScopeAdmin)
+	if !api.HasScope(auth.ScopeAdmin) {
+		return auth.ErrScopeRequired(auth.ScopeAdmin)
 	}
 
 	tx, err := api.Conn.Begin(ctx)
@@ -228,7 +229,7 @@ func apiFrontendUpdate(
 	defer tx.Rollback(ctx)
 
 	q := store.Q().Where("id = ?", id)
-	if !api.HasScope(ScopeAdmin) {
+	if !api.HasScope(auth.ScopeAdmin) {
 		q = q.Where("account_ref = ?", api.Ref)
 	}
 
@@ -254,7 +255,7 @@ func apiFrontendUpdate(
 	frontend.Active = update.Active
 	frontend.Settings = update.Settings
 
-	if api.HasScope(ScopeAdmin) {
+	if api.HasScope(auth.ScopeAdmin) {
 		frontend.AccountRef = update.AccountRef
 	}
 

@@ -1,7 +1,6 @@
-package api
+package auth
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -114,35 +113,13 @@ func ParseAPIToken(data string, secret string) (*AuthClaims, error) {
 // Parameters like shared secrets, public keys, etc..
 // are retrieved from the environment.
 func NewJWTAuthMiddleware() echo.MiddlewareFunc {
-	secret, err := config.MustEnv(config.EnvJWTSecret)
-	if err != nil {
-		panic(err)
-	}
+	secret := config.MustEnv(config.EnvJWTSecret)
 	cfg := echojwt.Config{
-		SigningKey: []byte(secret),
+		SigningKey:    []byte(secret),
+		SigningMethod: "HS384",
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
 			return &AuthClaims{}
 		},
 	}
 	return echojwt.WithConfig(cfg)
-}
-
-// RequireScope creates a middleware to ensure the presence of
-// at least one required scope.
-func RequireScope(scopes ...string) ResourceMiddleware {
-	return func(next ResourceHandler) ResourceHandler {
-		return func(ctx context.Context, api *API) error {
-			hasScope := false
-			for _, sc := range scopes {
-				if api.HasScope(sc) {
-					hasScope = true
-					break
-				}
-			}
-			if !hasScope {
-				return ErrScopeRequired(scopes...)
-			}
-			return next(ctx, api) // We are good to go.
-		}
-	}
 }

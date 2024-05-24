@@ -7,6 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
+
+	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 )
 
 var (
@@ -1089,6 +1093,37 @@ func (r *Recording) SetPlaybackHost(host string) {
 		for _, img := range f.Preview.Images.All {
 			img.URL = updateHostURL(img.URL, host)
 		}
+	}
+}
+
+// Protect will update the link to the presentation
+// to point back to the b3scale instance, with a request
+// token that will be exchanged into an access token.
+func (r *Recording) Protect(frontendKey string) {
+	apiURL := config.MustEnv(config.EnvAPIURL)
+	secret := config.MustEnv(config.EnvJWTSecret)
+
+	for _, f := range r.Formats {
+		// Create resource token and update target URL
+		resource := fmt.Sprintf(
+			"%s:%s",
+			f.Type,
+			r.RecordID,
+		)
+
+		token, err := auth.NewAuthClaims(frontendKey).
+			WithLifetime(1 * time.Minute).
+			WithAudience(resource).
+			Sign(secret)
+		if err != nil {
+			panic(err)
+		}
+
+		// Protected URL
+		f.URL = fmt.Sprintf(
+			"%s/api/v1/protected/recordings/%s",
+			apiURL,
+			token)
 	}
 }
 

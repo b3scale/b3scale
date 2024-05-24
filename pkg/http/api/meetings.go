@@ -6,28 +6,29 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // ResourceMeetings is a restful group for meetings
 var ResourceMeetings = &Resource{
 	List: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiMeetingsList),
 
 	Show: RequireScope(
-		ScopeAdmin,
-		ScopeNode,
+		auth.ScopeAdmin,
+		auth.ScopeNode,
 	)(apiMeetingShow),
 
 	Update: RequireScope(
-		ScopeAdmin,
-		ScopeNode,
+		auth.ScopeAdmin,
+		auth.ScopeNode,
 	)(apiMeetingUpdate),
 
 	Destroy: RequireScope(
-		ScopeAdmin,
-		ScopeNode,
+		auth.ScopeAdmin,
+		auth.ScopeNode,
 	)(apiMeetingDestroy),
 }
 

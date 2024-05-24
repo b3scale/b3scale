@@ -19,6 +19,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 	"github.com/b3scale/b3scale/pkg/store/schema"
 )
@@ -86,7 +87,7 @@ func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		if !ok {
 			return errors.New("JWT missing")
 		}
-		claims, ok := token.Claims.(*AuthClaims)
+		claims, ok := token.Claims.(*auth.AuthClaims)
 		if !ok {
 			return errors.New("invalid token claims")
 		}
@@ -122,7 +123,7 @@ func Init(e *echo.Echo) error {
 
 	// API Auth and Context Middlewares
 	v1.Use(ErrorHandler)
-	v1.Use(NewJWTAuthMiddleware())
+	v1.Use(auth.NewJWTAuthMiddleware())
 	v1.Use(ContextMiddleware)
 
 	// Status
@@ -135,6 +136,8 @@ func Init(e *echo.Echo) error {
 	ResourceMeetings.Mount(v1, "/meetings")
 	ResourceCommands.Mount(v1, "/commands")
 	ResourceRecordingsImport.Mount(v1, "/recordings-import")
+	ResourceProtectedRecordings.Mount(v1, "/protected/recordings")
+	ResourceProtectedAuth.Mount(v1, "/protected/auth")
 	ResourceAgentRPC.Mount(v1, "/agent/rpc")
 	ResourceAgentBackend.Mount(v1, "/agent/backend")
 	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
@@ -163,8 +166,28 @@ func apiStatusShow(ctx context.Context, api *API) error {
 		Build:      config.Build,
 		API:        "v1",
 		AccountRef: api.Ref,
-		IsAdmin:    api.HasScope(ScopeAdmin),
+		IsAdmin:    api.HasScope(auth.ScopeAdmin),
 		Database:   m.Status(ctx),
 	}
 	return api.JSON(http.StatusOK, status)
+}
+
+// RequireScope creates a middleware to ensure the presence of
+// at least one required scope.
+func RequireScope(scopes ...string) ResourceMiddleware {
+	return func(next ResourceHandler) ResourceHandler {
+		return func(ctx context.Context, api *API) error {
+			hasScope := false
+			for _, sc := range scopes {
+				if api.HasScope(sc) {
+					hasScope = true
+					break
+				}
+			}
+			if !hasScope {
+				return auth.ErrScopeRequired(scopes...)
+			}
+			return next(ctx, api) // We are good to go.
+		}
+	}
 }

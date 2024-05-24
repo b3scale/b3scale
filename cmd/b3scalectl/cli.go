@@ -13,6 +13,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/http/api/client"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 )
 
 // RetNoChange indicates the return code, that no
@@ -300,7 +301,7 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	token, err := api.NewAuthClaims(sub).
+	token, err := auth.NewAuthClaims(sub).
 		WithScopesCSV(scopes).
 		Sign(secret)
 	if err != nil {
@@ -318,7 +319,7 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 
 	ref := ctx.String("ref")
 	if ref == "" {
-		ref = api.GenerateRef(3)
+		ref = auth.GenerateRef(3)
 	}
 
 	secret, err := readSecretOrEnv(ctx)
@@ -326,8 +327,8 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	token, err := api.NewAuthClaims(ref).
-		WithScopes(api.ScopeNode).
+	token, err := auth.NewAuthClaims(ref).
+		WithScopes(auth.ScopeNode).
 		Sign(secret)
 	if err != nil {
 		return err

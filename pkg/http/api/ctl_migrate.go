@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store/schema"
 )
 
@@ -12,7 +13,7 @@ import (
 // migrations
 var ResourceCtlMigrate = &Resource{
 	Create: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiCtlMigrate),
 }
 

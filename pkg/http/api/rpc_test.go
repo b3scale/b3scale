@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
 func testRPCRequest(t *testing.T, req *RPCRequest) interface{} {
 	api, res := NewTestRequest().
 		KeepState().
-		Authorize("test-agent-2000", ScopeNode).
+		Authorize("test-agent-2000", auth.ScopeNode).
 		JSON(req).
 		Context()
 	defer api.Release()
