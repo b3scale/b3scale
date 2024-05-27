@@ -195,9 +195,10 @@ func apiProtectedRecordingsShow(c echo.Context) error {
 
 	// Create access token and store it in the session.
 	// The default lifetime is 8 hours.
+	tokenTTL := 8 * time.Hour
 	accessToken, err := auth.NewClaims(frontendID).
 		WithScopes(auth.ScopeRecordings).
-		WithLifetime(8 * time.Hour).
+		WithLifetime(tokenTTL).
 		Sign(secret)
 	if err != nil {
 		return err
@@ -208,6 +209,7 @@ func apiProtectedRecordingsShow(c echo.Context) error {
 		Name:   CookieKeyProtected,
 		Value:  accessToken,
 		Path:   "/",
+		MaxAge: int(tokenTTL.Seconds()),
 		Domain: playbackDomain,
 	})
 
