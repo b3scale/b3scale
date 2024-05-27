@@ -1099,7 +1099,12 @@ func (r *Recording) SetPlaybackHost(host string) {
 // Protect will update the link to the presentation
 // to point back to the b3scale instance, with a request
 // token that will be exchanged into an access token.
-func (r *Recording) Protect(frontendKey string) {
+//
+// The default lifetime is an hour.
+//
+// As a subject, the frontendID will most likely be used,
+// but it could be any identifier.
+func (r *Recording) Protect(subject string) {
 	apiURL := config.MustEnv(config.EnvAPIURL)
 	secret := config.MustEnv(config.EnvJWTSecret)
 
@@ -1110,7 +1115,7 @@ func (r *Recording) Protect(frontendKey string) {
 		//  - Scalelite uses a default of 60 minutes.
 		//  - Maybe make configurable.
 		resource := auth.EncodeResource(f.Type, r.RecordID)
-		token, err := auth.NewAuthClaims(frontendKey).
+		token, err := auth.NewClaims(subject).
 			WithLifetime(60 * time.Minute).
 			WithAudience(resource).
 			Sign(secret)

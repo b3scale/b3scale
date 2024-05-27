@@ -87,7 +87,7 @@ func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		if !ok {
 			return errors.New("JWT missing")
 		}
-		claims, ok := token.Claims.(*auth.AuthClaims)
+		claims, ok := token.Claims.(*auth.Claims)
 		if !ok {
 			return errors.New("invalid token claims")
 		}

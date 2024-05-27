@@ -134,7 +134,8 @@ func GetLoadFactor() float64 {
 	return factor
 }
 
-// HostnameOf returns the hostname of the given address or URL.
+// DomainOf returns the domain name (with TLD) of the given
+// address or URL.
 func DomainOf(addr string) string {
 	u, err := url.Parse(addr)
 	if err != nil {

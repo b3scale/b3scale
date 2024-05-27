@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-func TestAuthClaims(t *testing.T) {
-	claims := NewAuthClaims("sub").WithScopes(ScopeRecordings)
+func TestClaims(t *testing.T) {
+	claims := NewClaims("sub").WithScopes(ScopeRecordings)
 	t.Log(claims)
 
 	claims = claims.
@@ -19,7 +19,7 @@ func TestAuthClaims(t *testing.T) {
 }
 
 func TestSignAPIToken(t *testing.T) {
-	claims := NewAuthClaims("frontend42").
+	claims := NewClaims("frontend42").
 		WithScopes(ScopeRecordings).
 		WithLifetime(time.Duration(1) * time.Hour).
 		WithAudience("resource42")
@@ -32,7 +32,7 @@ func TestSignAPIToken(t *testing.T) {
 
 func TestParseAPIToken(t *testing.T) {
 	secret := "secret42"
-	token, _ := NewAuthClaims("frontend42").
+	token, _ := NewClaims("frontend42").
 		WithScopes(ScopeRecordings).
 		WithLifetime(time.Duration(1) * time.Hour).
 		WithAudience("resource42").
@@ -55,7 +55,7 @@ func TestParseAPIToken(t *testing.T) {
 }
 
 func TestParseAPITokenInvalid(t *testing.T) {
-	token, _ := NewAuthClaims("frontend42").
+	token, _ := NewClaims("frontend42").
 		WithScopes(ScopeRecordings).
 		Sign("secret42")
 

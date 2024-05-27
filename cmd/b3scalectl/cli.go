@@ -301,7 +301,7 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	token, err := auth.NewAuthClaims(sub).
+	token, err := auth.NewClaims(sub).
 		WithScopesCSV(scopes).
 		Sign(secret)
 	if err != nil {
@@ -327,7 +327,7 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	token, err := auth.NewAuthClaims(ref).
+	token, err := auth.NewClaims(ref).
 		WithScopes(auth.ScopeNode).
 		Sign(secret)
 	if err != nil {

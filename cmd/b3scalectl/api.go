@@ -97,7 +97,7 @@ func acquireToken(apiHost string) (string, error) {
 		return "", fmt.Errorf("secret should not be empty")
 	}
 
-	return auth.NewAuthClaims("b3scalectl").
+	return auth.NewClaims("b3scalectl").
 		WithScopes(auth.ScopeAdmin).
 		Sign(string(secret))
 }

@@ -195,7 +195,7 @@ func (api *API) Authorize(
 	sub string,
 	scopes []string,
 ) *API {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &auth.AuthClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &auth.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject: sub,
 		},

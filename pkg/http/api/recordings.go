@@ -17,6 +17,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Regular Expressions
+var (
+	// ReMatchRecordID will match the recordID in an URL with
+	// the pattern /.../<hash>-<number>/..
+	ReMatchRecordID = regexp.MustCompile(`\/([a-f0-9]+-\d+)`)
+)
+
 // Cookies
 const (
 	CookieKeyProtected = "_b3s_protected"
@@ -186,8 +193,9 @@ func apiProtectedRecordingsShow(c echo.Context) error {
 
 	recFormat := rec.GetFormat(format)
 
-	// Create access token and store it in the session
-	accessToken, err := auth.NewAuthClaims(frontendID).
+	// Create access token and store it in the session.
+	// The default lifetime is 8 hours.
+	accessToken, err := auth.NewClaims(frontendID).
 		WithScopes(auth.ScopeRecordings).
 		WithLifetime(8 * time.Hour).
 		Sign(secret)
@@ -207,12 +215,9 @@ func apiProtectedRecordingsShow(c echo.Context) error {
 	return c.Redirect(http.StatusFound, recFormat.URL)
 }
 
-// RE_MATCH_RECORD_ID will match a recording ID in a path.
-var RE_MATCH_RECORD_ID = regexp.MustCompile(`\/([a-f0-9]+-\d+)`)
-
 // Parse the recording ID from the resource path.
 func parseRecordIDPath(path string) (string, bool) {
-	matches := RE_MATCH_RECORD_ID.FindStringSubmatch(path)
+	matches := ReMatchRecordID.FindStringSubmatch(path)
 	if len(matches) != 2 {
 		return "", false
 	}
