@@ -1,6 +1,10 @@
 package bbb
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+
+	"github.com/rs/zerolog/log"
+)
 
 // Recordings have a metadata xml.
 
@@ -30,26 +34,24 @@ func UnmarshalRecordingMetadata(
 
 // ToRecording converts a recording metadata into a recording
 func (m *RecordingMetadata) ToRecording() *Recording {
-	var meetingID, internalMeetingID, name string
-	var isBreakout bool
-
-	// I really do not like, that some of the properties we
-	// require are not in the metadata.xml for the
-	// `video` format. Our approach works, however, we rely on
-	// the publish event for the `presentation` format being
-	// fired before the `video` format. Then we can just merge
-	// the state from the `presentation` format into the `video`.
-	if m.Meeting != nil {
-		meetingID = m.Meeting.MeetingID
-		internalMeetingID = m.Meeting.InternalMeetingID
-		name = m.Meeting.Name
-		isBreakout = m.Meeting.Breakout
+	meetingID, ok := m.Meta["meetingId"]
+	if !ok {
+		log.Warn().Msg("RecordingMetadata: meetingId not found in metadata")
 	}
+	name, ok := m.Meta["meetingName"]
+	if !ok {
+		log.Warn().Msg("RecordingMetadata: meetingName not found in metadata")
+	}
+	isBreakoutStr, ok := m.Meta["isBreakout"]
+	if !ok {
+		log.Warn().Msg("RecordingMetadata: isBreakout not found in metadata")
+	}
+	isBreakout := isBreakoutStr == "true"
 
 	r := &Recording{
 		RecordID:          m.RecordID,
 		MeetingID:         meetingID,
-		InternalMeetingID: internalMeetingID,
+		InternalMeetingID: "DEPRECATED:" + meetingID,
 		Name:              name,
 		IsBreakout:        isBreakout,
 
