@@ -1,3 +1,8 @@
+1.1.0 - 
+* b3scaled: support for *protected recordings*.
+* b3scaled: support for other recording formats.
+* Update dependencies: JWT middleware and token library upgraded.
+
 1.0.7 - 2024-05-13
 * Fix spelling errors
 * Update dependencies
