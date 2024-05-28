@@ -51,7 +51,7 @@ func (m *RecordingMetadata) ToRecording() *Recording {
 	r := &Recording{
 		RecordID:          m.RecordID,
 		MeetingID:         meetingID,
-		InternalMeetingID: "DEPRECATED:" + meetingID,
+		InternalMeetingID: "DEPRECATED:" + meetingID, // Satisfy indices
 		Name:              name,
 		IsBreakout:        isBreakout,
 
