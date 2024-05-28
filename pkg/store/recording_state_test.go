@@ -209,21 +209,20 @@ func TestMerge(t *testing.T) {
 	}
 	rec = meta.ToRecording()
 	state2 := NewStateFromRecording(rec)
-	if state2.MeetingID != "" {
-		t.Error("unexpected meeting id")
-	}
-	if state2.InternalMeetingID != "" {
-		t.Error("unexpected internal meeting id")
-	}
-
 	state2.Merge(state)
 
 	if len(state2.Recording.Formats) != 2 {
 		t.Error("expected 2 formats")
 	}
 
+	if state2.MeetingID == "" {
+		t.Error("unexpected empty meeting id")
+	}
 	if state2.MeetingID != state.MeetingID {
-		t.Error("unexpected meeting id")
+		t.Error("unexpected meeting id:", state2.MeetingID, state.MeetingID)
+	}
+	if state2.InternalMeetingID == "" {
+		t.Error("unexpected empty internal meeting id")
 	}
 	if state2.InternalMeetingID != state.InternalMeetingID {
 		t.Error("unexpected internal meeting id")
