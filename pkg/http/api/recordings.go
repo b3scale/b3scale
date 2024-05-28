@@ -150,7 +150,12 @@ func apiProtectedRecordingsShow(c echo.Context) error {
 	rawToken := c.Param("token")
 	token, err := auth.ParseAPIToken(rawToken, secret)
 	if err != nil {
-		return err
+		log.Error().Err(err).Msg("invalid recording request token")
+		return HTMLError(
+			c,
+			http.StatusForbidden,
+			"You are not allowed to access this recording.",
+			"The provided link is invalid or has expired.")
 	}
 
 	// Get tenant ID from the auth token.
