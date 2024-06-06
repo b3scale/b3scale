@@ -2,7 +2,7 @@ package bbb
 
 import (
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 )
@@ -11,7 +11,7 @@ func readTestResponse(name string) []byte {
 	filename := path.Join(
 		"../../testdata/responses/",
 		name)
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
@@ -277,29 +277,6 @@ func TestMergeGetMeetingInfoResponse(t *testing.T) {
 
 // Meetings
 
-func TestMeetingUpdate(t *testing.T) {
-	data := readTestResponse("getMeetingsSuccess.xml")
-	response, _ := UnmarshalGetMeetingsResponse(data)
-	m1 := response.Meetings[0]
-
-	response, _ = UnmarshalGetMeetingsResponse(data)
-	m2 := response.Meetings[0]
-
-	m2.Running = false
-	m2.ParticipantCount = 5000
-
-	m1.Update(m2)
-
-	if m1.ParticipantCount != 5000 {
-		t.Error("unexpected participant count")
-	}
-
-	m2.MeetingID = "wrong_meeting_id"
-	if err := m1.Update(m2); err == nil {
-		t.Error("expected error")
-	}
-}
-
 // GetMeetingsResponse
 
 func TestUnmarshalGetMeetingsResponse(t *testing.T) {
@@ -522,65 +499,5 @@ func TestMarshalSetConfigXMLResponse(t *testing.T) {
 	}
 	if len(data) != 69 {
 		t.Error("Unexpected data:", string(data), len(data))
-	}
-}
-
-func TestUnmarshalGetRecordingTextTracksResponse(t *testing.T) {
-	data := readTestResponse("getRecordingTextTracksSuccess.json")
-	response, err := UnmarshalGetRecordingTextTracksResponse(data)
-	if err != nil {
-		t.Error(err)
-	}
-
-	tracks := response.Tracks
-	if len(tracks) != 2 {
-		t.Error("Unexpected Tracks:", tracks)
-	}
-	if tracks[0].Label != "English" {
-		t.Error("Exptected English:", tracks[0].Label)
-	}
-}
-
-func TestMarshalGetRecordingTextTracksResponse(t *testing.T) {
-	data := readTestResponse("getRecordingTextTracksSuccess.json")
-	response, err := UnmarshalGetRecordingTextTracksResponse(data)
-	if err != nil {
-		t.Error(err)
-	}
-	data1, err := response.Marshal()
-	if err != nil {
-		t.Error(err)
-	}
-
-	if len(data1) != 489 {
-		t.Error("Unexpected data:", string(data1), len(data1))
-	}
-}
-
-func TestUnmarshalPutRecordingTextTrackResponse(t *testing.T) {
-	data := readTestResponse("putRecordingTextTrackSuccess.json")
-	response, err := UnmarshalPutRecordingTextTrackResponse(data)
-	if err != nil {
-		t.Error(err)
-	}
-	if response.RecordID != "baz" {
-		t.Error("Unexpected:", response.RecordID)
-	}
-	if response.Returncode != "SUCCESS" {
-		t.Error("Unexpected:", response.Returncode)
-	}
-}
-
-func TestMarshalPutRecordingTextTrackResponse(t *testing.T) {
-	res := PutRecordingTextTrackResponse{
-		Returncode: "SUCCESS",
-		RecordID:   "y4aaY",
-	}
-	data, err := res.Marshal()
-	if err != nil {
-		t.Error(err)
-	}
-	if len(data) != 56 {
-		t.Error("Unexpected:", string(data), len(data))
 	}
 }

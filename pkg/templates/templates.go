@@ -3,6 +3,7 @@ package templates
 import (
 	"bytes"
 	"html/template"
+
 	// Use go16 embedding instead of inline templates
 	_ "embed"
 )
@@ -17,12 +18,16 @@ var (
 	//go:embed html/meeting-not-found.html
 	tmplMeetingNotFoundHTML string
 
+	//go:embed html/error-page.html
+	tmplErrorPageHTML string
+
 	//go:embed xml/default-presentation-body.xml
 	tmplDefaultPresentationBodyXML string
 
 	tmplRedirect                *template.Template
 	tmplRetryJoin               *template.Template
 	tmplMeetingNotFound         *template.Template
+	tmplErrorPage               *template.Template
 	tmplDefaultPresentationBody *template.Template
 )
 
@@ -32,6 +37,7 @@ func init() {
 	tmplRetryJoin, _ = template.New("retry_join").Parse(tmplRetryJoinHTML)
 	tmplMeetingNotFound, _ = template.New("meeting_not_found").
 		Parse(tmplMeetingNotFoundHTML)
+	tmplErrorPage, _ = template.New("error_page").Parse(tmplErrorPageHTML)
 	tmplDefaultPresentationBody, _ = template.New("default_presentation").
 		Parse(tmplDefaultPresentationBodyXML)
 }
@@ -54,6 +60,16 @@ func RetryJoin(url string) []byte {
 func MeetingNotFound() []byte {
 	res := new(bytes.Buffer)
 	tmplMeetingNotFound.Execute(res, nil)
+	return res.Bytes()
+}
+
+// ErrorPage renders the error page template
+func ErrorPage(title, message string) []byte {
+	res := new(bytes.Buffer)
+	tmplErrorPage.Execute(res, map[string]interface{}{
+		"Message": message,
+		"Title":   title,
+	})
 	return res.Bytes()
 }
 

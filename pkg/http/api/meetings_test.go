@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -51,7 +52,7 @@ func TestBackendMeetingsList(t *testing.T) {
 	api, res := NewTestRequest().
 		KeepState().
 		Query("backend_host="+backend.Backend.Host).
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		Context()
 	defer api.Release()
 
@@ -69,7 +70,7 @@ func TestBackendMeetingsList(t *testing.T) {
 
 func TestMeetingShow(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("test-agent-2000", ScopeNode).
+		Authorize("test-agent-2000", auth.ScopeNode).
 		Context()
 	defer api.Release()
 
@@ -97,7 +98,7 @@ func TestMeetingShow(t *testing.T) {
 
 func TestMeetingDestroy(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("test-agent-2000", ScopeNode).
+		Authorize("test-agent-2000", auth.ScopeNode).
 		Context()
 	defer api.Release()
 
@@ -117,7 +118,7 @@ func TestMeetingDestroy(t *testing.T) {
 
 	// Query the meeting again, this should fail.
 	api, res = NewTestRequest().
-		Authorize("test-agent-2000", ScopeNode).
+		Authorize("test-agent-2000", auth.ScopeNode).
 		KeepState().
 		Context()
 	defer api.Release()
@@ -132,7 +133,7 @@ func TestMeetingDestroy(t *testing.T) {
 
 func TestMeetingUpdate(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("test-agent-2000", ScopeNode).
+		Authorize("test-agent-2000", auth.ScopeNode).
 		JSON(map[string]interface{}{
 			"meeting": map[string]interface{}{
 				"Attendees": []map[string]interface{}{

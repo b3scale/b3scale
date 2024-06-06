@@ -203,12 +203,19 @@ func (h *RecordingsHandler) GetRecordings(
 		return nil, err
 	}
 
+	// Prepare recordings: Update the playback host or
+	// apply recording protection.
 	recordings := make([]*bbb.Recording, 0, len(recordingStates))
 	for _, state := range recordingStates {
 		rec := state.Recording
 		if hasPlaybackHost {
 			rec.SetPlaybackHost(playbackHost)
 		}
+		protect, _ := rec.Metadata.GetBool(bbb.ParamProtect)
+		if protect {
+			rec.Protect(state.FrontendID)
+		}
+
 		recordings = append(recordings, state.Recording)
 	}
 
@@ -287,7 +294,9 @@ func (h *RecordingsHandler) PublishRecordings(
 }
 
 // UpdateRecordings will lookup a backend for the request
-// and will invoke the backend.
+// and will invoke the backend. Metadata will be updated
+// in the local state. Metadata includes the `protect`
+// attribute.
 func (h *RecordingsHandler) UpdateRecordings(
 	ctx context.Context,
 	req *bbb.Request,

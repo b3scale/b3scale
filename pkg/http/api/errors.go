@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/b3scale/b3scale/pkg/store"
+	"github.com/b3scale/b3scale/pkg/templates"
 )
 
 // ErrorInvalidCredentials will create an API response
@@ -61,3 +62,9 @@ func (err ServerError) Error() string {
 
 // ErrNotFound is the error when a response is a 404
 var ErrNotFound = errors.New("the resource could not be found (404)")
+
+// HTMLError will render an HTML error page
+func HTMLError(c echo.Context, status int, title, message string) error {
+	body := templates.ErrorPage(title, message)
+	return c.HTMLBlob(status, body)
+}

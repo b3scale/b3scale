@@ -13,6 +13,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/http/api/client"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 )
 
 // RetNoChange indicates the return code, that no
@@ -287,7 +288,6 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 
 	sub := ctx.String("sub")
 	scopes := ctx.String("scopes")
-	scopes = strings.Join(strings.Split(scopes, ","), " ")
 
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "** Creating access token **")
@@ -301,7 +301,9 @@ func (c *Cli) createAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	token, err := api.SignAccessToken(sub, scopes, secret)
+	token, err := auth.NewClaims(sub).
+		WithScopesCSV(scopes).
+		Sign(secret)
 	if err != nil {
 		return err
 	}
@@ -317,7 +319,7 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 
 	ref := ctx.String("ref")
 	if ref == "" {
-		ref = api.GenerateRef(3)
+		ref = auth.GenerateRef(3)
 	}
 
 	secret, err := readSecretOrEnv(ctx)
@@ -325,8 +327,9 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 		return err
 	}
 
-	scopes := api.ScopeNode
-	token, err := api.SignAccessToken(ref, scopes, secret)
+	token, err := auth.NewClaims(ref).
+		WithScopes(auth.ScopeNode).
+		Sign(secret)
 	if err != nil {
 		return err
 	}

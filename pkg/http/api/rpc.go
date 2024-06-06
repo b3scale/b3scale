@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -360,7 +361,7 @@ func (rpc *RPCHandler) MeetingRemoveAttendee(
 var ResourceAgentRPC = &Resource{
 	// Create dispatches an RPC request
 	Create: RequireScope(
-		ScopeNode,
+		auth.ScopeNode,
 	)(func(ctx context.Context, api *API) error {
 		// Decode request
 		rpc := &RPCRequest{}

@@ -165,6 +165,10 @@ can be associated with an agent.
  * `B3SCALE_API_URL` must be provided for the `b3scaleagent` to find the API.
     Only the host part is required: e.g. `https://b3scale.example/`
 
+*Please note:* Setting the API url is also required for the
+`b3scaled`, as it is used for redirections with *protected
+recordings*.
+
 The load factor of the backend can be set through:
 
  * `B3SCALE_LOAD_FACTOR` (default `1.0`)

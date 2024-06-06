@@ -80,3 +80,12 @@ func (meta Metadata) Update(m Metadata) {
 		}
 	}
 }
+
+// GetBool returns a boolean value from the metadata.
+func (meta Metadata) GetBool(key string) (bool, bool) {
+	v, ok := meta[key]
+	if !ok {
+		return false, false
+	}
+	return v == "true", true
+}

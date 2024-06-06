@@ -1,5 +1,6 @@
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 # Goreleaser configuration
+version: 2
 
 before:
   hooks:
@@ -154,7 +155,7 @@ checksum:
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 changelog:
-  skip: true
+  disable: true
 
 signs:
   - artifacts: checksum
