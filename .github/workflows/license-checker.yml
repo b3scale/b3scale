@@ -1,0 +1,9 @@
+on: pull_request
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    name: License Check
+    steps:
+      - uses: actions/checkout@v2
+      - uses: haraldh/go-license-checker@v0.5
