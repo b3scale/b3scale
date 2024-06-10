@@ -103,7 +103,7 @@ func maybeFilterRecordingStates(
 			return qry // nothing to filter
 		}
 		filters = append(filters, sq.Eq{
-			"recordings.state -> 'state'": s,
+			"recordings.state -> 'State'": s,
 		})
 	}
 
@@ -162,7 +162,7 @@ func maybeFilterRecordingMeta(
 	for k, v := range meta {
 		filters = append(filters, sq.Eq{
 			fmt.Sprintf(
-				"recordings.state -> 'metadata' -> '%s'",
+				"recordings.state -> 'Metadata' -> '%s'",
 				store.SQLSafeParam(k)): v,
 		})
 	}
