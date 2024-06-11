@@ -106,7 +106,7 @@ func TestMaybeFilterRecordingStates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !strings.Contains(sql, "recordings.state -> 'state'") {
+	if !strings.Contains(sql, "recordings.state -> 'State'") {
 		t.Error("unexpected sql:", sql)
 	}
 
