@@ -102,8 +102,9 @@ func maybeFilterRecordingStates(
 		if s == bbb.StateAny {
 			return qry // nothing to filter
 		}
+		v := "\"" + s + "\"" // "encode" as "JSON"
 		filters = append(filters, sq.Eq{
-			"recordings.state -> 'State'": s,
+			"recordings.state -> 'State'": v,
 		})
 	}
 
@@ -160,10 +161,13 @@ func maybeFilterRecordingMeta(
 	}
 	filters := sq.And{}
 	for k, v := range meta {
+		// Metadata is stringly typed. We have to "encode"
+		// the value as JSON string.
+		val := "\"" + v + "\""
 		filters = append(filters, sq.Eq{
 			fmt.Sprintf(
 				"recordings.state -> 'Metadata' -> '%s'",
-				store.SQLSafeParam(k)): v,
+				store.SQLSafeParam(k)): val,
 		})
 	}
 	return qry.Where(filters)
