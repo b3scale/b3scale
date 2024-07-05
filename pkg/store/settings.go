@@ -17,6 +17,9 @@ type DefaultPresentationSettings struct {
 	URL   string `json:"url" doc:"An URL pointing to a default presentation." example:"https://assets.mycluster.example.com/tenant1235/presentation.pdf"`
 	Force bool   `json:"force" doc:"Override any default presentation provided by the frontend."`
 }
+
+// DefaultLimitAttendeesSettings configure a overall limit
+// of attendees per frontend
 type DefaultLimitAttendeesSettings struct {
 	Limit int `json:"limit" doc:"Limit of overall attendees for a frontend."`
 }
