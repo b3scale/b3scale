@@ -104,6 +104,7 @@ func main() {
 	gateway.Use(requests.SetMetaFrontend())
 	gateway.Use(requests.SetDefaultPresentation())
 	gateway.Use(requests.SetCreateParams())
+	gateway.Use(requests.CheckAttendeesLimit())
 	gateway.Use(requests.BindMeetingFrontend())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 
