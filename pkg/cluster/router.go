@@ -20,7 +20,7 @@ var (
 
 	// ErrNoBackendAvailable indicates that there is no backend
 	// available for creating a meeting.
-	ErrNoBackendAvailable = errors.New("no free backend availble for meeting")
+	ErrNoBackendAvailable = errors.New("no free backend available for meeting")
 
 	// ErrMeetingIDMissing indicates that there is a meetingID
 	// expected to be in the requests params, but it is missing.

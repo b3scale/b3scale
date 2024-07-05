@@ -25,13 +25,14 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Install Go
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.18.x'
+          go-version-file: 'go.mod'
+      - run: go version
 
       # Formatting
       - name: Check formatting
@@ -61,13 +62,10 @@ jobs:
           PGPASSWORD: postgres
         working-directory: ./dev
         run: |
+          sudo apt update
+          sudo apt install -y postgresql-client
           ./db_create.sh -c -t
 
       # Run Tests
       - name: Tests
         run: make test
-
-      # Cleanup
-      - name: Cleanup
-        run: docker-compose down
-        working-directory: ./dev

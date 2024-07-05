@@ -84,7 +84,7 @@ func (m *Manager) Connect(
 
 // ClearDatabase drops and creates a database
 func (m *Manager) ClearDatabase(ctx context.Context, db string) error {
-	conn, err := m.Connect(ctx, "template1")
+	conn, err := m.Connect(ctx, "")
 	if err != nil {
 		return err
 	}

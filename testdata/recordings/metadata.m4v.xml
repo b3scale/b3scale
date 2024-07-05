@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<recording>
+  <id>record-2342</id>
+  <state>available</state>
+  <published>true</published>
+  <start_time>1715863783016</start_time>
+  <end_time>1715863878660</end_time>
+  <playback>
+    <format>video</format>
+    <link>https://9000/playback/video/record-2342/</link>
+    <duration>41763</duration>
+  </playback>
+  <meta>
+    <bbb-origin>greenlight</bbb-origin>
+    <bbb-recording-ready-url>https://greenlight-local/recording_ready</bbb-recording-ready-url>
+    <meetingId>meeting-2342</meetingId>
+    <bbb-origin-version/>
+    <b3s-frontend>greenlight-local.bastelgenosse.de</b3s-frontend>
+    <isBreakout>false</isBreakout>
+    <bbb-origin-server-name>greenlight-local</bbb-origin-server-name>
+    <endcallbackurl>https://greenlight-local/meeting_ended</endcallbackurl>
+    <meetingName>Roomba</meetingName>
+  </meta>
+</recording>

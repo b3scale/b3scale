@@ -1,0 +1,21 @@
+# /usr/lib/systemd/system/b3scale.service
+[Unit]
+Description=B3Scale BBB Scaler
+Documentation=https://github.com/b3scale/b3scale
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=bigbluebutton
+Group=bigbluebutton
+Restart=always
+EnvironmentFile=-/etc/default/b3scale
+EnvironmentFile=-/etc/sysconfig/b3scale
+ExecStart=/usr/bin/b3scaled
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutStopSec=20s
+SendSIGKILL=no
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -102,8 +102,9 @@ func maybeFilterRecordingStates(
 		if s == bbb.StateAny {
 			return qry // nothing to filter
 		}
+		v := "\"" + s + "\"" // "encode" as "JSON"
 		filters = append(filters, sq.Eq{
-			"recordings.state -> 'state'": s,
+			"recordings.state -> 'State'": v,
 		})
 	}
 
@@ -160,10 +161,13 @@ func maybeFilterRecordingMeta(
 	}
 	filters := sq.And{}
 	for k, v := range meta {
+		// Metadata is stringly typed. We have to "encode"
+		// the value as JSON string.
+		val := "\"" + v + "\""
 		filters = append(filters, sq.Eq{
 			fmt.Sprintf(
-				"recordings.state -> 'metadata' -> '%s'",
-				store.SQLSafeParam(k)): v,
+				"recordings.state -> 'Metadata' -> '%s'",
+				store.SQLSafeParam(k)): val,
 		})
 	}
 	return qry.Where(filters)
@@ -203,12 +207,19 @@ func (h *RecordingsHandler) GetRecordings(
 		return nil, err
 	}
 
+	// Prepare recordings: Update the playback host or
+	// apply recording protection.
 	recordings := make([]*bbb.Recording, 0, len(recordingStates))
 	for _, state := range recordingStates {
 		rec := state.Recording
 		if hasPlaybackHost {
 			rec.SetPlaybackHost(playbackHost)
 		}
+		protect, _ := rec.Metadata.GetBool(bbb.ParamProtect)
+		if protect {
+			rec.Protect(state.FrontendID)
+		}
+
 		recordings = append(recordings, state.Recording)
 	}
 
@@ -287,7 +298,9 @@ func (h *RecordingsHandler) PublishRecordings(
 }
 
 // UpdateRecordings will lookup a backend for the request
-// and will invoke the backend.
+// and will invoke the backend. Metadata will be updated
+// in the local state. Metadata includes the `protect`
+// attribute.
 func (h *RecordingsHandler) UpdateRecordings(
 	ctx context.Context,
 	req *bbb.Request,
@@ -383,6 +396,9 @@ func (h *RecordingsHandler) DeleteRecordings(
 	}
 
 	res := &bbb.DeleteRecordingsResponse{
+		XMLResponse: &bbb.XMLResponse{
+			Returncode: bbb.RetSuccess,
+		},
 		Deleted: true,
 	}
 	res.SetStatus(http.StatusOK)

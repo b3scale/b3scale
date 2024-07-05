@@ -12,3 +12,4 @@ etc/b3scale/frontends.conf
 .env
 
 dist/
+site/

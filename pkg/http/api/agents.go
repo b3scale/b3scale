@@ -4,7 +4,9 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
+
 	"github.com/labstack/echo/v4"
 )
 
@@ -12,7 +14,7 @@ import (
 // the currently with the agent associated backend
 var ResourceAgentBackend = &Resource{
 	List: RequireScope(
-		ScopeNode,
+		auth.ScopeNode,
 	)(apiAgentBackendShow),
 }
 
@@ -42,7 +44,7 @@ func apiAgentBackendShow(
 // an agent heartbeat
 var ResourceAgentHeartbeat = &Resource{
 	Create: RequireScope(
-		ScopeNode,
+		auth.ScopeNode,
 	)(apiAgentHeartbeatCreate),
 }
 

@@ -34,7 +34,7 @@ started in 2020 to provide multiple features not possible before:
 
 To discuss the principal design of b3scale, consider the following schematic:
 
-![b3scale architecture](doc/b3scale-architecture.png)
+![b3scale architecture](docs/assets/images/b3scale-architecture.png)
 
 b3scale services different *frontends*. Those can be standard apps such as
 Greenlight, Nextcloud or Moodle, but can also really be anything that implements
@@ -77,15 +77,15 @@ A new access token can be crated using `b3scalectl auth authorize_node_agent`.
 
 ## API documentation
 
-Please find the API documentation in the [REST API](doc/rest_api.md) file.
+Please find the API documentation in the [REST API](examples/rest_api.md) file.
 
 ## Configuration
 
 b3scale daemons are configured through environment variables and do not use a config file. Example environment files for use with Docker, Kubernetes or systemd with all eligable settings can be found here:
 
-* [Environment for b3scaled](doc/example.env.b3scaled)
-* [Environment for b3scaleagent](doc/example.env.b3scaleagent)
-* [Environment for b3scalenoded](doc/example.env.b3scalenoded)
+* [Environment for b3scaled](examples/example.env.b3scaled)
+* [Environment for b3scaleagent](examples/example.env.b3scaleagent)
+* [Environment for b3scalenoded](examples/example.env.b3scalenoded)
 
 Find more documentation below.
 
@@ -134,7 +134,8 @@ is required.
 The `b3scalenoded` and `b3scaleagent` read from the same configuration as BigBlueButton, the environment variable for the file is:
 
  * `BBB_CONFIG`, which defaults to:
-    `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`
+    `/etc/bigbluebutton/bbb-web.properties`
+   You probably want to keep this value.
 
 This file must be readable for the b3scalenoded.
 
@@ -163,6 +164,10 @@ can be associated with an agent.
 
  * `B3SCALE_API_URL` must be provided for the `b3scaleagent` to find the API.
     Only the host part is required: e.g. `https://b3scale.example/`
+
+*Please note:* Setting the API url is also required for the
+`b3scaled`, as it is used for redirections with *protected
+recordings*.
 
 The load factor of the backend can be set through:
 

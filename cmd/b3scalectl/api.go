@@ -7,6 +7,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/api"
 	"github.com/b3scale/b3scale/pkg/http/api/client"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/term"
 )
@@ -96,5 +97,7 @@ func acquireToken(apiHost string) (string, error) {
 		return "", fmt.Errorf("secret should not be empty")
 	}
 
-	return api.SignAdminAccessToken("b3scalectl", secret)
+	return auth.NewClaims("b3scalectl").
+		WithScopes(auth.ScopeAdmin).
+		Sign(string(secret))
 }

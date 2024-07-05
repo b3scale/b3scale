@@ -2,10 +2,25 @@ package store
 
 import (
 	"context"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 )
+
+// todo refactor into testdata
+func readTestResponse(name string) []byte {
+	filename := path.Join(
+		"../../testdata/responses/",
+		name)
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		panic(err)
+	}
+
+	return data
+}
 
 // Tests for recording states
 
@@ -176,4 +191,45 @@ func TestRecordingSetFrontendID(t *testing.T) {
 	if res[0].FrontendID != frontend.ID {
 		t.Error("unexpected name:", res[0])
 	}
+}
+
+func TestMerge(t *testing.T) {
+	data := readTestResponse("../recordings/metadata.xml")
+	meta, err := bbb.UnmarshalRecordingMetadata(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := meta.ToRecording()
+	state := NewStateFromRecording(rec)
+
+	data = readTestResponse("../recordings/metadata.m4v.xml")
+	meta, err = bbb.UnmarshalRecordingMetadata(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec = meta.ToRecording()
+	state2 := NewStateFromRecording(rec)
+	state2.Merge(state)
+
+	if len(state2.Recording.Formats) != 2 {
+		t.Error("expected 2 formats")
+	}
+
+	if state2.MeetingID == "" {
+		t.Error("unexpected empty meeting id")
+	}
+	if state2.MeetingID != state.MeetingID {
+		t.Error("unexpected meeting id:", state2.MeetingID, state.MeetingID)
+	}
+	if state2.InternalMeetingID == "" {
+		t.Error("unexpected empty internal meeting id")
+	}
+	if state2.InternalMeetingID != state.InternalMeetingID {
+		t.Error("unexpected internal meeting id")
+	}
+	if state2.FrontendID != state.FrontendID {
+		t.Error("unexpected frontend id")
+	}
+
+	t.Log(state2)
 }

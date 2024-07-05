@@ -1,0 +1,24 @@
+[Unit]
+Description=B3Scale Agent
+Documentation=https://github.com/b3scale/b3scale
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+StartLimitInterval=2
+RestartSec=5
+EnvironmentFile=-/var/lib/b3scaleagent/jwt
+EnvironmentFile=/etc/default/b3scaleagent
+ExecStart=/usr/bin/b3scaleagent -a
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

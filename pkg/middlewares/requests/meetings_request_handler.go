@@ -269,10 +269,11 @@ func retryJoinResponse(req *bbb.Request) *bbb.JoinResponse {
 // unknownMeetingResponse is a standard error response,
 // when the meeting could not be found by a lookup.
 func unknownMeetingResponse() *bbb.XMLResponse {
+	// response mirrors https://github.com/bigbluebutton/bigbluebutton/blob/main/bbb-common-web/src/main/java/org/bigbluebutton/api/model/constraint/MeetingExistsConstraint.java
 	res := &bbb.XMLResponse{
 		Returncode: bbb.RetFailed,
-		Message:    "The meeting is not known to us.",
-		MessageKey: "invalidMeetingIdentifier",
+		Message:    "A meeting with that ID does not exist",
+		MessageKey: "notFound",
 	}
 	res.SetStatus(http.StatusOK) // I'm pretty sure we need
 	// to respond with some success status code, otherwise

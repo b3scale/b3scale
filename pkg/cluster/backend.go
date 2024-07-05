@@ -38,7 +38,6 @@ var (
 // It has a bbb.backend secret for request authentication,
 // stored in the backend state. The state is shared across all
 // instances.
-//
 type Backend struct {
 	state  *store.BackendState
 	client *bbb.Client
@@ -154,8 +153,10 @@ func (b *Backend) Stress() float64 {
 //   - It is assigned to this backend, everything is well.
 //     Update meeting stats with info retrieved from the backend.
 //   - Otherwise: reassign this meeting to this backend.
+//
 // If the meeting is not in our state:
 //   - Ignore.
+//
 // 2nd pass: for each meeting assigned to backend in store:
 // If the meeting is not present in the backend, remove meeting,
 // from store
@@ -408,7 +409,7 @@ func (b *Backend) Join(
 	// Joining a meeting is a process entirely handled by the
 	// client. Because of a JSESSIONID which is used for preventing
 	// session stealing, just passing through the location response
-	// does not work. The JSESSIONID cookie is not associtated with
+	// does not work. The JSESSIONID cookie is not associated with
 	// the backend domain and thus the sessionToken is not accepted
 	// as valid.
 	req = req.WithBackend(b.state.Backend)
