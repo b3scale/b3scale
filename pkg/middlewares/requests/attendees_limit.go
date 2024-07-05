@@ -2,7 +2,7 @@ package requests
 
 import (
 	"context"
-  "net/http"
+	"net/http"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog/log"
