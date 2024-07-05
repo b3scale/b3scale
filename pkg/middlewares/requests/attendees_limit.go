@@ -33,7 +33,7 @@ func CheckAttendeesLimit() cluster.RequestMiddleware {
 			}
 			defer tx.Rollback(ctx)
 
-			allowed := maybeCheckAttendeesLimit(req, frontend, ctx, tx)
+			allowed := maybeCheckAttendeesLimit(ctx, tx, req, frontend)
 			if !allowed {
 				body := templates.AttendeesLimitReached()
 				res := &bbb.JoinResponse{
@@ -55,7 +55,7 @@ func CheckAttendeesLimit() cluster.RequestMiddleware {
 	}
 }
 
-func maybeCheckAttendeesLimit(req *bbb.Request, fe *cluster.Frontend, ctx context.Context, tx pgx.Tx) bool {
+func maybeCheckAttendeesLimit(ctx context.Context, tx pgx.Tx, req *bbb.Request, fe *cluster.Frontend) bool {
 	opts := fe.Settings().LimitAttendees
 
 	// Are we active?
