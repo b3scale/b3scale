@@ -29,7 +29,7 @@ type DefaultLimitAttendeesSettings struct {
 type FrontendSettings struct {
 	RequiredTags        Tags                           `json:"required_tags" doc:"When selecting a backend for creating a meeting, only consider nodes providing all of the required tags."`
 	DefaultPresentation *DefaultPresentationSettings   `json:"default_presentation"`
-	LimitAttendees      *DefaultLimitAttendeesSettings `json:"limit_attendees,omitempty"`
+	LimitAttendees      *DefaultLimitAttendeesSettings `json:"limit_attendees"`
 
 	CreateDefaultParams  bbb.Params `json:"create_default_params" doc:"Provide key value params, which will be used as a default when a meeting is created. See the BBB api documentation for which params are valid. The param value must be encoded as string."`
 	CreateOverrideParams bbb.Params `json:"create_override_params" doc:"A key value set of params which will override parameters from the frontend when a meeting is created."`
