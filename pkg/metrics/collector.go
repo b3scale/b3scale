@@ -55,13 +55,20 @@ var (
 			// Backend Host
 			"backend",
 		}, nil)
+
+	frontendAttendeesDesc = prometheus.NewDesc(
+		"b3scale_frontend_attendees",
+		"Number of attendees per frontend",
+		[]string{
+			// Frontend Key
+			"frontend",
+		}, nil)
 )
 
 // The Collector will gather metrics from the b3scale
 // cluster about current meetings
 //   - attendees [ frontend, backend, type, meeting ]
 //   - durations [ meeting ]
-//
 type Collector struct{}
 
 // Describe the collector
@@ -122,6 +129,9 @@ func (c Collector) collectMeetingMetrics(
 	feMeetings := map[string]float64{}
 	beMeetings := map[string]float64{}
 
+	// Collect attendees per frontend
+	feAttendees := map[string]float64{}
+
 	// For each meeting count audio and video attendees
 	for _, m := range meetings {
 		var ac, vc float64
@@ -151,6 +161,12 @@ func (c Collector) collectMeetingMetrics(
 			beMeetings[host] = 0
 		}
 		beMeetings[host]++
+
+		// Count attendees per frontend
+		if _, ok := feAttendees[fkey]; !ok {
+			feAttendees[fkey] = 0
+		}
+		feAttendees[fkey] += ac
 
 		duration := time.Now().UTC().Sub(m.CreatedAt)
 
@@ -185,6 +201,13 @@ func (c Collector) collectMeetingMetrics(
 		ch <- prometheus.MustNewConstMetric(
 			backendMeetingsDesc, prometheus.GaugeValue,
 			count, host,
+		)
+	}
+
+	for fkey, count := range feAttendees {
+		ch <- prometheus.MustNewConstMetric(
+			frontendAttendeesDesc, prometheus.GaugeValue,
+			count, fkey,
 		)
 	}
 
