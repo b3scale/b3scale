@@ -18,6 +18,7 @@ import (
 // Well known params
 const (
 	ParamMeetingID = "meetingID"
+	ParamName      = "name"
 	ParamChecksum  = "checksum"
 	ParamRecordID  = "recordID"
 	ParamPublish   = "publish"

@@ -217,6 +217,11 @@ func (res *JoinResponse) SetRaw(data []byte) {
 	res.raw = data
 }
 
+// RawResponse returns the raw response data
+func (res *JoinResponse) RawResponse() []byte {
+	return res.raw
+}
+
 // Marshal encodes a JoinResponse as XML
 func (res *JoinResponse) Marshal() ([]byte, error) {
 	if res.IsRaw() {
