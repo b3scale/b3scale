@@ -126,6 +126,9 @@ func doCallbackRequest(ctx context.Context, url, body string) error {
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse // No redirects.
+		},
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, RequestTimeout)
@@ -148,6 +151,11 @@ func doCallbackRequest(ctx context.Context, url, body string) error {
 		return err
 	}
 	defer res.Body.Close()
+
+	// Check status code
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("received error status code: %d", res.StatusCode)
+	}
 
 	return nil
 }

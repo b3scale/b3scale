@@ -313,7 +313,15 @@ func apiProtectedRecordingsAuth(c echo.Context) error {
 // and re-signed with the secret of the frontend.
 func apiOnRecordingReady(c echo.Context) error {
 	ctx := c.Request().Context()
-	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+
+	// Acquire connection and begin database transaction
+	conn, err := store.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return err
 	}

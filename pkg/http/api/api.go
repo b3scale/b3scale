@@ -141,14 +141,17 @@ func Init(e *echo.Echo) error {
 	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
 	ResourceCtlMigrate.Mount(v1, "/ctrl/migrate")
 
-	// Backend Callbacks
-	v1.GET("/recordings/ready/:token", apiOnRecordingReady)
-
 	// Protected Recordings
 	protected := e.Group("/api/v1/protected")
 	protected.Use(ErrorHandler)
 	protected.GET("/recordings/:token", apiProtectedRecordingsShow)
 	protected.GET("/recordings/auth", apiProtectedRecordingsAuth)
+
+	// Backend Callbacks
+	publicV1 := e.Group("/api/v1")
+	publicV1.Use(ErrorHandler)
+
+	publicV1.POST("/recordings/ready/:token", apiOnRecordingReady)
 
 	return nil
 }
