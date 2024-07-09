@@ -180,6 +180,9 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 	fmt.Println("Settings:")
 	s, _ := json.MarshalIndent(state.Settings, "   ", " ")
 	fmt.Println(string(s))
+	fmt.Println("")
+	fmt.Printf("Frontend URL:    %s/bbb/%s/\n", ctx.String("api"), state.Frontend.Key)
+	fmt.Printf("Frontend Secret: %s\n", state.Frontend.Secret)
 	return nil
 }
 
