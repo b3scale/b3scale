@@ -64,3 +64,20 @@ func TestParseAPITokenInvalid(t *testing.T) {
 		t.Fatal("parse api token should fail with wrong secret")
 	}
 }
+
+func TestClaimsHasScope(t *testing.T) {
+	claims := NewClaims("frontend42").
+		WithScopes(
+			ScopeRecordings,
+			ScopeAdmin)
+
+	if !claims.HasScope(ScopeRecordings) {
+		t.Error("expected scope to be present")
+	}
+	if !claims.HasScope(ScopeAdmin) {
+		t.Error("expected scope to be present")
+	}
+	if claims.HasScope("fnord") {
+		t.Error("expected scope to be not present")
+	}
+}

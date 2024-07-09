@@ -22,6 +22,7 @@ const (
 	ScopeAdmin      = "b3scale:admin"
 	ScopeNode       = "b3scale:node"
 	ScopeRecordings = "b3scale:recordings"
+	ScopeCallback   = "b3scale:callback"
 )
 
 // ErrScopeRequired will be returned when a scope is missing
@@ -59,6 +60,16 @@ func NewClaims(sub string) *Claims {
 // Scopes returns the list of scopes.
 func (c *Claims) Scopes() []string {
 	return strings.Split(c.Scope, " ")
+}
+
+// HasScope checks if the token has a scope
+func (c *Claims) HasScope(scope string) bool {
+	for _, s := range c.Scopes() {
+		if s == scope {
+			return true
+		}
+	}
+	return false
 }
 
 // WithScopes adds a list of scopes to the claims.
