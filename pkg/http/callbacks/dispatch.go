@@ -152,8 +152,8 @@ func doCallbackRequest(ctx context.Context, url, body string) error {
 	}
 	defer res.Body.Close()
 
-	// Check status code
-	if res.StatusCode != http.StatusOK {
+	// Check status code.
+	if res.StatusCode >= 400 {
 		return fmt.Errorf("received error status code: %d", res.StatusCode)
 	}
 
