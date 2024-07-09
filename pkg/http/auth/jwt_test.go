@@ -81,3 +81,68 @@ func TestClaimsHasScope(t *testing.T) {
 		t.Error("expected scope to be not present")
 	}
 }
+
+func TestParseWithAudience(t *testing.T) {
+	token, _ := NewClaims("frontend42").
+		WithAudience("resource42").
+		WithScopes(ScopeRecordings).
+		Sign("secret42")
+
+	claims, err := ParseAPIToken(token, "secret42")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if claims.RegisteredClaims.Subject != "frontend42" {
+		t.Error("Expected subject to be frontend42")
+	}
+
+	if claims.Subject() != "frontend42" {
+		t.Error("Expected subject to be frontend42")
+	}
+	if !claims.HasScope(ScopeRecordings) {
+		t.Error("expected scope to be not present")
+	}
+	if claims.Audience() != "resource42" {
+		t.Error("expected audience to be resource42")
+	}
+	t.Log(claims)
+}
+
+func TestParseUnverifiedRaw(t *testing.T) {
+	token, _ := NewClaims("frontend42").
+		WithAudience("resource42").
+		WithScopes(ScopeRecordings).
+		Sign("secret42")
+
+	claims, err := ParseUnverifiedRawToken(token)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(claims)
+}
+
+func TestSignRawToken(t *testing.T) {
+	token, _ := NewClaims("frontend42").
+		Sign("secret42")
+
+	claims, err := ParseUnverifiedRawToken(token)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newToken, err := SignRawToken(claims, "secret42")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ParseAPIToken(newToken, "secret42")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ParseAPIToken("foo", "secret23")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
