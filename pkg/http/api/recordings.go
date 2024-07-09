@@ -12,6 +12,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/auth"
+	"github.com/b3scale/b3scale/pkg/http/callbacks"
 	"github.com/b3scale/b3scale/pkg/store"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -294,6 +295,98 @@ func apiProtectedRecordingsAuth(c echo.Context) error {
 	if recordingState.FrontendID != frontendID {
 		return echo.ErrForbidden
 	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+// OnRecordingReady provides an endpoint, for the backend to
+// call, in case the frontend uses `meta_bbb-recording-ready-url`
+// to signal that the recording is ready.
+//
+// The meeting create API request will be modified, to point to
+// this endpoint.
+//
+// The endpoints accepts a "token" which is a JWT encoding the
+// original bbb-recording-ready-url, which is then called.
+//
+// The received content is a JWT, which needs to be decoded,
+// and re-signed with the secret of the frontend.
+func apiOnRecordingReady(c echo.Context) error {
+	ctx := c.Request().Context()
+	tx, err := store.ConnectionFromContext(ctx).Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	secret := config.MustEnv(config.EnvJWTSecret)
+
+	// Get request token and get frontend and original
+	// callback URL. The token must be signed.
+	rawToken := c.Param("token")
+	token, err := auth.ParseAPIToken(rawToken, secret)
+	if err != nil {
+		return err
+	}
+
+	frontendID := token.Subject()
+	callbackURL := token.Audience()
+
+	if !token.HasScope(auth.ScopeCallback) {
+		return auth.ErrScopeRequired(auth.ScopeCallback)
+	}
+
+	if callbackURL == "" {
+		return fmt.Errorf("callback url is required in request token")
+	}
+
+	// Get frontend and frontend secret
+	frontend, err := store.GetFrontendState(
+		ctx, tx, store.Q().Where(
+			"frontends.id = ?", frontendID))
+	if err != nil {
+		return err
+	}
+	if frontend == nil {
+		return fmt.Errorf("could not find frontend")
+	}
+
+	feSecret := frontend.Frontend.Secret
+
+	// Read request body form data. The token will be in the
+	// `signed_parameters` field.
+	req := &callbacks.OnRecordingReady{}
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	if err := req.Validate(); err != nil {
+		return err
+	}
+
+	// Decode JWT. We do not care about the signature,
+	// the secret varries by backend. We reissue the token
+	// with the frontend secret.
+	//
+	// This is ok, because the request is authenticated
+	// with the token in the URL and the callback POST
+	// from the backend will include this token.
+	cbClaims, err := auth.ParseUnverifiedRawToken(
+		req.SignedParameters,
+	)
+	if err != nil {
+		return err
+	}
+	cbToken, err := auth.SignRawToken(cbClaims, feSecret)
+	if err != nil {
+		return err
+	}
+
+	// Invoke callback. This will happen in the background.
+	callbacks.Dispatch(callbacks.NewRequest(
+		callbackURL,
+		&callbacks.OnRecordingReady{
+			SignedParameters: cbToken,
+		}))
 
 	return c.NoContent(http.StatusOK)
 }

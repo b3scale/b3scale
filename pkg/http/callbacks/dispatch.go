@@ -28,12 +28,16 @@ type Request struct {
 	Callback Callback
 }
 
+// NewRequest creates a new request.
+func NewRequest(url string, cb Callback) *Request {
+	return &Request{
+		URL:      url,
+		Callback: cb,
+	}
+}
+
 // Dispatch creates a new http client instance and makes a
 // request to the callback URL.
-//
-// For now I assume that the method is always POST. In case
-// this assumption does not hold, we need to move the actual
-// invocation to the callback object.
 //
 // Each dispatch will spawn a new goroutine. This is a naive
 // implementation and might need to be moved to a worker pool.
@@ -58,10 +62,17 @@ func runCallback(ctx context.Context, req *Request) error {
 	// Encode request body.
 	body := req.Callback.Encode()
 
+	// Request with backoff
 	for i := 1; i <= RetryCount; i++ {
+		// Check if context is ok. We can not garantee
+		// that Background is used.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		// Make request
 		tReq := time.Now()
-		log.Info().
+		log.Debug().
 			Int("try", i).
 			Str("url", req.URL).
 			Msg("dispatching callback")
@@ -101,6 +112,10 @@ func runCallback(ctx context.Context, req *Request) error {
 }
 
 // Do the actual request to the callback URL.
+//
+// For now I assume that the method is always POST. In case
+// this assumption does not hold, we need to move the actual
+// invocation to the callback object.
 func doCallbackRequest(ctx context.Context, url, body string) error {
 	client := http.DefaultClient
 	ctx, cancel := context.WithTimeout(ctx, RequestTimeout)

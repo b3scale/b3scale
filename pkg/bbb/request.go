@@ -25,6 +25,8 @@ const (
 	ParamState     = "state"
 
 	ParamDisabledFeatures = "disabledFeatures"
+
+	MetaParamRecordingReadyURL = "meta_bbb-recording-ready-url"
 )
 
 var (

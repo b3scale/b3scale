@@ -28,6 +28,12 @@ func main() {
 	quit := make(chan bool)
 	banner() // Most important.
 
+	// Ensure all required configuration is present
+	if err := config.CheckEnv(); err != nil {
+		log.Fatal().Err(err).Msg("configuration incomplete")
+		return
+	}
+
 	// Config
 	listenHTTP := config.EnvOpt(config.EnvListenHTTP, config.EnvListenHTTPDefault)
 	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
@@ -109,6 +115,7 @@ func main() {
 	gateway.Use(requests.SetDefaultPresentation())
 	gateway.Use(requests.SetCreateParams())
 	gateway.Use(requests.BindMeetingFrontend())
+	gateway.Use(requests.RewriteMetaCallbackURLs())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 
 	// Start cluster controller
