@@ -370,7 +370,7 @@ func apiOnRecordingReady(c echo.Context) error {
 	}
 
 	// Decode JWT. We do not care about the signature,
-	// the secret varries by backend. We reissue the token
+	// the secret varies by backend. We reissue the token
 	// with the frontend secret.
 	//
 	// This is ok, because the request is authenticated

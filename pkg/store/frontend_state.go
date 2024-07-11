@@ -38,7 +38,7 @@ func InitFrontendState(init *FrontendState) *FrontendState {
 	return init
 }
 
-// GetFrontendStates retrievs all frontend states from
+// GetFrontendStates retrieves all frontend states from
 // the database.
 func GetFrontendStates(
 	ctx context.Context,

@@ -1,3 +1,9 @@
+1.1.1 - 2024-07-??
+* b3scaled: rewrite meta_ callback url for recording ready
+* b3scalectl: create meetings for frontend for testing purposes
+* b3scalectl: show frontend URL and secret in 'show frontend <frontend>'
+* Updated dependencies
+
 1.1.0 - 2024-06-25
 * b3scaled: support for *protected recordings*.
 * b3scaled: support for other recording formats.
