@@ -141,7 +141,7 @@ func ParseAPIToken(data, secret string) (*Claims, error) {
 	return claims, nil
 }
 
-// ParseUnvalidatedRawToken decodes a token without validating it.
+// ParseUnverifiedRawToken decodes a token without validating it.
 func ParseUnverifiedRawToken(data string) (jwt.MapClaims, error) {
 	parser := jwt.NewParser()
 	token, _, err := parser.ParseUnverified(data, jwt.MapClaims{})
