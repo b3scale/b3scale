@@ -13,6 +13,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/http/callbacks"
+	"github.com/b3scale/b3scale/pkg/middlewares/requests"
 	"github.com/b3scale/b3scale/pkg/store"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -310,9 +311,10 @@ func apiProtectedRecordingsAuth(c echo.Context) error {
 // original bbb-recording-ready-url, which is then called.
 //
 // The received content is a JWT, which needs to be decoded,
-// and re-signed with the secret of the frontend.
+// and signed with the secret of the frontend.
 func apiOnRecordingReady(c echo.Context) error {
 	ctx := c.Request().Context()
+	secret := config.MustEnv(config.EnvJWTSecret)
 
 	// Acquire connection and begin database transaction
 	conn, err := store.Acquire(ctx)
@@ -326,8 +328,6 @@ func apiOnRecordingReady(c echo.Context) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-
-	secret := config.MustEnv(config.EnvJWTSecret)
 
 	// Get request token and get frontend and original
 	// callback URL. The token must be signed.
@@ -359,8 +359,6 @@ func apiOnRecordingReady(c echo.Context) error {
 		return fmt.Errorf("could not find frontend")
 	}
 
-	feSecret := frontend.Frontend.Secret
-
 	// Read request body form data. The token will be in the
 	// `signed_parameters` field.
 	req := &callbacks.OnRecordingReady{}
@@ -378,12 +376,24 @@ func apiOnRecordingReady(c echo.Context) error {
 	// This is ok, because the request is authenticated
 	// with the token in the URL and the callback POST
 	// from the backend will include this token.
-	cbClaims, err := auth.ParseUnverifiedRawToken(
-		req.SignedParameters,
-	)
+	cbClaims, err := auth.ParseUnverifiedRawToken(req.SignedParameters)
 	if err != nil {
 		return err
 	}
+
+	// The payload contains a `meeting_id` parameters, which
+	// needs to be rewritten.
+	cbMeetingID, ok := cbClaims["meeting_id"].(string)
+	if !ok {
+		return fmt.Errorf("meeting_id not found in JWT payload")
+	}
+	fkmID := requests.DecodeFrontendKeyMeetingID(cbMeetingID)
+	if fkmID == nil {
+		return fmt.Errorf("could not decode meetingID")
+	}
+	cbClaims["meeting_id"] = fkmID.MeetingID
+
+	feSecret := frontend.Frontend.Secret
 	cbToken, err := auth.SignRawToken(cbClaims, feSecret)
 	if err != nil {
 		return err
