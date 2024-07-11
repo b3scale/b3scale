@@ -219,6 +219,29 @@ func NewCli() *Cli {
 				Action: c.exportOpenAPISchema,
 			},
 			{
+				Name:    "create-meeting",
+				Aliases: []string{"cm"},
+				Usage:   "create a meeting for a frontend",
+				Action:  c.createMeeting,
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Required: true,
+						Name:     "frontend",
+						Usage:    "the frontend to create the meeting for",
+					},
+					&cli.StringFlag{
+						Required: false,
+						Name:     "name",
+						Usage:    "name of the room. otherwise a random name will be generated.",
+					},
+
+					&cli.StringSliceFlag{
+						Name:  "param",
+						Usage: "key=value pairs to be passed to the meeting create request.",
+					},
+				},
+			},
+			{
 				Name:  "db",
 				Usage: "control database operations on the server",
 				Subcommands: []*cli.Command{

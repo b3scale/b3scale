@@ -147,6 +147,12 @@ func Init(e *echo.Echo) error {
 	protected.GET("/recordings/:token", apiProtectedRecordingsShow)
 	protected.GET("/recordings/auth", apiProtectedRecordingsAuth)
 
+	// Backend Callbacks
+	publicV1 := e.Group("/api/v1")
+	publicV1.Use(ErrorHandler)
+
+	publicV1.POST("/recordings/ready/:token", apiOnRecordingReady)
+
 	return nil
 }
 
