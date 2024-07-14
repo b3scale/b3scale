@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"strings"
 
 	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
@@ -14,11 +13,10 @@ import (
 // hostname. The hostname must be an exact match.
 func BackendFromQuery(
 	ctx context.Context,
-	api *API,
 	tx pgx.Tx,
+	id string,
+	host string,
 ) (*store.BackendState, error) {
-	id := strings.TrimSpace(api.QueryParam("backend_id"))
-	host := strings.TrimSpace(api.QueryParam("backend_host"))
 
 	hasQuery := false
 	q := store.Q()

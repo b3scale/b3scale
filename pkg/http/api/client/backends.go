@@ -13,7 +13,7 @@ func Backends(id ...string) string {
 	return Resource("backends", id)
 }
 
-// BackendsList retrievs a list of backends from the server
+// BackendsList retrieves a list of backends from the server
 func (c *Client) BackendsList(
 	ctx context.Context,
 	query ...url.Values,
