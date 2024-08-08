@@ -270,6 +270,10 @@ Unset a value with explicit null:
 
     b3scalectl set frontend -j '{"default_presentation": {"url": "https://..."}}' frontend1
 
+### Configure a limit on overall attendees
+
+    b3scalectl set frontend -j '{"limit_attendees": {"limit": 50}}' frontend1
+
 ### Configure create parameter *defaults* and *overrides*
 
 An *override* will replace the parameter of the request.

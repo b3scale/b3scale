@@ -18,6 +18,9 @@ var (
 	//go:embed html/meeting-not-found.html
 	tmplMeetingNotFoundHTML string
 
+	//go:embed html/attendees-limit-reached.html
+	tmplAttendeesLimitReachedHTML string
+
 	//go:embed html/error-page.html
 	tmplErrorPageHTML string
 
@@ -27,6 +30,7 @@ var (
 	tmplRedirect                *template.Template
 	tmplRetryJoin               *template.Template
 	tmplMeetingNotFound         *template.Template
+	tmplAttendeesLimitReached   *template.Template
 	tmplErrorPage               *template.Template
 	tmplDefaultPresentationBody *template.Template
 )
@@ -37,6 +41,8 @@ func init() {
 	tmplRetryJoin, _ = template.New("retry_join").Parse(tmplRetryJoinHTML)
 	tmplMeetingNotFound, _ = template.New("meeting_not_found").
 		Parse(tmplMeetingNotFoundHTML)
+	tmplAttendeesLimitReached, _ = template.New("attendees_limit_reached").
+		Parse(tmplAttendeesLimitReachedHTML)
 	tmplErrorPage, _ = template.New("error_page").Parse(tmplErrorPageHTML)
 	tmplDefaultPresentationBody, _ = template.New("default_presentation").
 		Parse(tmplDefaultPresentationBodyXML)
@@ -60,6 +66,13 @@ func RetryJoin(url string) []byte {
 func MeetingNotFound() []byte {
 	res := new(bytes.Buffer)
 	tmplMeetingNotFound.Execute(res, nil)
+	return res.Bytes()
+}
+
+// AttendeesLimitReached applies the attendees limit reached template
+func AttendeesLimitReached() []byte {
+	res := new(bytes.Buffer)
+	tmplAttendeesLimitReached.Execute(res, nil)
 	return res.Bytes()
 }
 
