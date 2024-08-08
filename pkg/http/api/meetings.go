@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -46,17 +47,23 @@ func apiMeetingsList(
 	}
 	defer tx.Rollback(ctx)
 
-	backend, err := BackendFromQuery(ctx, api, tx)
-	if err != nil {
-		return err
-	}
-
-	if backend == nil {
-		return echo.ErrNotFound
-	}
+	id := strings.TrimSpace(api.QueryParam("backend_id"))
+	host := strings.TrimSpace(api.QueryParam("backend_host"))
 
 	// Begin Query
-	q := store.Q().Where("backend_id = ?", backend.ID)
+	q := store.Q()
+
+	if id != "" || host != "" {
+		backend, err := BackendFromQuery(ctx, tx, id, host)
+		if err != nil {
+			return err
+		}
+		if backend == nil {
+			return echo.ErrNotFound
+		}
+		q = q.Where("backend_id = ?", backend.ID)
+	}
+
 	meetings, err := store.GetMeetingStates(ctx, tx, q)
 	if err != nil {
 		return err

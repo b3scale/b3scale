@@ -69,6 +69,11 @@ func NewCli() *Cli {
 						Action:       c.showFrontend,
 						BashComplete: c.completeFrontend,
 					},
+					{
+						Name:   "meetings",
+						Usage:  "show running meetings",
+						Action: c.showMeetings,
+					},
 				},
 			},
 			{
