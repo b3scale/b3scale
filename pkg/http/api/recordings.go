@@ -87,6 +87,48 @@ func apiRecordingsImport(
 	}
 	defer tx.Rollback(ctx)
 
+	// Get override frontend from request:
+	// Sometimes we need to import a legacy recording for a new
+	// frontend. In this case, we need to rewrite the meetingID
+	// to the new frontend.
+	// Use override_originial_meeting_id to associate the
+	// recording with a different meetingID.
+	meetingIDOverride := api.QueryParam("override_original_meeting_id")
+	if meetingIDOverride != "" {
+		rec.MeetingID = meetingIDOverride
+	}
+	frontendKeyOverride := api.QueryParam("override_frontend_key")
+	if frontendKeyOverride != "" {
+		log.Info().
+			Str("override_frontend_key", frontendKeyOverride).
+			Str("override_original_meeting_id", rec.MeetingID).
+			Msg("importing recording with override")
+
+		state, err := store.GetFrontendStateByKey(ctx, tx, frontendKeyOverride)
+		if err != nil {
+			return err
+		}
+		feID := state.ID
+		feKey := state.Frontend.Key
+
+		// Rewrite meetingID
+		meetingID := (&requests.FrontendKeyMeetingID{
+			FrontendKey: feKey,
+			MeetingID:   rec.MeetingID,
+		}).EncodeToString()
+		rec.MeetingID = meetingID
+
+		// Update meetingID in recording and register meeting
+		// if not present with the frontend.
+		mapping := &store.MeetingState{
+			FrontendID: &feID,
+			ID:         meetingID,
+		}
+		if err := mapping.UpdateFrontendMeetingMapping(ctx, tx); err != nil {
+			return err
+		}
+	}
+
 	state := store.NewStateFromRecording(rec)
 
 	// Check if recording exists, if so merge it with the new
