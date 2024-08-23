@@ -69,6 +69,8 @@ func (h *EventHandler) Dispatch(ctx context.Context, e bbb.Event) error {
 		return h.onUserJoinedMeeting(ctx, e.(*bbb.UserJoinedMeetingEvent))
 	case *bbb.UserLeftMeetingEvent:
 		return h.onUserLeftMeeting(ctx, e.(*bbb.UserLeftMeetingEvent))
+	case *bbb.RecordingStatusEvent:
+		return h.onRecordingStatus(ctx, e.(*bbb.RecordingStatusEvent))
 
 	default:
 		log.Error().
@@ -173,6 +175,31 @@ func (h *EventHandler) onUserLeftMeeting(
 		ctx, api.RPCMeetingRemoveAttendee(&api.MeetingRemoveAttendeeRequest{
 			InternalMeetingID: e.InternalMeetingID,
 			InternalUserID:    e.InternalUserID,
+		}))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// handle event: RecordingStatusEvent
+func (h *EventHandler) onRecordingStatus(
+	ctx context.Context,
+	e *bbb.RecordingStatusEvent,
+) error {
+	log.Info().
+		Str("meetingId", e.InternalMeetingID).
+		Str("userId", e.InternalUserID).
+		Bool("recording", e.Recording).
+		Msg("recording status")
+
+	_, err := h.api.AgentRPC(
+		ctx, api.RPCMeetingUpdateRecordingStatus(&api.MeetingUpdateRecordingStatusRequest{
+			InternalMeetingID: e.InternalMeetingID,
+			// TODO: Remove?
+			InternalUserID: e.InternalUserID,
+			Recording:      e.Recording,
 		}))
 	if err != nil {
 		return err

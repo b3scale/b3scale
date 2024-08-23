@@ -55,6 +55,18 @@ var (
 			// Backend Host
 			"backend",
 		}, nil)
+
+	recordingEventsDesc = prometheus.NewDesc(
+		"b3scale_recording_events",
+		"Recording events the cluster",
+		[]string{
+			// Frontend Key
+			"frontend",
+			// Backend Host
+			"backend",
+			// MeetingID
+			"meeting",
+		}, nil)
 )
 
 // The Collector will gather metrics from the b3scale
@@ -68,6 +80,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- meetingAttendeesDesc
 	ch <- meetingDurationsDesc
 	ch <- frontendMeetingsDesc
+	ch <- recordingEventsDesc
 }
 
 // Collect metrics from store
@@ -162,6 +175,15 @@ func (c Collector) collectMeetingMetrics(
 		ch <- prometheus.MustNewConstMetric(
 			meetingAttendeesDesc, prometheus.GaugeValue,
 			vc, fkey, host, "video", m.ID,
+		)
+		// Recording status
+		recording := 0.0
+		if m.Meeting.Recording {
+			recording = 1.0
+		}
+		ch <- prometheus.MustNewConstMetric(
+			recordingEventsDesc, prometheus.GaugeValue,
+			recording, fkey, host, m.ID,
 		)
 
 		// If meeting is running, we log the duration

@@ -34,6 +34,13 @@ type UserLeftMeetingEvent struct {
 	InternalID        string
 }
 
+// RecordingStatusEvent updates the recording status of a meeting
+type RecordingStatusEvent struct {
+	InternalMeetingID string
+	InternalUserID    string
+	Recording         bool
+}
+
 // BreakoutRoomStartedEvent indicates the start of a breakout room
 type BreakoutRoomStartedEvent struct {
 	ParentInternalMeetingID string

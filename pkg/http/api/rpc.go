@@ -96,10 +96,11 @@ func RPCSuccess(result RPCResult) *RPCResponse {
 
 // Actions
 const (
-	ActionMeetingStateReset     = "meeting_state_reset"
-	ActionMeetingSetRunning     = "meeting_set_running"
-	ActionMeetingAddAttendee    = "meeting_add_attendee"
-	ActionMeetingRemoveAttendee = "meeting_remove_attendee"
+	ActionMeetingStateReset            = "meeting_state_reset"
+	ActionMeetingSetRunning            = "meeting_set_running"
+	ActionMeetingAddAttendee           = "meeting_add_attendee"
+	ActionMeetingRemoveAttendee        = "meeting_remove_attendee"
+	ActionMeetingUpdateRecordingStatus = "meeting_update_recording_status"
 )
 
 // Payloads
@@ -129,6 +130,13 @@ type MeetingRemoveAttendeeRequest struct {
 	InternalUserID    string `json:"internal_user_id"`
 }
 
+// MeetingUpdateRecordingStatusRequest will update the recording status
+type MeetingUpdateRecordingStatusRequest struct {
+	InternalMeetingID string `json:"internal_meeting_id"`
+	InternalUserID    string `json:"internal_user_id"`
+	Recording         bool   `json:"recording"`
+}
+
 // Action Creators
 
 // RPCMeetingStateReset creates an meeting state reset request
@@ -149,6 +157,11 @@ func RPCMeetingAddAttendee(params *MeetingAddAttendeeRequest) *RPCRequest {
 // RPCMeetingRemoveAttendee creates a remove attendee request
 func RPCMeetingRemoveAttendee(params *MeetingRemoveAttendeeRequest) *RPCRequest {
 	return NewRPCRequest(ActionMeetingRemoveAttendee, params)
+}
+
+// RPCMeetingUpdateRecordingStatus creates a remove attendee request
+func RPCMeetingUpdateRecordingStatus(params *MeetingUpdateRecordingStatusRequest) *RPCRequest {
+	return NewRPCRequest(ActionMeetingUpdateRecordingStatus, params)
 }
 
 // Dispatch will invoke the RPC handlers with the decoded
@@ -188,6 +201,13 @@ func (rpc *RPCRequest) Dispatch(
 			return RPCError(err)
 		}
 		result, err = handler.MeetingRemoveAttendee(ctx, req)
+
+	case ActionMeetingUpdateRecordingStatus:
+		req := &MeetingUpdateRecordingStatusRequest{}
+		if err := json.Unmarshal(rpc.Payload, &req); err != nil {
+			return RPCError(err)
+		}
+		result, err = handler.MeetingUpdateRecordingStatus(ctx, req)
 
 	default:
 		err = ErrInvalidAction
@@ -345,6 +365,46 @@ func (rpc *RPCHandler) MeetingRemoveAttendee(
 		filtered = append(filtered, a)
 	}
 	meeting.Meeting.Attendees = filtered
+
+	if err := meeting.Save(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// MeetingUpdateRecordingStatus removes an attendee from the list
+func (rpc *RPCHandler) MeetingUpdateRecordingStatus(
+	ctx context.Context,
+	req *MeetingUpdateRecordingStatusRequest,
+) (RPCResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	meeting, tx, err := store.AwaitMeetingState(ctx, rpc.Conn, store.Q().
+		Where("meetings.backend_id = ?", rpc.Backend.ID).
+		Where("meetings.internal_id = ?", req.InternalMeetingID))
+	if errors.Is(err, context.DeadlineExceeded) {
+		rpc.logMeetingNotFound(req.InternalMeetingID)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Update state
+	// TODO: Remove
+	log.Debug().
+		Str("agent", rpc.AgentRef).
+		Str("backend", rpc.Backend.Backend.Host).
+		Str("backend_id", rpc.Backend.ID).
+		Str("internal_meeting_id", req.InternalMeetingID).
+		Str("internal_user_id", req.InternalUserID).
+		Bool("recording", req.Recording).
+		Msg("recording status updated")
+	meeting.Meeting.Recording = req.Recording
 
 	if err := meeting.Save(ctx, tx); err != nil {
 		return nil, err
