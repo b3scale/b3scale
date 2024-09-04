@@ -56,7 +56,7 @@ func CheckAttendeesLimit() cluster.RequestMiddleware {
 }
 
 func maybeCheckAttendeesLimit(ctx context.Context, tx pgx.Tx, req *bbb.Request, fe *cluster.Frontend) bool {
-	opts := fe.Settings().LimitAttendees
+	opts := fe.Settings().AttendeesLimit
 
 	// Are we active?
 	if opts == nil || opts.Limit == 0 {

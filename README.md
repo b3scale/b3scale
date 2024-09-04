@@ -272,7 +272,7 @@ Unset a value with explicit null:
 
 ### Configure a limit on overall attendees
 
-    b3scalectl set frontend -j '{"limit_attendees": {"limit": 50}}' frontend1
+    b3scalectl set frontend -j '{"attendees_limit": {"limit": 50}}' frontend1
 
 ### Configure create parameter *defaults* and *overrides*
 
