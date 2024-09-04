@@ -2,3 +2,6 @@
 db/
 log/
 storage/
+
+.env
+.envtest

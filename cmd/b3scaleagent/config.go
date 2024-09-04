@@ -41,7 +41,7 @@ func configRedisURL(conf config.Properties) string {
 		pass, host, port)
 }
 
-// Make a bbb BackenState from a BBB config
+// Make a bbb BackendState from a BBB config
 func backendFromConfig(
 	conf config.Properties,
 ) (*store.BackendState, error) {

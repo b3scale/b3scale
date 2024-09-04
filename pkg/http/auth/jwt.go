@@ -22,6 +22,7 @@ const (
 	ScopeAdmin      = "b3scale:admin"
 	ScopeNode       = "b3scale:node"
 	ScopeRecordings = "b3scale:recordings"
+	ScopeCallback   = "b3scale:callback"
 )
 
 // ErrScopeRequired will be returned when a scope is missing
@@ -56,9 +57,36 @@ func NewClaims(sub string) *Claims {
 	}
 }
 
+// Subject returns the subject of the claims
+func (c *Claims) Subject() string {
+	return c.RegisteredClaims.Subject
+}
+
+// Audience returns the audience of the claims
+func (c *Claims) Audience() string {
+	if c.RegisteredClaims.Audience == nil {
+		return ""
+	}
+	if len(c.RegisteredClaims.Audience) == 0 {
+		return ""
+	}
+
+	return c.RegisteredClaims.Audience[0]
+}
+
 // Scopes returns the list of scopes.
 func (c *Claims) Scopes() []string {
 	return strings.Split(c.Scope, " ")
+}
+
+// HasScope checks if the token has a scope
+func (c *Claims) HasScope(scope string) bool {
+	for _, s := range c.Scopes() {
+		if s == scope {
+			return true
+		}
+	}
+	return false
 }
 
 // WithScopes adds a list of scopes to the claims.
@@ -99,7 +127,7 @@ func (c *Claims) Sign(secret string) (string, error) {
 }
 
 // ParseAPIToken validates and parses a JWT token.
-func ParseAPIToken(data string, secret string) (*Claims, error) {
+func ParseAPIToken(data, secret string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(data, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 		return []byte(secret), nil
 	})
@@ -111,6 +139,30 @@ func ParseAPIToken(data string, secret string) (*Claims, error) {
 		return nil, errors.New("invalid token claims")
 	}
 	return claims, nil
+}
+
+// ParseUnverifiedRawToken decodes a token without validating it.
+func ParseUnverifiedRawToken(data string) (jwt.MapClaims, error) {
+	parser := jwt.NewParser()
+	token, _, err := parser.ParseUnverified(data, jwt.MapClaims{})
+	if err != nil {
+		return nil, err
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+	return claims, nil
+}
+
+// SignRawToken creates a token with map claims signed with
+// a secret using the HS256 signing method, because the BBB
+// API specifies this:
+//
+// https://docs.bigbluebutton.org/development/api/#recording-ready-callback-url
+func SignRawToken(claims jwt.MapClaims, secret string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
 }
 
 // NewJWTAuthMiddleware creates a new instance of the

@@ -49,6 +49,26 @@ func LoadEnv(envfiles []string) {
 	}
 }
 
+// CheckEnv checks if the environment is configured
+func CheckEnv() error {
+	missing := []string{}
+
+	if _, ok := GetEnvOpt(EnvAPIURL); !ok {
+		missing = append(missing, EnvAPIURL)
+	}
+
+	if _, ok := GetEnvOpt(EnvJWTSecret); !ok {
+		missing = append(missing, EnvJWTSecret)
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing environment variables: %s",
+			strings.Join(missing, ", "))
+	}
+
+	return nil
+}
+
 // Internal load a single env file
 func loadEnvFile(filename string) {
 	f, err := os.Open(filename)
