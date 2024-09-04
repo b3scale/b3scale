@@ -43,6 +43,14 @@ Parameters ([see documentation](https://docs.bigbluebutton.org/development/api#c
 "create_override_params":{"disabledFeatures":"learningDashboard","record":"false"}
 ```
 
+###  `attendees_limit`
+
+```JSON
+"attendees_limit": {"limit": 50}
+```
+
+Configures an overall limit on attendees for the frontend.
+
 ## Using a frontend
 
 To test the frontend, you can use `https://mconf.github.io/api-mate/`. Use `https://api.bbb.example.org/bbb/my-frontend/bigbluebutton/api` as the link and the secret. You can also use this URL for Greenlight or other frontends.
