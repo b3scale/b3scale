@@ -11,7 +11,7 @@ require (
 	github.com/labstack/echo-contrib v0.17.1
 	github.com/labstack/echo-jwt/v4 v4.2.0
 	github.com/labstack/echo/v4 v4.12.0
-	github.com/prometheus/client_golang v1.20.2
+	github.com/prometheus/client_golang v1.20.3
 	github.com/rs/zerolog v1.33.0
 	github.com/urfave/cli/v2 v2.27.4
 	golang.org/x/net v0.28.0
