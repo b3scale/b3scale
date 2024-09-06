@@ -256,7 +256,6 @@ func (c *Cli) disableFrontend(ctx *cli.Context) error {
 		return nil
 	}
 
-  fmt.Println("came here")
 	fmt.Println("disable frontend:", state.ID)
   state.Active = false
   _, err = client.FrontendUpdate(ctx.Context, state)
