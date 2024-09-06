@@ -177,6 +177,11 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("Frontend:", state.Frontend.Key)
+  if !state.Active {
+    fmt.Println("Disabled")
+  } else {
+    fmt.Println("Enabled")
+  }
 	fmt.Println("Settings:")
 	s, _ := json.MarshalIndent(state.Settings, "   ", " ")
 	fmt.Println(string(s))
