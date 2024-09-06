@@ -25,7 +25,7 @@ started in 2020 to provide multiple features not possible before:
     * Retire backends for updates
     * Powerful tagging system allows for friendly user testing, experiments and
       assignments depending on expected customer load
-  * *True load-awareness*: using reports from the `b3scalenoded` agent, b3scale
+  * *True load-awareness*: using reports from the `b3scaleagent`, b3scale
     can schedule meetings more efficiently
   * *Easy deployment*: b3scale is written in Go: no dependencies, just deploy a
     single binary
@@ -54,14 +54,10 @@ running meetings. It will only remove the node from consideration for new
 meetings. This way, backend nodes can be drained e.g. in preparation for
 scheduled maintenance.
 
-For backends nodes, b3scale provides `b3scalenoded`, an agent for backend nodes
+For backends nodes, b3scale provides `b3scaleagent`, an process for backend nodes
 that monitors certain parameters straight from redis and reports them to
 b3scale in an inexpensive, resource conserving fashion.
 
-*DEPRECATION NOTICE:*
-The `b3scalenoded` will be deprecated in favour of the `b3scaleagent`,
-which does the same thing, but uses the HTTP API.
- 
 Please note, that the agents need unique access tokens for each
 backend.
 
@@ -85,7 +81,6 @@ b3scale daemons are configured through environment variables and do not use a co
 
 * [Environment for b3scaled](examples/example.env.b3scaled)
 * [Environment for b3scaleagent](examples/example.env.b3scaleagent)
-* [Environment for b3scalenoded](examples/example.env.b3scalenoded)
 
 Find more documentation below.
 
@@ -105,7 +100,7 @@ Find more documentation below.
     ### Example URL
     `postgres://jack:secret@pg.example.com:5432/mydb?sslmode=verify-ca`
 
-    (b3scaled and b3scalenoded only)
+    (b3scaled only)
 
  * `B3SCALE_DB_POOL_SIZE` the number of maximum parallel connections
     we will allocate. Please note that one connection per request will
@@ -128,17 +123,14 @@ Find more documentation below.
   * `B3SCALE_LOG_FORMAT` choose between `plain` or `structured` logging.
      The default is `structured` and will emit JSON on stderr.
 
-Same applies for the `b3scalenoded`, however only `B3SCALE_DB_URL`
-is required.
-
-The `b3scalenoded` and `b3scaleagent` read from the same configuration as BigBlueButton, the environment variable for the file is:
+`b3scaleagent` reads from the same configuration as BigBlueButton, the environment variable for the file is:
 
  * `BBB_CONFIG`, which defaults to:
     `/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties`
    You probably want to specify the override file instead:
     `/etc/bigbluebutton/bbb-web.properties`
 
-This file must be readable for the b3scalenoded.
+This file must be readable for the b3scaleagent.
 
  * `B3SCALE_ACCESS_TOKEN` stores the authorized access token for a
     node.
@@ -205,7 +197,7 @@ The load factor of the backend can be set through:
 
 ### Using the node agent
 
-Adding a backend using the node agent `b3scalenoded` / `b3scaleagent`
+Adding a backend using the node agent `b3scaleagent`
 can be as simple as starting it with the `-register` option for autoregistering the
 new node.
 
