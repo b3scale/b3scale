@@ -64,3 +64,17 @@ You can use `set frontend` with `-j` (see "Assigning tags to a frontend") or `--
 ```bash
 b3scalectl --api https://api.bbb.example.org delete frontend my-frontend
 ```
+
+## Disable/Enable a frontend
+
+Frontends can be disabled without removing it completly with:
+
+```bash
+b3scalectl disable frontend my-frontend
+```
+
+Disabled frontends can be enabled again with:
+
+```bash
+$ b3scalectl enable frontend my-frontend
+```
