@@ -1,3 +1,51 @@
+1.1.1 - 2024-07-11
+* b3scaled: rewrite meta_ callback url for recording ready
+* b3scalectl: create meetings for frontend for testing purposes
+* b3scalectl: show frontend URL and secret in 'show frontend <frontend>'
+* docs: document b3scalectl
+* Updated dependencies
+
+1.1.0 - 2024-06-25
+* b3scaled: support for *protected recordings*.
+* b3scaled: support for other recording formats.
+* Update dependencies: JWT middleware and token library upgraded.
+
+1.0.7 - 2024-05-13
+* Fix spelling errors
+* Update dependencies
+
+1.0.6 - 2024-04-11
+
+* b3scaled: remove omitempty for struct handling
+* b3scaled: make checksum error BBB compliant
+* b3scalectl: add descriptions for all first level commands
+* b3scalectl: add shell completion via "b3scalectl completions"
+* Updated dependencies
+
+1.0.5 - 2024-03-05
+
+* Updated to golang 1.22
+* Updated dependencies
+
+1.0.4 - 2024-02-19
+
+* feat: allow reading API from env
+* Updated dependencies
+
+1.0.3 - 2023-11-15
+
+* Debian packages
+* Container image for b3scaled
+* Updated dependencies
+* New documentation (#9)
+* Fix incorrect integer conversions
+* Fix error when deleting recordings (#38)
+* Change default bbb-web property location for b3scaleagent,b3scalenode (#35)
+
+1.0.2 - 2023-04-24
+
+* Fixed meeting stats are destroyed by calling BBB create endpoint multiple times
+
 1.0.1 - 2023-01-23
 
 * Fixed broken DB connection in recordings import endpoint 

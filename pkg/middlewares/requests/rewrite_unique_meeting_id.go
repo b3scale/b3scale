@@ -92,6 +92,12 @@ func maybeRewriteMeetingsCollection(c []*bbb.Meeting) []*bbb.Meeting {
 
 func maybeRewriteRecording(r *bbb.Recording) *bbb.Recording {
 	r.MeetingID = maybeDecodeMeetingID(r.MeetingID)
+
+	// Also update recording metadata
+	if r.Metadata != nil {
+		r.Metadata["meetingId"] = r.MeetingID
+	}
+
 	return r
 }
 

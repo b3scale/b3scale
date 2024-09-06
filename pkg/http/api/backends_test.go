@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -39,7 +40,7 @@ func createTestBackend(
 
 func TestBackendsList(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		Context()
 	defer api.Release()
 
@@ -60,7 +61,7 @@ func TestBackendsList(t *testing.T) {
 
 func TestBackendCreate(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		JSON(map[string]interface{}{
 			"bbb": map[string]interface{}{
 				"host":   "http://testhost",
@@ -84,7 +85,7 @@ func TestBackendCreate(t *testing.T) {
 
 func TestBackendAgentCreate(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("context-defer-apiresource", ScopeNode).
+		Authorize("context-defer-apiresource", auth.ScopeNode).
 		JSON(map[string]interface{}{
 			"bbb": map[string]interface{}{
 				"host":   "http://testhost",
@@ -110,7 +111,7 @@ func TestBackendAgentCreate(t *testing.T) {
 
 func TestBackendUpdate(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		JSON(map[string]interface{}{
 			"bbb": map[string]interface{}{
 				"host": "http://newhost",
@@ -138,7 +139,7 @@ func TestBackendUpdate(t *testing.T) {
 
 func TestBackendDestroy(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		Context()
 	defer api.Release()
 
@@ -160,7 +161,7 @@ func TestBackendDestroy(t *testing.T) {
 
 func TestBackendForceDestroy(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		Query("force=true").
 		Context()
 	defer api.Release()
@@ -183,7 +184,7 @@ func TestBackendForceDestroy(t *testing.T) {
 
 func TestBackendRetrieve(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		Context()
 	defer api.Release()
 

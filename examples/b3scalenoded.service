@@ -1,0 +1,17 @@
+[Unit]
+Description=B3Scale BBB Node Agent
+Documentation=https://github.com/b3scale/b3scale
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+DynamicUser=yes
+EnvironmentFile=-/etc/sysconfig/b3scalenoded
+ExecStart=/usr/bin/b3scalenoded
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target

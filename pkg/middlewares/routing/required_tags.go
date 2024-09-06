@@ -10,8 +10,7 @@ import (
 // RequiredTags filters backends that match required
 // tags defined in the frontend settings by the variables
 //
-//   required_tags = ["sip", "foo"]
-//
+//	required_tags = ["sip", "foo"]
 func RequiredTags(next cluster.RouterHandler) cluster.RouterHandler {
 	return func(
 		ctx context.Context,

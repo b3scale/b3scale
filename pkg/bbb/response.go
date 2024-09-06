@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 )
 
 var (
@@ -216,6 +215,11 @@ func (res *JoinResponse) IsRaw() bool {
 // SetRaw will set a raw content
 func (res *JoinResponse) SetRaw(data []byte) {
 	res.raw = data
+}
+
+// RawResponse returns the raw response data
+func (res *JoinResponse) RawResponse() []byte {
+	return res.raw
 }
 
 // Marshal encodes a JoinResponse as XML
@@ -924,209 +928,4 @@ func (res *PutRecordingTextTrackResponse) SetStatus(s int) {
 // is 'SUCCESS'.
 func (res *PutRecordingTextTrackResponse) IsSuccess() bool {
 	return res.Returncode == RetSuccess
-}
-
-// Breakout info
-type Breakout struct {
-	XMLName         xml.Name `xml:"breakout" json:"-"`
-	ParentMeetingID string   `xml:"parentMeetingID"`
-	Sequence        int      `xml:"sequence"`
-	FreeJoin        bool     `xml:"freeJoin"`
-}
-
-// Attendee of a meeting
-type Attendee struct {
-	XMLName         xml.Name `xml:"attendee" json:"-"`
-	UserID          string   `xml:"userID"`
-	InternalUserID  string   `xml:"internalUserID,omit"`
-	FullName        string   `xml:"fullName"`
-	Role            string   `xml:"role"`
-	IsPresenter     bool     `xml:"isPresenter"`
-	IsListeningOnly bool     `xml:"isListeningOnly"`
-	HasJoinedVoice  bool     `xml:"hasJoinedVoice"`
-	HasVideo        bool     `xml:"hasVideo"`
-	ClientType      string   `xml:"clientType"`
-}
-
-// Meeting information
-type Meeting struct {
-	XMLName               xml.Name  `xml:"meeting" json:"-"`
-	MeetingName           string    `xml:"meetingName"`
-	MeetingID             string    `xml:"meetingID"`
-	InternalMeetingID     string    `xml:"internalMeetingID"`
-	CreateTime            Timestamp `xml:"createTime"`
-	CreateDate            string    `xml:"createDate"`
-	VoiceBridge           string    `xml:"voiceBridge"`
-	DialNumber            string    `xml:"dialNumber"`
-	AttendeePW            string    `xml:"attendeePW"`
-	ModeratorPW           string    `xml:"moderatorPW"`
-	Running               bool      `xml:"running"`
-	Duration              int       `xml:"duration"`
-	Recording             bool      `xml:"recording"`
-	HasBeenForciblyEnded  bool      `xml:"hasBeenForciblyEnded"`
-	StartTime             Timestamp `xml:"startTime"`
-	EndTime               Timestamp `xml:"endTime"`
-	ParticipantCount      int       `xml:"participantCount"`
-	ListenerCount         int       `xml:"listenerCount"`
-	VoiceParticipantCount int       `xml:"voiceParticipantCount"`
-	VideoCount            int       `xml:"videoCount"`
-	MaxUsers              int       `xml:"maxUsers"`
-	ModeratorCount        int       `xml:"moderatorCount"`
-	IsBreakout            bool      `xml:"isBreakout"`
-
-	Metadata Metadata `xml:"metadata"`
-
-	Attendees     []*Attendee `xml:"attendees>attendee"`
-	BreakoutRooms []string    `xml:"breakoutRooms>breakout"`
-	Breakout      *Breakout   `xml:"breakout"`
-}
-
-func (m *Meeting) String() string {
-	return fmt.Sprintf(
-		"[Meeting id: %v, pc: %v, mc: %v, running: %v]",
-		m.MeetingID, m.ParticipantCount, m.ModeratorCount, m.Running,
-	)
-}
-
-// Update the meeting info with new data
-func (m *Meeting) Update(update *Meeting) error {
-	if m.MeetingID != update.MeetingID {
-		return fmt.Errorf("meeting ids do not match for update")
-	}
-	if m.InternalMeetingID != update.InternalMeetingID {
-		return fmt.Errorf("internal ids do not match for update")
-	}
-	/*
-
-		if len(update.MeetingName) > 0 {
-			m.MeetingName = update.MeetingName
-		}
-		if len(update.CreateDate) > 0 {
-			m.CreateDate = update.CreateDate
-		}
-		if len(update.VoiceBridge) > 0 {
-			m.VoiceBridge = update.VoiceBridge
-		}
-		if len(update.DialNumber) > 0 {
-			m.DialNumber = update.DialNumber
-		}
-		if len(update.AttendeePW) > 0 {
-			m.AttendeePW = update.AttendeePW
-		}
-		if len(update.ModeratorPW) > 0 {
-			m.ModeratorPW = update.ModeratorPW
-		}
-		m.Running = update.Running
-		m.Duration = update.Duration
-		m.Recording = update.Recording
-		m.HasBeenForciblyEnded = update.HasBeenForciblyEnded
-		m.StartTime = update.StartTime
-		m.EndTime = update.EndTime
-		m.ParticipantCount = update.ParticipantCount
-		m.ListenerCount = update.ListenerCount
-		m.VoiceParticipantCount = update.VoiceParticipantCount
-		m.VideoCount = update.VideoCount
-		m.MaxUsers = update.MaxUsers
-		m.ModeratorCount = update.ModeratorCount
-		m.IsBreakout = update.IsBreakout
-		m.Attendees = update.Attendees
-		m.BreakoutRooms = update.BreakoutRooms
-	*/
-
-	*m = *update
-
-	return nil
-}
-
-// Recording is a recorded bbb session
-type Recording struct {
-	XMLName           xml.Name  `xml:"recording"`
-	RecordID          string    `xml:"recordID"`
-	MeetingID         string    `xml:"meetingID"`
-	InternalMeetingID string    `xml:"internalMeetingID"`
-	Name              string    `xml:"name"`
-	IsBreakout        bool      `xml:"isBreakout"`
-	Published         bool      `xml:"published"`
-	State             string    `xml:"state"`
-	StartTime         Timestamp `xml:"startTime"`
-	EndTime           Timestamp `xml:"endTime"`
-	Participants      int       `xml:"participants"`
-	Metadata          Metadata  `xml:"metadata"`
-	Formats           []*Format `xml:"playback>format"`
-}
-
-// updateHostURL replaces the host and schema of a URL
-func updateHostURL(target, base string) string {
-	baseURL, err := url.Parse(base)
-	if err != nil {
-		return target // nothing we can do here
-	}
-
-	targetURL, err := url.Parse(target)
-	if err != nil {
-		return target // same
-	}
-
-	targetURL.Scheme = baseURL.Scheme
-	targetURL.Host = baseURL.Host
-
-	return targetURL.String()
-}
-
-// SetPlaybackHost will update the link to the presentation
-// and preview thumbnails
-func (r *Recording) SetPlaybackHost(host string) {
-	for _, f := range r.Formats {
-
-		// Update recording host
-		f.URL = updateHostURL(f.URL, host)
-
-		if f.Preview == nil || f.Preview.Images == nil {
-			continue
-		}
-
-		// Update preview host
-		for _, img := range f.Preview.Images.All {
-			img.URL = updateHostURL(img.URL, host)
-		}
-	}
-}
-
-// Format contains a link to the playable media
-type Format struct {
-	XMLName        xml.Name `xml:"format"`
-	Type           string   `xml:"type"`
-	URL            string   `xml:"url"`
-	ProcessingTime int      `xml:"processingTime"` // No idea. The example is 7177.
-	Length         int      `xml:"length"`
-	Preview        *Preview `xml:"preview"`
-}
-
-// Preview contains a list of images
-type Preview struct {
-	XMLName xml.Name `xml:"preview"`
-	Images  *Images  `xml:"images"`
-}
-
-// Images is a collection of Image
-type Images struct {
-	XMLName xml.Name `xml:"images"`
-	All     []*Image `xml:"image"`
-}
-
-// Image is a preview image of the format
-type Image struct {
-	XMLName xml.Name `xml:"image"`
-	Alt     string   `xml:"alt,attr,omitempty"`
-	Height  int      `xml:"height,attr,omitempty"`
-	Width   int      `xml:"width,attr,omitempty"`
-	URL     string   `xml:",chardata"`
-}
-
-// TextTrack of a Recording
-type TextTrack struct {
-	Href   string `json:"href"`
-	Kind   string `json:"kind"`
-	Label  string `json:"label"`
-	Source string `json:"source"`
 }

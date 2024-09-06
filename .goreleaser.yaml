@@ -1,5 +1,6 @@
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 # Goreleaser configuration
+version: 2
 
 before:
   hooks:
@@ -79,6 +80,74 @@ archives:
     builds: [ b3scaleagent ]
     name_template: 'b3scaleagent_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
 
+dockers:
+  - id: b3scaled
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "ghcr.io/b3scale/b3scaled:latest"
+      - "ghcr.io/b3scale/b3scaled:{{ .Major }}"
+      - "ghcr.io/b3scale/b3scaled:{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/b3scale/b3scaled:{{ .Tag }}"
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+
+nfpms:
+  - id: b3scale
+    package_name: b3scale
+    vendor: "b3scale Authors"
+    homepage: https://b3scale.io
+    maintainer: Infra.run <mailœinfra.run>
+    license: AGPL-3.0-or-later
+    description: b3scale daemon
+    builds:
+      - b3scaled
+    formats:
+      - deb
+    contents:
+      - src: examples/b3scale.service
+        dst: /lib/systemd/system/b3scale.service
+      - src: examples/example.env.b3scaled
+        dst: /etc/default/b3scale
+        type: "config|noreplace"
+        file_info:
+          mode: 0600
+          owner: bigbluebutton
+          group: bigbluebutton
+    scripts:
+      preinstall: "scripts/preinstall.sh"
+      postinstall: "scripts/postinstall.sh"
+      postremove: "scripts/postremove.sh"
+  - id: b3scaleagent
+    package_name: b3scaleagent
+    vendor: "b3scale Authors"
+    homepage: https://b3scale.io
+    maintainer: infra.run <mail@infra.run>
+    license: AGPL-3.0-or-later
+    description: b3scale information gathering agent for BBB nodes
+    builds:
+      - b3scaleagent
+    formats:
+      - deb
+    contents:
+      - src: examples/b3scaleagent.service
+        dst: /lib/systemd/system/b3scaleagent.service
+      - src: examples/example.env.b3scaleagent
+        dst: /etc/default/b3scaleagent
+        type: "config|noreplace"
+        file_info:
+          mode: 0600
+          owner: bigbluebutton
+          group: bigbluebutton
+    scripts:
+      postinstall: "scripts/postinstall.sh"
+      postremove: "scripts/postremove.sh"
+
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
@@ -86,7 +155,7 @@ checksum:
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
 changelog:
-  skip: true
+  disable: true
 
 signs:
   - artifacts: checksum

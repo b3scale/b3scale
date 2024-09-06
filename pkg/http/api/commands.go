@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/b3scale/b3scale/pkg/cluster"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -12,15 +13,15 @@ import (
 // for manipulating the command queue.
 var ResourceCommands = &Resource{
 	List: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiCommandList),
 
 	Show: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiCommandShow),
 
 	Create: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiCommandCreate),
 }
 

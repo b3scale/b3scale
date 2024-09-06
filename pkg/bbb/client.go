@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -120,7 +119,7 @@ func (c *Client) Do(ctx context.Context, req *Request) (Response, error) {
 
 	// Read body
 	defer httpRes.Body.Close()
-	data, err := ioutil.ReadAll(httpRes.Body)
+	data, err := io.ReadAll(httpRes.Body)
 	if err != nil {
 		return nil, err
 	}

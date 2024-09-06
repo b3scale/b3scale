@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -51,7 +50,10 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 
 	// Check if backend exists
 	state, err := getBackendByHost(ctx.Context, client, host)
-	if errors.Is(err, api.ErrNotFound) {
+	if err != nil {
+		return err
+	}
+	if state == nil {
 		if !ctx.IsSet("secret") {
 			return fmt.Errorf("need secret to create host")
 		}
@@ -79,9 +81,6 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 			fmt.Println("skipped creating backend")
 		}
 		return nil // we are done here
-	}
-	if err != nil {
-		return err
 	}
 
 	// The state is known to use. Just make updates
@@ -291,6 +290,9 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if state == nil {
+		return fmt.Errorf("backend not found")
+	}
 
 	// Check if we should hard delete. This can be either
 	// the case when the deletion is forced, or when
@@ -326,4 +328,24 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 	}
 	fmt.Println("backend marked for decommissioning")
 	return nil
+}
+
+func (c *Cli) completeBackend(ctx *cli.Context) {
+	// This will complete if no args are passed
+	if ctx.NArg() > 0 {
+		return
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return
+	}
+	// Check if backend exists
+	backends, err := client.BackendsList(ctx.Context)
+	if err != nil {
+		return
+	}
+	for _, b := range backends {
+		fmt.Println(b.Backend.Host)
+	}
 }

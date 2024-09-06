@@ -385,7 +385,7 @@ func TestMeetingStateUpdateFrontendMeetingMapping(t *testing.T) {
 		t.Error("did not expect meeting id associated with frontend")
 	}
 
-	if err := m.updateFrontendMeetingMapping(ctx, tx); err != nil {
+	if err := m.UpdateFrontendMeetingMapping(ctx, tx); err != nil {
 		t.Error(err)
 	}
 
@@ -401,7 +401,7 @@ func TestMeetingStateUpdateFrontendMeetingMapping(t *testing.T) {
 	}
 
 	// Should be idempotent and safe to call multiple times
-	if err := m.updateFrontendMeetingMapping(ctx, tx); err != nil {
+	if err := m.UpdateFrontendMeetingMapping(ctx, tx); err != nil {
 		t.Error(err)
 	}
 }

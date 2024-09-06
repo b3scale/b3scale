@@ -9,32 +9,33 @@ import (
 
 	"github.com/b3scale/b3scale/pkg/cluster"
 	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
 // ResourceBackends is a restful group for backend endpoints
 var ResourceBackends = &Resource{
 	List: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiBackendsList),
 
 	Create: RequireScope(
-		ScopeAdmin,
-		ScopeNode,
+		auth.ScopeAdmin,
+		auth.ScopeNode,
 	)(apiBackendCreate),
 
 	Show: RequireScope(
-		ScopeAdmin,
-		ScopeNode,
+		auth.ScopeAdmin,
+		auth.ScopeNode,
 	)(apiBackendShow),
 
 	Update: RequireScope(
-		ScopeAdmin,
-		ScopeNode,
+		auth.ScopeAdmin,
+		auth.ScopeNode,
 	)(apiBackendUpdate),
 
 	Destroy: RequireScope(
-		ScopeAdmin,
+		auth.ScopeAdmin,
 	)(apiBackendDestroy),
 }
 
@@ -94,7 +95,7 @@ func apiBackendCreate(
 		LoadFactor: b.LoadFactor,
 	})
 
-	if api.HasScope(ScopeNode) {
+	if api.HasScope(auth.ScopeNode) {
 		backend.AgentRef = &api.Ref
 	}
 
@@ -144,7 +145,7 @@ func apiBackendShow(
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
 
-	if api.HasScope(ScopeNode) {
+	if api.HasScope(auth.ScopeNode) {
 		q = q.Where("agent_ref = ?", api.Ref)
 	}
 
@@ -175,7 +176,7 @@ func apiBackendDestroy(
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
-	if api.HasScope(ScopeNode) {
+	if api.HasScope(auth.ScopeNode) {
 		q = q.Where("agent_ref = ?", api.Ref)
 	}
 
@@ -222,7 +223,7 @@ func apiBackendUpdate(
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
-	if api.HasScope(ScopeNode) {
+	if api.HasScope(auth.ScopeNode) {
 		q = q.Where("agent_ref = ?", api.Ref)
 	}
 

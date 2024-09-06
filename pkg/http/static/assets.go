@@ -9,10 +9,12 @@ import (
 )
 
 // RedocHTML page content
+//
 //go:embed assets/redoc.html
 var RedocHTML string
 
 // Assets contain static assets
+//
 //go:embed assets/*
 var Assets embed.FS
 

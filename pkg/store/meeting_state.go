@@ -358,7 +358,7 @@ func (s *MeetingState) Save(ctx context.Context, tx pgx.Tx) error {
 	}
 
 	// Refresh frontend binding
-	if err := s.updateFrontendMeetingMapping(ctx, tx); err != nil {
+	if err := s.UpdateFrontendMeetingMapping(ctx, tx); err != nil {
 		return err
 	}
 
@@ -415,10 +415,10 @@ func (s *MeetingState) update(ctx context.Context, tx pgx.Tx) error {
 	return err
 }
 
-// Private updateFrontendMeetingMapping updates the `frontend_meetings`
+// UpdateFrontendMeetingMapping updates the `frontend_meetings`
 // mapping table. This table does not hold any state, but persists the
 // association between frontend and meetingID for identifiying recordings.
-func (s *MeetingState) updateFrontendMeetingMapping(
+func (s *MeetingState) UpdateFrontendMeetingMapping(
 	ctx context.Context,
 	tx pgx.Tx,
 ) error {

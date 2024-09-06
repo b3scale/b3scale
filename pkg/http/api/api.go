@@ -13,22 +13,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog/log"
 
 	"github.com/b3scale/b3scale/pkg/config"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 	"github.com/b3scale/b3scale/pkg/store/schema"
-)
-
-// Errors
-var (
-	// ErrMissingJWTSecret will be returned if a JWT secret
-	// could not be found in the environment.
-	ErrMissingJWTSecret = errors.New("missing JWT secret")
 )
 
 const (
@@ -90,10 +83,16 @@ func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		ctx := c.Request().Context()
 
 		// Add authorization to context
-		user := c.Get("user").(*jwt.Token)
-		claims := user.Claims.(*AuthClaims)
+		token, ok := c.Get("user").(*jwt.Token)
+		if !ok {
+			return errors.New("JWT missing")
+		}
+		claims, ok := token.Claims.(*auth.Claims)
+		if !ok {
+			return errors.New("invalid token claims")
+		}
 		scopes := strings.Split(claims.Scope, " ")
-		ref := claims.StandardClaims.Subject
+		ref := claims.RegisteredClaims.Subject
 
 		// Acquire connection
 		conn, err := store.Acquire(ctx)
@@ -118,19 +117,13 @@ func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 // Init sets up a group with authentication
 // for a restful management interface.
 func Init(e *echo.Echo) error {
-	// Initialize JWT middleware config
-	jwtConfig, err := NewAPIJWTConfig()
-	if err != nil {
-		return err
-	}
-
 	// Register routes
 	log.Info().Str("path", "/api/v1").Msg("initializing http api v1")
 	v1 := e.Group("/api/v1")
 
 	// API Auth and Context Middlewares
-	v1.Use(middleware.JWTWithConfig(jwtConfig))
 	v1.Use(ErrorHandler)
+	v1.Use(auth.NewJWTAuthMiddleware())
 	v1.Use(ContextMiddleware)
 
 	// Status
@@ -147,6 +140,19 @@ func Init(e *echo.Echo) error {
 	ResourceAgentBackend.Mount(v1, "/agent/backend")
 	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")
 	ResourceCtlMigrate.Mount(v1, "/ctrl/migrate")
+
+	// Protected Recordings
+	protected := e.Group("/api/v1/protected")
+	protected.Use(ErrorHandler)
+	protected.GET("/recordings/:token", apiProtectedRecordingsShow)
+	protected.GET("/recordings/auth", apiProtectedRecordingsAuth)
+
+	// Backend Callbacks
+	publicV1 := e.Group("/api/v1")
+	publicV1.Use(ErrorHandler)
+
+	publicV1.POST("/recordings/ready/:token", apiOnRecordingReady)
+
 	return nil
 }
 
@@ -171,8 +177,28 @@ func apiStatusShow(ctx context.Context, api *API) error {
 		Build:      config.Build,
 		API:        "v1",
 		AccountRef: api.Ref,
-		IsAdmin:    api.HasScope(ScopeAdmin),
+		IsAdmin:    api.HasScope(auth.ScopeAdmin),
 		Database:   m.Status(ctx),
 	}
 	return api.JSON(http.StatusOK, status)
+}
+
+// RequireScope creates a middleware to ensure the presence of
+// at least one required scope.
+func RequireScope(scopes ...string) ResourceMiddleware {
+	return func(next ResourceHandler) ResourceHandler {
+		return func(ctx context.Context, api *API) error {
+			hasScope := false
+			for _, sc := range scopes {
+				if api.HasScope(sc) {
+					hasScope = true
+					break
+				}
+			}
+			if !hasScope {
+				return auth.ErrScopeRequired(scopes...)
+			}
+			return next(ctx, api) // We are good to go.
+		}
+	}
 }

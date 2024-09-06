@@ -43,7 +43,7 @@ func BBBRequestMiddleware(
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 
-			path := c.Path()
+			path := c.Request().URL.Path
 			if !strings.HasPrefix(path, mountPoint) {
 				return next(c) // nothing to do here.
 			}
@@ -93,9 +93,15 @@ func BBBRequestMiddleware(
 
 			log.Debug().Stringer("req", bbbReq).Msg("inbound request")
 
-			// Authenticate request
+			// verify checksum of request
 			if err := bbbReq.Verify(); err != nil {
-				return handleAPIError(c, err)
+				// response mirrors https://github.com/bigbluebutton/bigbluebutton/blob/main/bbb-common-web/src/main/java/org/bigbluebutton/api/model/constraint/GetChecksumConstraint.java
+				res := &bbb.XMLResponse{
+					Returncode: "FAILED",
+					Message:    "Checksums do not match",
+					MessageKey: "checksumError",
+				}
+				return c.XML(netHTTP.StatusInternalServerError, res)
 			}
 
 			// Before we dispatch, let's check if the original

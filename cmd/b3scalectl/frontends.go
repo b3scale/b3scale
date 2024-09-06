@@ -145,6 +145,9 @@ func (c *Cli) deleteFrontend(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if state == nil {
+		return fmt.Errorf("frontend not found")
+	}
 
 	if dry {
 		fmt.Println("skipping delete (dry)")
@@ -177,6 +180,9 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 	fmt.Println("Settings:")
 	s, _ := json.MarshalIndent(state.Settings, "   ", " ")
 	fmt.Println(string(s))
+	fmt.Println("")
+	fmt.Printf("Frontend URL:    %s/bbb/%s/\n", ctx.String("api"), state.Frontend.Key)
+	fmt.Printf("Frontend Secret: %s\n", state.Frontend.Secret)
 	return nil
 }
 
@@ -200,6 +206,27 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 		fmt.Printf("%s\t%s\t%s\t%s\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret, active, settings)
 	}
 	return nil
+}
+
+func (c *Cli) completeFrontend(ctx *cli.Context) {
+	// This will complete if no args are passed
+	if ctx.NArg() > 0 {
+		return
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return
+	}
+	// Check if backend exists
+	frontends, err := client.FrontendsList(ctx.Context, nil)
+	if err != nil {
+		return
+
+	}
+	for _, f := range frontends {
+		fmt.Println(f.Frontend.Key)
+	}
 }
 
 // enableFrontend activates a frontend from the cluster

@@ -1,0 +1,2151 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "b3scale api v1",
+    "version": "1.1.0",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "description": "This document describes the specifications for the b3scale API v1.",
+    "contact": {
+      "name": "The B3Scale Developers",
+      "url": "https://b3scale.io",
+      "email": "mail@infra.run"
+    }
+  },
+  "paths": {
+    "/v1": {
+      "get": {
+        "description": "Retrieve an API status",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Status"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "statusRead",
+        "summary": "Read Status",
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/agent/backend": {
+      "get": {
+        "description": "Get the backend associated with the agent.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Backend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "agentBackendRead",
+        "summary": "Read Backend",
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1/agent/heartbeat": {
+      "post": {
+        "description": "Notify b3scale, that the agent is still alive.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Heartbeat"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "agentHeartbeatCreate",
+        "summary": "Create Heartbeat",
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1/agent/rpc": {
+      "post": {
+        "description": "Perform a remote procedure call.\n\nThis API allows for remote procedures that involve complex that can not be expressed sufficiently through resource manipulation.\n\n**Warning:** this API is only meant to be used by the agent.\n\nOnly the envelope format is described here. For details, please check the source in `http/api/rpc.go`.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/RPCResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "agentRpc",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RPCRequest"
+              }
+            }
+          }
+        },
+        "summary": "RPC",
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1/backends": {
+      "get": {
+        "description": "Fetch all backends",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Backends"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "backendsList",
+        "parameters": [
+          {
+            "description": "List backends matching this exact host.",
+            "in": "query",
+            "name": "host",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List backend partially matching the host.",
+            "in": "query",
+            "name": "host__like",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "List backends partially matching the host, case insensitive.",
+            "in": "query",
+            "name": "host__ilike",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "List",
+        "tags": [
+          "Backends"
+        ]
+      },
+      "post": {
+        "description": "Register a new backend",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Backend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "backendsCreate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackendRequest"
+              }
+            }
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "Backends"
+        ]
+      }
+    },
+    "/v1/backends/{id}": {
+      "delete": {
+        "description": "Remove a backend.\n\nWhen not forced, decommissioning the backend will be requested.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Backend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "backendsDestroy",
+        "parameters": [
+          {
+            "description": "When `true`, the backend will be forcefully removed from the cluster.",
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "Delete",
+        "tags": [
+          "Backends"
+        ]
+      },
+      "get": {
+        "description": "Fetch a single backend identified by ID",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Backend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "backendsRead",
+        "summary": "Read",
+        "tags": [
+          "Backends"
+        ]
+      },
+      "parameters": [
+        {
+          "description": "The identifier of the object.",
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "description": "Update parts of a backend",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Backend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "backendsPatch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackendPatch"
+              }
+            }
+          }
+        },
+        "summary": "Update",
+        "tags": [
+          "Backends"
+        ]
+      }
+    },
+    "/v1/commands": {
+      "get": {
+        "description": "Fetch current command queue.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Commands"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "commandsList",
+        "summary": "List",
+        "tags": [
+          "Commands"
+        ]
+      },
+      "post": {
+        "description": "Insert a new command into the queue.\n\nCurrently only `end_all_meetings` for a given backend is supported.\n\nExample: `{\"action\": \"end_all_meetings\", \"params\": {\"BackendID\": \"b056bc5e-372e-4562-b23a-bd6a92634e7b\"}}`",
+        "responses": {
+          "202": {
+            "$ref": "#/components/responses/Command"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "commandsCreate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandRequest"
+              }
+            }
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "Commands"
+        ]
+      }
+    },
+    "/v1/commands/{id}": {
+      "get": {
+        "description": "Fetch a single command identified by ID.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Command"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "commandsRead",
+        "summary": "Read",
+        "tags": [
+          "Commands"
+        ]
+      },
+      "parameters": [
+        {
+          "description": "The identifier of the object.",
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "/v1/ctrl/migrate": {
+      "post": {
+        "description": "",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/MigrateStatus"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "ctrlMigrate",
+        "summary": "Migrate Database",
+        "tags": [
+          "CTRL"
+        ]
+      }
+    },
+    "/v1/frontends": {
+      "get": {
+        "description": "Fetch all frontends",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Frontends"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "frontendsList",
+        "parameters": [
+          {
+            "description": "Filter by account_ref",
+            "in": "query",
+            "name": "account_ref",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show only frontends matching the exact key",
+            "in": "query",
+            "name": "key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show only frontends matching parts of a key",
+            "in": "query",
+            "name": "key__like",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "List",
+        "tags": [
+          "Frontends"
+        ]
+      },
+      "post": {
+        "description": "Register a new frontend",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Frontend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "frontendsCreate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FrontendRequest"
+              }
+            }
+          }
+        },
+        "summary": "Create",
+        "tags": [
+          "Frontends"
+        ]
+      }
+    },
+    "/v1/frontends/{id}": {
+      "delete": {
+        "description": "Remove a frontend.\n\nAll stored recordings will also be removed.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Frontend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "frontendsDestroy",
+        "summary": "Delete",
+        "tags": [
+          "Frontends"
+        ]
+      },
+      "get": {
+        "description": "Fetch a single frontend identified by ID.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Frontend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "frontendsRead",
+        "summary": "Read",
+        "tags": [
+          "Frontends"
+        ]
+      },
+      "parameters": [
+        {
+          "description": "The identifier of the object.",
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "description": "Update parts of a frontend.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Frontend"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "frontendsPatch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FrontendPatch"
+              }
+            }
+          }
+        },
+        "summary": "Update",
+        "tags": [
+          "Frontends"
+        ]
+      }
+    },
+    "/v1/meetings": {
+      "get": {
+        "description": "Fetch all meetings",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Meetings"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "meetingsList",
+        "parameters": [
+          {
+            "description": "The ID of the backend where the meetings are located.\n\n*Either this or `backend_host` is required.*",
+            "in": "query",
+            "name": "backend_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The full host of the backend where the meetings are located. *Either this or `backend_id` is required.*",
+            "in": "query",
+            "name": "backend_host",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "List",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
+    "/v1/meetings/{id}": {
+      "delete": {
+        "description": "Remove a meeting.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Meeting"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "meetingsDestroy",
+        "summary": "Delete",
+        "tags": [
+          "Meetings"
+        ]
+      },
+      "get": {
+        "description": "Fetch a single meeting identified by ID.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Meeting"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "meetingsRead",
+        "summary": "Read",
+        "tags": [
+          "Meetings"
+        ]
+      },
+      "parameters": [
+        {
+          "description": "The identifier of the object.",
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "description": "Update parts of a meeting.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Meeting"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "meetingsPatch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetingPatch"
+              }
+            }
+          }
+        },
+        "summary": "Update",
+        "tags": [
+          "Meetings"
+        ]
+      }
+    },
+    "/v1/recordings-import": {
+      "post": {
+        "description": "Upload an recordings metadata XML document. The recording will be imported.\n\nThese are typically read from `/var/bigbluebutton/published/presentation/...meetingID.../metadata.xml`, see `post_publish_b3scale_import.rb` script.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Recording"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "recordingsImport",
+        "requestBody": {
+          "content": {
+            "application/xml": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "summary": "Import Recording Meta",
+        "tags": [
+          "Recordings"
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Attendee": {
+        "description": "Meeting Attendee",
+        "properties": {
+          "ClientType": {
+            "type": "string"
+          },
+          "FullName": {
+            "type": "string"
+          },
+          "HasJoinedVoice": {
+            "type": "boolean"
+          },
+          "HasVideo": {
+            "type": "boolean"
+          },
+          "InternalUserID": {
+            "type": "string"
+          },
+          "IsListeningOnly": {
+            "type": "boolean"
+          },
+          "IsPresenter": {
+            "type": "boolean"
+          },
+          "Role": {
+            "type": "string"
+          },
+          "UserID": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "UserID",
+          "InternalUserID",
+          "FullName",
+          "Role",
+          "IsPresenter",
+          "IsListeningOnly",
+          "HasJoinedVoice",
+          "HasVideo",
+          "ClientType"
+        ],
+        "type": "object"
+      },
+      "Backend": {
+        "description": "Backend",
+        "properties": {
+          "admin_state": {
+            "description": "The desired state of the node. If none given, it will be assumed 'ready'.\n\n**Example**: `ready`",
+            "enum": [
+              "init",
+              "ready",
+              "stopped",
+              "decommissioned"
+            ],
+            "example": "ready",
+            "type": "string"
+          },
+          "agent_heartbeat": {
+            "description": "The last time we heared from the node agent.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "agent_ref": {
+            "description": "The identifier of the agent running on the backend. Used for backend authorization and agent authentication.",
+            "nullable": true,
+            "type": "string"
+          },
+          "attendees_count": {
+            "description": "Number of participants in meetings on the backend.",
+            "type": "integer"
+          },
+          "bbb": {
+            "$ref": "#/components/schemas/BackendConfig"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_error": {
+            "description": "The last error that happend. For example destination host not reachable.",
+            "nullable": true,
+            "type": "string"
+          },
+          "latency": {
+            "description": "The amount of milliseconds when polling the current node state.",
+            "type": "integer"
+          },
+          "load_factor": {
+            "description": "The load factor influences the probability of selecting this backend when a meeting is created. The amount of meetings and attendees on the node will be multiplied with the load factor, when calculating the backend stress.",
+            "type": "number"
+          },
+          "meetings_count": {
+            "description": "Number of meetings on the backend.",
+            "type": "integer"
+          },
+          "node_state": {
+            "description": "The current state of the node.\n\n**Example**: `ready`",
+            "enum": [
+              "init",
+              "ready",
+              "error",
+              "stopped",
+              "decommissioned"
+            ],
+            "example": "ready",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/BackendSettings"
+          },
+          "synced_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "node_state",
+          "admin_state",
+          "agent_heartbeat",
+          "agent_ref",
+          "last_error",
+          "latency",
+          "meetings_count",
+          "attendees_count",
+          "load_factor",
+          "bbb",
+          "settings",
+          "created_at",
+          "updated_at",
+          "synced_at"
+        ],
+        "type": "object"
+      },
+      "BackendConfig": {
+        "description": "Backend Config",
+        "properties": {
+          "host": {
+            "description": "The full qualified address of the host, including the API endpoint.\n\n**Example**: `https://backendnode01/bigbluebutton/api/`",
+            "example": "https://backendnode01/bigbluebutton/api/",
+            "type": "string"
+          },
+          "secret": {
+            "description": "The API secret for the BBB host.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "secret"
+        ],
+        "type": "object"
+      },
+      "BackendPatch": {
+        "description": "Backend Update",
+        "properties": {
+          "admin_state": {
+            "description": "The desired state of the node. If none given, it will be assumed 'ready'.\n\n**Example**: `ready`",
+            "enum": [
+              "init",
+              "ready",
+              "stopped",
+              "decommissioned"
+            ],
+            "example": "ready",
+            "type": "string"
+          },
+          "agent_heartbeat": {
+            "description": "The last time we heared from the node agent.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "agent_ref": {
+            "description": "The identifier of the agent running on the backend. Used for backend authorization and agent authentication.",
+            "nullable": true,
+            "type": "string"
+          },
+          "attendees_count": {
+            "description": "Number of participants in meetings on the backend.",
+            "type": "integer"
+          },
+          "bbb": {
+            "$ref": "#/components/schemas/BackendConfig"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "last_error": {
+            "description": "The last error that happend. For example destination host not reachable.",
+            "nullable": true,
+            "type": "string"
+          },
+          "latency": {
+            "description": "The amount of milliseconds when polling the current node state.",
+            "type": "integer"
+          },
+          "load_factor": {
+            "description": "The load factor influences the probability of selecting this backend when a meeting is created. The amount of meetings and attendees on the node will be multiplied with the load factor, when calculating the backend stress.",
+            "type": "number"
+          },
+          "meetings_count": {
+            "description": "Number of meetings on the backend.",
+            "type": "integer"
+          },
+          "node_state": {
+            "description": "The current state of the node.\n\n**Example**: `ready`",
+            "enum": [
+              "init",
+              "ready",
+              "error",
+              "stopped",
+              "decommissioned"
+            ],
+            "example": "ready",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/BackendSettings"
+          },
+          "synced_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BackendRequest": {
+        "description": "Backend Request",
+        "properties": {
+          "admin_state": {
+            "description": "The desired state of the node. If none given, it will be assumed 'ready'.\n\n**Example**: `ready`",
+            "enum": [
+              "init",
+              "ready",
+              "stopped",
+              "decommissioned"
+            ],
+            "example": "ready",
+            "type": "string"
+          },
+          "bbb": {
+            "$ref": "#/components/schemas/BackendConfig"
+          },
+          "load_factor": {
+            "description": "The load factor influences the probability of selecting this backend when a meeting is created. The amount of meetings and attendees on the node will be multiplied with the load factor, when calculating the backend stress.",
+            "type": "number"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/BackendSettings"
+          }
+        },
+        "required": [
+          "bbb"
+        ],
+        "type": "object"
+      },
+      "BackendSettings": {
+        "description": "Backend Settings ",
+        "properties": {
+          "tags": {
+            "description": "The backend provides these tags. A frontend can require a list of tags. This can be used to dedicate parts of the cluster.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Backends": {
+        "description": "List of Backends",
+        "items": {
+          "$ref": "#/components/schemas/Backend"
+        },
+        "type": "array"
+      },
+      "Breakout": {
+        "description": "Meeting Breakout Room",
+        "properties": {
+          "FreeJoin": {
+            "type": "boolean"
+          },
+          "ParentMeetingID": {
+            "type": "string"
+          },
+          "Sequence": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ParentMeetingID",
+          "Sequence",
+          "FreeJoin"
+        ],
+        "type": "object"
+      },
+      "Command": {
+        "description": "Command",
+        "properties": {
+          "action": {
+            "description": "The operation to perform.",
+            "enum": [
+              "end_all_meetings"
+            ],
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deadline": {
+            "description": "The commands need to be processed before the deadline is reached. The deadline is optional.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key value options for the command. See example above.",
+            "type": "object"
+          },
+          "result": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The result of the command. as key value object.",
+            "nullable": true,
+            "type": "object"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "state": {
+            "description": "The current state of the command.",
+            "enum": [
+              "requested",
+              "success",
+              "error"
+            ],
+            "type": "string"
+          },
+          "stopped_at": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "seq",
+          "state",
+          "action",
+          "params",
+          "result",
+          "deadline",
+          "started_at",
+          "stopped_at",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "CommandRequest": {
+        "description": "Command Request",
+        "properties": {
+          "action": {
+            "description": "The operation to perform.",
+            "enum": [
+              "end_all_meetings"
+            ],
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Key value options for the command. See example above.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "action",
+          "params"
+        ],
+        "type": "object"
+      },
+      "Commands": {
+        "description": "List of Commands",
+        "items": {
+          "$ref": "#/components/schemas/Command"
+        },
+        "type": "array"
+      },
+      "DefaultPresentationSettings": {
+        "description": "Default Presentation",
+        "properties": {
+          "force": {
+            "description": "Override any default presentation provided by the frontend.",
+            "type": "boolean"
+          },
+          "url": {
+            "description": "An URL pointing to a default presentation.\n\n**Example**: `https://assets.mycluster.example.com/tenant1235/presentation.pdf`",
+            "example": "https://assets.mycluster.example.com/tenant1235/presentation.pdf",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "force"
+        ],
+        "type": "object"
+      },
+      "Error": {
+        "description": "A general error response object.",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "An error type tag. See specific error for details."
+          },
+          "message": {
+            "type": "string",
+            "description": "A human readable message with details about the error."
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "type": "object"
+      },
+      "Format": {
+        "description": "Format",
+        "properties": {
+          "Length": {
+            "type": "integer"
+          },
+          "Preview": {
+            "$ref": "#/components/schemas/Preview"
+          },
+          "ProcessingTime": {
+            "type": "integer"
+          },
+          "Type": {
+            "type": "string"
+          },
+          "URL": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "Type",
+          "URL",
+          "ProcessingTime",
+          "Length",
+          "Preview"
+        ],
+        "type": "object"
+      },
+      "Frontend": {
+        "description": "Frontend",
+        "properties": {
+          "account_ref": {
+            "description": "If not null, the frontend is bound to an account reference. The reference is freeform string. It is recommended to encode it as base64, but this is optional.",
+            "nullable": true,
+            "type": "string"
+          },
+          "active": {
+            "description": "When false, the frontend can not longer use the API.",
+            "type": "boolean"
+          },
+          "bbb": {
+            "$ref": "#/components/schemas/FrontendConfig"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/FrontendSettings"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "active",
+          "bbb",
+          "settings",
+          "account_ref",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "FrontendConfig": {
+        "description": "A BBB frontend configuration",
+        "properties": {
+          "key": {
+            "description": "The tenant is identified by the key, which is part of frontend specific API url.\n\n**Example**: `greenlight01`",
+            "example": "greenlight01",
+            "type": "string"
+          },
+          "secret": {
+            "description": "The individual BBB API secrect for this frontend. API requests coming from this frontend, must be signed with this secret.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "secret"
+        ],
+        "type": "object"
+      },
+      "FrontendConfigPatch": {
+        "description": "A BBB frontend configuration",
+        "properties": {
+          "key": {
+            "description": "The tenant is identified by the key, which is part of frontend specific API url.\n\n**Example**: `greenlight01`",
+            "example": "greenlight01",
+            "type": "string"
+          },
+          "secret": {
+            "description": "The individual BBB API secrect for this frontend. API requests coming from this frontend, must be signed with this secret.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "FrontendPatch": {
+        "description": "A Frontend Update",
+        "properties": {
+          "account_ref": {
+            "description": "If not null, the frontend is bound to an account reference. The reference is freeform string. It is recommended to encode it as base64, but this is optional.",
+            "nullable": true,
+            "type": "string"
+          },
+          "active": {
+            "description": "When false, the frontend can not longer use the API.",
+            "type": "boolean"
+          },
+          "bbb": {
+            "$ref": "#/components/schemas/FrontendConfigPatch"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/FrontendSettings"
+          }
+        },
+        "type": "object"
+      },
+      "FrontendRequest": {
+        "description": "A Frontend Request",
+        "properties": {
+          "account_ref": {
+            "description": "If not null, the frontend is bound to an account reference. The reference is freeform string. It is recommended to encode it as base64, but this is optional.",
+            "nullable": true,
+            "type": "string"
+          },
+          "active": {
+            "description": "When false, the frontend can not longer use the API.",
+            "type": "boolean"
+          },
+          "bbb": {
+            "$ref": "#/components/schemas/FrontendConfig"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/FrontendSettings"
+          }
+        },
+        "required": [
+          "bbb"
+        ],
+        "type": "object"
+      },
+      "FrontendSettings": {
+        "description": "Frontend Settings",
+        "properties": {
+          "create_default_params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Provide key value params, which will be used as a default when a meeting is created. See the BBB api documentation for which params are valid. The param value must be encoded as string.",
+            "type": "object"
+          },
+          "create_override_params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "A key value set of params which will override parameters from the frontend when a meeting is created.",
+            "type": "object"
+          },
+          "default_presentation": {
+            "$ref": "#/components/schemas/DefaultPresentationSettings"
+          },
+          "required_tags": {
+            "description": "When selecting a backend for creating a meeting, only consider nodes providing all of the required tags.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Frontends": {
+        "description": "A list of frontends",
+        "items": {
+          "$ref": "#/components/schemas/Frontend"
+        },
+        "type": "array"
+      },
+      "Heartbeat": {
+        "description": "Hearbeat",
+        "properties": {
+          "backend_id": {
+            "type": "string"
+          },
+          "heartbeat": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "backend_id",
+          "heartbeat"
+        ],
+        "type": "object"
+      },
+      "Image": {
+        "description": "Image",
+        "properties": {
+          "All": {
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "Alt",
+          "Height",
+          "Width",
+          "URL"
+        ],
+        "type": "object"
+      },
+      "Images": {
+        "description": "Images",
+        "properties": {
+          "All": {
+            "items": {
+              "$ref": "#/components/schemas/Image"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "All"
+        ],
+        "type": "object"
+      },
+      "Meeting": {
+        "description": "Meeting",
+        "properties": {
+          "backend_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "frontend_id": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "internal_id": {
+            "type": "string"
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/MeetingInfo"
+          },
+          "synced_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "internal_id",
+          "meeting",
+          "frontend_id",
+          "backend_id",
+          "created_at",
+          "updated_at",
+          "synced_at"
+        ],
+        "type": "object"
+      },
+      "MeetingInfo": {
+        "description": "Meeting Info",
+        "properties": {
+          "AttendeePW": {
+            "type": "string"
+          },
+          "Attendees": {
+            "items": {
+              "$ref": "#/components/schemas/Attendee"
+            },
+            "type": "array"
+          },
+          "Breakout": {
+            "$ref": "#/components/schemas/Breakout"
+          },
+          "BreakoutRooms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "CreateDate": {
+            "type": "string"
+          },
+          "CreateTime": {
+            "type": "integer"
+          },
+          "DialNumber": {
+            "type": "string"
+          },
+          "Duration": {
+            "type": "integer"
+          },
+          "EndTime": {
+            "type": "integer"
+          },
+          "HasBeenForciblyEnded": {
+            "type": "boolean"
+          },
+          "InternalMeetingID": {
+            "type": "string"
+          },
+          "IsBreakout": {
+            "type": "boolean"
+          },
+          "ListenerCount": {
+            "type": "integer"
+          },
+          "MaxUsers": {
+            "type": "integer"
+          },
+          "MeetingID": {
+            "type": "string"
+          },
+          "MeetingName": {
+            "type": "string"
+          },
+          "Metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "ModeratorCount": {
+            "type": "integer"
+          },
+          "ModeratorPW": {
+            "type": "string"
+          },
+          "ParticipantCount": {
+            "type": "integer"
+          },
+          "Recording": {
+            "type": "boolean"
+          },
+          "Running": {
+            "type": "boolean"
+          },
+          "StartTime": {
+            "type": "integer"
+          },
+          "VideoCount": {
+            "type": "integer"
+          },
+          "VoiceBridge": {
+            "type": "string"
+          },
+          "VoiceParticipantCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "MeetingName",
+          "MeetingID",
+          "InternalMeetingID",
+          "CreateTime",
+          "CreateDate",
+          "VoiceBridge",
+          "DialNumber",
+          "AttendeePW",
+          "ModeratorPW",
+          "Running",
+          "Duration",
+          "Recording",
+          "HasBeenForciblyEnded",
+          "StartTime",
+          "EndTime",
+          "ParticipantCount",
+          "ListenerCount",
+          "VoiceParticipantCount",
+          "VideoCount",
+          "MaxUsers",
+          "ModeratorCount",
+          "IsBreakout",
+          "Metadata",
+          "Attendees",
+          "BreakoutRooms",
+          "Breakout"
+        ],
+        "type": "object"
+      },
+      "MeetingInfoPatch": {
+        "description": "Meeting Info",
+        "properties": {
+          "AttendeePW": {
+            "type": "string"
+          },
+          "Attendees": {
+            "items": {
+              "$ref": "#/components/schemas/Attendee"
+            },
+            "type": "array"
+          },
+          "Breakout": {
+            "$ref": "#/components/schemas/Breakout"
+          },
+          "BreakoutRooms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "CreateDate": {
+            "type": "string"
+          },
+          "CreateTime": {
+            "type": "integer"
+          },
+          "DialNumber": {
+            "type": "string"
+          },
+          "Duration": {
+            "type": "integer"
+          },
+          "EndTime": {
+            "type": "integer"
+          },
+          "HasBeenForciblyEnded": {
+            "type": "boolean"
+          },
+          "InternalMeetingID": {
+            "type": "string"
+          },
+          "IsBreakout": {
+            "type": "boolean"
+          },
+          "ListenerCount": {
+            "type": "integer"
+          },
+          "MaxUsers": {
+            "type": "integer"
+          },
+          "MeetingID": {
+            "type": "string"
+          },
+          "MeetingName": {
+            "type": "string"
+          },
+          "Metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "ModeratorCount": {
+            "type": "integer"
+          },
+          "ModeratorPW": {
+            "type": "string"
+          },
+          "ParticipantCount": {
+            "type": "integer"
+          },
+          "Recording": {
+            "type": "boolean"
+          },
+          "Running": {
+            "type": "boolean"
+          },
+          "StartTime": {
+            "type": "integer"
+          },
+          "VideoCount": {
+            "type": "integer"
+          },
+          "VoiceBridge": {
+            "type": "string"
+          },
+          "VoiceParticipantCount": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "MeetingPatch": {
+        "description": "Meeting Update",
+        "properties": {
+          "meeting": {
+            "$ref": "#/components/schemas/MeetingInfoPatch"
+          }
+        },
+        "required": [
+          "meeting"
+        ],
+        "type": "object"
+      },
+      "Meetings": {
+        "description": "List of Meetings",
+        "items": {
+          "$ref": "#/components/schemas/Meeting"
+        },
+        "type": "array"
+      },
+      "MigrationState": {
+        "description": "MigrationState",
+        "properties": {
+          "applied_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied_at",
+          "description",
+          "version"
+        ],
+        "type": "object"
+      },
+      "NotFoundError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Error"
+          }
+        ],
+        "description": "The requested resource could not be found",
+        "type": "object"
+      },
+      "Preview": {
+        "description": "Preview",
+        "properties": {
+          "Images": {
+            "$ref": "#/components/schemas/Images"
+          }
+        },
+        "required": [
+          "Images"
+        ],
+        "type": "object"
+      },
+      "RPCRequest": {
+        "description": "RPCRequest Envelope",
+        "properties": {
+          "action": {
+            "description": "The name of the procedure to invoke.",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "description": "An object with the RPC request parameters.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "action",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "RPCResponse": {
+        "description": "RPCResponse Envelope",
+        "properties": {
+          "result": {
+            "additionalProperties": true,
+            "description": "An object with the encoded result of the call.",
+            "type": "object"
+          },
+          "status": {
+            "description": "The name of the procedure to invoke.",
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "result"
+        ],
+        "type": "object"
+      },
+      "Recording": {
+        "description": "Recording",
+        "properties": {
+          "EndTime": {
+            "type": "integer"
+          },
+          "Formats": {
+            "items": {
+              "$ref": "#/components/schemas/Format"
+            },
+            "type": "array"
+          },
+          "InternalMeetingID": {
+            "type": "string"
+          },
+          "IsBreakout": {
+            "type": "boolean"
+          },
+          "MeetingID": {
+            "type": "string"
+          },
+          "Metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "Participants": {
+            "type": "integer"
+          },
+          "Published": {
+            "type": "boolean"
+          },
+          "RecordID": {
+            "type": "string"
+          },
+          "StartTime": {
+            "type": "integer"
+          },
+          "State": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "RecordID",
+          "MeetingID",
+          "InternalMeetingID",
+          "Name",
+          "IsBreakout",
+          "Published",
+          "State",
+          "StartTime",
+          "EndTime",
+          "Participants",
+          "Metadata",
+          "Formats"
+        ],
+        "type": "object"
+      },
+      "SchemaStatus": {
+        "description": "SchemaStatus",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "database": {
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          },
+          "migrated": {
+            "type": "boolean"
+          },
+          "migration": {
+            "$ref": "#/components/schemas/MigrationState"
+          },
+          "pending_migrations": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "available",
+          "database",
+          "migrated",
+          "migration",
+          "pending_migrations",
+          "error"
+        ],
+        "type": "object"
+      },
+      "ServerError": {
+        "description": "A Server Error",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "A human readable message with details about the error."
+          }
+        },
+        "type": "object"
+      },
+      "Status": {
+        "description": "Server Status",
+        "properties": {
+          "account_ref": {
+            "description": "The currently authenticated subject.",
+            "type": "string"
+          },
+          "api": {
+            "description": "The API version.\n\n**Example**: `v1`",
+            "example": "v1",
+            "type": "string"
+          },
+          "build": {
+            "description": "Build identifier of the server.",
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/components/schemas/SchemaStatus",
+            "description": "Status of the database"
+          },
+          "is_admin": {
+            "description": "True if the subject has admin privileges.",
+            "type": "boolean"
+          },
+          "version": {
+            "description": "The current b3scale server version.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "build",
+          "api",
+          "account_ref",
+          "is_admin",
+          "database"
+        ],
+        "type": "object"
+      },
+      "ValidationError": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Error"
+          }
+        ],
+        "description": "Request validation failed.The error type is: `validation_error`",
+        "type": "object"
+      }
+    },
+    "responses": {
+      "Backend": {
+        "description": "Backend",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Backend"
+            }
+          }
+        }
+      },
+      "Backends": {
+        "description": "List of Backends",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Backends"
+            }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "The request was invalid. Maybe a JWT authorization header was not provided or a validation failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ServerError"
+            }
+          }
+        }
+      },
+      "Command": {
+        "description": "Command",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Command"
+            }
+          }
+        }
+      },
+      "Commands": {
+        "description": "List of Commands",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Commands"
+            }
+          }
+        }
+      },
+      "Frontend": {
+        "description": "Frontend",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Frontend"
+            }
+          }
+        }
+      },
+      "Frontends": {
+        "description": "List of Frontends",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Frontends"
+            }
+          }
+        }
+      },
+      "Heartbeat": {
+        "description": "Heartbeat",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Heartbeat"
+            }
+          }
+        }
+      },
+      "InvalidJWTError": {
+        "description": "The JWT authorization token was invalid or expired.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ServerError"
+            }
+          }
+        }
+      },
+      "Meeting": {
+        "description": "Meeting",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Meeting"
+            }
+          }
+        }
+      },
+      "Meetings": {
+        "description": "List of Meetings",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Meetings"
+            }
+          }
+        }
+      },
+      "MigrateStatus": {
+        "description": "MigrateStatus",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SchemaStatus"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "The requested resource could not be found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/NotFoundError"
+            }
+          }
+        }
+      },
+      "RPCResponse": {
+        "description": "RPCResponse",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RPCResponse"
+            }
+          }
+        }
+      },
+      "Recording": {
+        "description": "Recording",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Recording"
+            }
+          }
+        }
+      },
+      "Status": {
+        "description": "API and Server Status",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Status"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "jwt": {
+        "type": "http",
+        "description": "Authorization using a JWT bearer token",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "API",
+      "description": "Get meta information about the API."
+    },
+    {
+      "name": "Frontends",
+      "description": "B3scale tenants are called frontends. In the following section you can find all frontend related operations."
+    },
+    {
+      "name": "Backends",
+      "description": "Big Blue Button (BBB) servers are called backends. Each is a node in the cluster, having an agent running.\n\nThe following endpoints are for managing backends."
+    },
+    {
+      "name": "Meetings",
+      "description": "The meetings API can be used to update and query meetings. Creating new meetings is not supported at the time."
+    },
+    {
+      "name": "Recordings",
+      "description": "Currently only importing recording by uploading a `metadata.xml` is supported."
+    },
+    {
+      "name": "Commands",
+      "description": "The commands API is used queue asynchronous commands. Currently only `end_all_meetings` for a given backend is supported."
+    },
+    {
+      "name": "Agent",
+      "description": "This API is used by the agent, running on each node."
+    },
+    {
+      "name": "CTRL",
+      "description": "This api endpoint is for sending control commands to the server."
+    }
+  ],
+  "servers": [
+    {
+      "url": "/api",
+      "description": "default server location"
+    }
+  ],
+  "security": [
+    {
+      "jwt": []
+    }
+  ]
+}

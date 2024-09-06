@@ -18,12 +18,16 @@ import (
 // Well known params
 const (
 	ParamMeetingID = "meetingID"
+	ParamName      = "name"
 	ParamChecksum  = "checksum"
 	ParamRecordID  = "recordID"
 	ParamPublish   = "publish"
+	ParamProtect   = "protect"
 	ParamState     = "state"
 
 	ParamDisabledFeatures = "disabledFeatures"
+
+	MetaParamRecordingReadyURL = "meta_bbb-recording-ready-url"
 )
 
 var (
@@ -154,6 +158,12 @@ func (p Params) ToMetadata() Metadata {
 		// Strip prefix and set metadata
 		m[k[5:]] = v
 	}
+
+	// We also consider special undocumented params as metadata
+	if v, ok := p[ParamProtect]; ok {
+		m[ParamProtect] = v
+	}
+
 	return m
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
-// A Frontend is a consumer like greenlight.
+// A Frontend is a consumer like Greenlight.
 // Each frontend has it's own secret for authentication.
 type Frontend struct {
 	state *store.FrontendState
@@ -65,7 +65,7 @@ func (f *Frontend) String() string {
 }
 
 // GetFrontends retrieves all frontends from
-// the store matchig a query
+// the store matching a query
 func GetFrontends(
 	ctx context.Context,
 	q sq.SelectBuilder,

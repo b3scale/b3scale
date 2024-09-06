@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -36,7 +37,7 @@ const (
 	EnvLogFormatDefault    = "structured"
 	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
 	EnvReverseProxyDefault = "false"
-	EnvBBBConfigDefault    = "/usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties"
+	EnvBBBConfigDefault    = "/etc/bigbluebutton/bbb-web.properties"
 	EnvLoadFactorDefault   = "1.0"
 )
 
@@ -46,6 +47,26 @@ func LoadEnv(envfiles []string) {
 	for _, filename := range envfiles {
 		loadEnvFile(filename)
 	}
+}
+
+// CheckEnv checks if the environment is configured
+func CheckEnv() error {
+	missing := []string{}
+
+	if _, ok := GetEnvOpt(EnvAPIURL); !ok {
+		missing = append(missing, EnvAPIURL)
+	}
+
+	if _, ok := GetEnvOpt(EnvJWTSecret); !ok {
+		missing = append(missing, EnvJWTSecret)
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing environment variables: %s",
+			strings.Join(missing, ", "))
+	}
+
+	return nil
 }
 
 // Internal load a single env file
@@ -96,6 +117,17 @@ func GetEnvOpt(key string) (string, bool) {
 	return value, true
 }
 
+// MustEnv gets a configuration from the environment
+// and will panic if the variable is empty.
+func MustEnv(key string) string {
+	value, ok := GetEnvOpt(key)
+	if !ok {
+		err := fmt.Errorf("missing environment configuration: %s", key)
+		panic(err)
+	}
+	return value
+}
+
 // IsEnabled returns true if the input is trueish
 func IsEnabled(value string) bool {
 	value = strings.ToLower(value)
@@ -120,4 +152,23 @@ func GetLoadFactor() float64 {
 		return 1.0
 	}
 	return factor
+}
+
+// DomainOf returns the domain name (with TLD) of the given
+// address or URL.
+func DomainOf(addr string) string {
+	u, err := url.Parse(addr)
+	if err != nil {
+		panic(err)
+	}
+	host := u.Hostname()
+	if host == "" {
+		host = addr
+	}
+	tokens := strings.Split(host, ".")
+	if len(tokens) < 2 {
+		return tokens[0]
+	}
+	domain := tokens[len(tokens)-2] + "." + tokens[len(tokens)-1]
+	return domain
 }

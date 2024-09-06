@@ -28,6 +28,12 @@ func main() {
 	quit := make(chan bool)
 	banner() // Most important.
 
+	// Ensure all required configuration is present
+	if err := config.CheckEnv(); err != nil {
+		log.Fatal().Err(err).Msg("configuration incomplete")
+		return
+	}
+
 	// Config
 	listenHTTP := config.EnvOpt(config.EnvListenHTTP, config.EnvListenHTTPDefault)
 	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
@@ -37,7 +43,11 @@ func main() {
 	revProxyEnabled := config.IsEnabled(config.EnvOpt(
 		config.EnvReverseProxy, config.EnvReverseProxyDefault))
 
-	dbPoolSize, err := strconv.Atoi(dbPoolSizeStr)
+	dbPoolSize64, err := strconv.ParseInt(dbPoolSizeStr, 10, 32)
+	if err != nil {
+		log.Fatal().Err(err).Msg("database pool size")
+	}
+	dbPoolSize := int32(dbPoolSize64)
 
 	// Configure logging
 	if err := logging.Setup(&logging.Options{
@@ -57,7 +67,7 @@ func main() {
 	// Initialize postgres connection
 	err = store.Connect(&store.ConnectOpts{
 		URL:      dbConnStr,
-		MaxConns: int32(dbPoolSize),
+		MaxConns: dbPoolSize,
 		MinConns: 8,
 	})
 	if err != nil {
@@ -65,7 +75,7 @@ func main() {
 	}
 
 	log.Info().
-		Int("maxConnections", dbPoolSize).
+		Int32("maxConnections", dbPoolSize).
 		Msg("database pool")
 
 	// Recordings are an optional feature, so we will treat errors
@@ -105,6 +115,7 @@ func main() {
 	gateway.Use(requests.SetDefaultPresentation())
 	gateway.Use(requests.SetCreateParams())
 	gateway.Use(requests.BindMeetingFrontend())
+	gateway.Use(requests.RewriteMetaCallbackURLs())
 	gateway.Use(requests.RewriteUniqueMeetingID())
 
 	// Start cluster controller

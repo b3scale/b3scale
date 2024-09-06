@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/store"
 )
 
@@ -39,7 +40,7 @@ func createTestFrontend(api *API) *store.FrontendState {
 
 func TestFrontendsList(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("user42", ScopeAdmin).
+		Authorize("user42", auth.ScopeAdmin).
 		Context()
 	defer api.Release()
 
@@ -56,7 +57,7 @@ func TestFrontendsList(t *testing.T) {
 
 func TestFrontendsRetrieve(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("user42", ScopeAdmin).
+		Authorize("user42", auth.ScopeAdmin).
 		Context()
 	defer api.Release()
 
@@ -76,7 +77,7 @@ func TestFrontendsRetrieve(t *testing.T) {
 
 func TestFrontendCreateAdmin(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("user42", ScopeAdmin).
+		Authorize("user42", auth.ScopeAdmin).
 		JSON(map[string]interface{}{
 			"bbb": map[string]interface{}{
 				"key":    "newfrontendkey",
@@ -98,7 +99,7 @@ func TestFrontendCreateAdmin(t *testing.T) {
 
 func TestFrontendUpdateAdmin(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin23", ScopeAdmin).
+		Authorize("admin23", auth.ScopeAdmin).
 		JSON(map[string]interface{}{
 			"bbb": map[string]interface{}{
 				"key":    "newkey23",
@@ -130,7 +131,7 @@ func TestFrontendUpdateAdmin(t *testing.T) {
 
 func TestFrontendUpdateUser(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("user23", ScopeUser).
+		Authorize("user23", auth.ScopeUser).
 		JSON(map[string]interface{}{
 			"bbb": map[string]interface{}{
 				"key":    "newkey23",
@@ -167,7 +168,7 @@ func TestFrontendUpdateUser(t *testing.T) {
 
 func TestFrontendDestroy(t *testing.T) {
 	api, res := NewTestRequest().
-		Authorize("admin42", ScopeAdmin).
+		Authorize("admin42", auth.ScopeAdmin).
 		Context()
 	defer api.Release()
 
