@@ -46,7 +46,7 @@ func awaitInternalMeeting(
 
 		tx.Rollback(ctx) // Close transaction
 
-		dt := time.Now().Sub(t0)
+		dt := time.Since(t0)
 		if dt > deadlineAfter {
 			return nil, ErrDeadlineReached
 		}
