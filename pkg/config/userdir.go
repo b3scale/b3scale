@@ -6,7 +6,6 @@ package config
 */
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -50,7 +49,7 @@ func UserDirPut(filename string, data []byte) error {
 		return err
 	}
 	fullPath := path.Join(configPath, SafeFilename(filename))
-	return ioutil.WriteFile(fullPath, data, 0600)
+	return os.WriteFile(fullPath, data, 0600)
 }
 
 // UserDirFilename gets the full path to a filename in the userdir
@@ -74,7 +73,7 @@ func UserDirGet(filename string) ([]byte, error) {
 		return nil, err
 	}
 	fullPath := path.Join(configPath, SafeFilename(filename))
-	return ioutil.ReadFile(fullPath)
+	return os.ReadFile(fullPath)
 }
 
 // UserDirGetString retrievs a string from a file
