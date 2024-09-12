@@ -34,18 +34,18 @@ func (h *EventHandler) Dispatch(ctx context.Context, e bbb.Event) error {
 	defer conn.Release()
 	ctx = store.ContextWithConnection(ctx, conn)
 
-	switch e.(type) {
+	switch event := e.(type) {
 	case *bbb.MeetingCreatedEvent:
-		return h.onMeetingCreated(ctx, e.(*bbb.MeetingCreatedEvent))
+		return h.onMeetingCreated(ctx, event)
 	case *bbb.MeetingEndedEvent:
-		return h.onMeetingEnded(ctx, e.(*bbb.MeetingEndedEvent))
+		return h.onMeetingEnded(ctx, event)
 	case *bbb.MeetingDestroyedEvent:
-		return h.onMeetingDestroyed(ctx, e.(*bbb.MeetingDestroyedEvent))
+		return h.onMeetingDestroyed(ctx, event)
 
 	case *bbb.UserJoinedMeetingEvent:
-		return h.onUserJoinedMeeting(ctx, e.(*bbb.UserJoinedMeetingEvent))
+		return h.onUserJoinedMeeting(ctx, event)
 	case *bbb.UserLeftMeetingEvent:
-		return h.onUserLeftMeeting(ctx, e.(*bbb.UserLeftMeetingEvent))
+		return h.onUserLeftMeeting(ctx, event)
 
 	default:
 		log.Error().
