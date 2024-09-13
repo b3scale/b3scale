@@ -16,6 +16,9 @@ import (
 func RewriteMetaCallbackURLs() cluster.RequestMiddleware {
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
 		return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {
+			if err := rewriteMeetingEndURL(ctx, req); err != nil {
+				return nil, err
+			}
 			if err := rewriteRecordingReadyURL(ctx, req); err != nil {
 				return nil, err
 			}
@@ -50,7 +53,41 @@ func rewriteRecordingReadyURL(ctx context.Context, req *bbb.Request) error {
 
 	// Rewrite to our own endpoint
 	callbackURL := fmt.Sprintf(
-		"%s/api/v1/recordings/ready/%s",
+		"%s/api/v1/callbacks/recordings/ready/%s",
+		apiURL,
+		token)
+	req.Params[bbb.MetaParamRecordingReadyURL] = callbackURL
+
+	return nil
+}
+
+// Rewrite meta parameters when present.
+func rewriteMeetingEndURL(ctx context.Context, req *bbb.Request) error {
+	apiURL := config.MustEnv(config.EnvAPIURL)
+	secret := config.MustEnv(config.EnvJWTSecret)
+
+	readyURL, ok := req.Params[bbb.MetaParamMeetingEndCallbackURL]
+	if !ok {
+		return nil // nothing to do here
+	}
+
+	frontend := cluster.FrontendFromContext(ctx)
+	if frontend == nil {
+		return nil
+	}
+
+	// Encode URL in token
+	token, err := auth.NewClaims(frontend.ID()).
+		WithAudience(readyURL).
+		WithScopes(auth.ScopeCallback).
+		Sign(secret)
+	if err != nil {
+		return err
+	}
+
+	// Rewrite to our own endpoint
+	callbackURL := fmt.Sprintf(
+		"%s/api/v1/callbacks/meeting/end/%s",
 		apiURL,
 		token)
 	req.Params[bbb.MetaParamRecordingReadyURL] = callbackURL

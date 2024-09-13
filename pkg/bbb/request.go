@@ -27,7 +27,8 @@ const (
 
 	ParamDisabledFeatures = "disabledFeatures"
 
-	MetaParamRecordingReadyURL = "meta_bbb-recording-ready-url"
+	MetaParamMeetingEndCallbackURL = "meta_endCallbackUrl"
+	MetaParamRecordingReadyURL     = "meta_bbb-recording-ready-url"
 )
 
 var (
