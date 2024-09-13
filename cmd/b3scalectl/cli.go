@@ -162,6 +162,11 @@ func NewCli() *Cli {
 						Usage:  "enable backend",
 						Action: c.enableBackend,
 					},
+					{
+						Name:   "frontend",
+						Usage:  "enable frontend",
+						Action: c.enableFrontend,
+					},
 				},
 			},
 			{
@@ -179,6 +184,11 @@ func NewCli() *Cli {
 						Name:   "backend",
 						Usage:  "disable backend",
 						Action: c.disableBackend,
+					},
+					{
+						Name:   "frontend",
+						Usage:  "disable frontend",
+						Action: c.disableFrontend,
 					},
 				},
 			},

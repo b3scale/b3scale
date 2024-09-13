@@ -74,6 +74,11 @@ func BBBRequestMiddleware(
 				return handleAPIError(c, fmt.Errorf(
 					"no such frontend for key: %s", frontendKey))
 			}
+			// Check if the frontend is enabled
+			if !frontend.Active() {
+				return handleAPIError(c, fmt.Errorf(
+					"frontend is disabled: %s", frontendKey))
+			}
 			ctx = cluster.ContextWithFrontend(ctx, frontend)
 
 			// We have an action, we have a frontend, now
