@@ -177,17 +177,14 @@ func (c *Cli) showFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("Frontend:", state.Frontend.Key)
-  if !state.Active {
-    fmt.Println("Disabled")
-  } else {
-    fmt.Println("Enabled")
-  }
+	fmt.Printf("Enabled: %t\n", state.Active)
 	fmt.Println("Settings:")
-	s, _ := json.MarshalIndent(state.Settings, "   ", " ")
+	s, _ := json.MarshalIndent(state.Settings, "", "   ")
 	fmt.Println(string(s))
 	fmt.Println("")
 	fmt.Printf("Frontend URL:    %s/bbb/%s/\n", ctx.String("api"), state.Frontend.Key)
 	fmt.Printf("Frontend Secret: %s\n", state.Frontend.Secret)
+
 	return nil
 }
 
@@ -204,10 +201,10 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 
 	for _, f := range frontends {
 		settings, _ := json.Marshal(f.Settings)
-    active := "enabled"
-    if !f.Active {
-      active = "disabled"
-    }
+		active := "enabled"
+		if !f.Active {
+			active = "disabled"
+		}
 		fmt.Printf("%s\t%s\t%s\t%s\t%s\n", f.ID, f.Frontend.Key, f.Frontend.Secret, active, settings)
 	}
 	return nil
@@ -259,8 +256,8 @@ func (c *Cli) enableFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("enable frontend:", state.ID)
-  state.Active = true
-  _, err = client.FrontendUpdate(ctx.Context, state)
+	state.Active = true
+	_, err = client.FrontendUpdate(ctx.Context, state)
 	return err
 }
 
@@ -289,7 +286,7 @@ func (c *Cli) disableFrontend(ctx *cli.Context) error {
 	}
 
 	fmt.Println("disable frontend:", state.ID)
-  state.Active = false
-  _, err = client.FrontendUpdate(ctx.Context, state)
+	state.Active = false
+	_, err = client.FrontendUpdate(ctx.Context, state)
 	return err
 }
