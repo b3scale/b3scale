@@ -53,7 +53,7 @@ func rewriteRecordingReadyURL(ctx context.Context, req *bbb.Request) error {
 
 	// Rewrite to our own endpoint
 	callbackURL := fmt.Sprintf(
-		"%s/api/v1/callbacks/recordings/ready/%s",
+		"%s/api/v1/callbacks/recording-ready/%s",
 		apiURL,
 		token)
 	req.Params[bbb.MetaParamRecordingReadyURL] = callbackURL
@@ -87,7 +87,7 @@ func rewriteMeetingEndURL(ctx context.Context, req *bbb.Request) error {
 
 	// Rewrite to our own endpoint
 	callbackURL := fmt.Sprintf(
-		"%s/api/v1/callbacks/meeting/end/%s",
+		"%s/api/v1/callbacks/meeting-end/%s",
 		apiURL,
 		token)
 	req.Params[bbb.MetaParamRecordingReadyURL] = callbackURL
