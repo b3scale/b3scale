@@ -340,4 +340,3 @@ func apiProtectedRecordingsAuth(c echo.Context) error {
 
 	return c.NoContent(http.StatusOK)
 }
-
