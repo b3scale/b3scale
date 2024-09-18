@@ -216,11 +216,11 @@ After registering the node, you have to enable it.
 The default `admin_state` of the node is init. To enable the
 node, set the admin state to `ready`.
 
-    $ b3scalectl enable backend https://bbbb01.example.net/bigbluebutton/api/
+    b3scalectl enable backend https://bbbb01.example.net/bigbluebutton/api/
 
 The host should match the one you see with
 
-    $ b3scalectl show backends
+    b3scalectl show backends
 
 
 ## Disable Backends
@@ -228,19 +228,29 @@ The host should match the one you see with
 You can exclude backends as targets for new meetings
 by running
 
-    $ b3scalectl disable backend https://bbbb01.example.net/bigbluebutton/api/
+    b3scalectl disable backend https://bbbb01.example.net/bigbluebutton/api/
 
 
 ## Deleting Backends
 
 Backends can be removed through
 
-    $ b3scalectl rm backend https://bbbb01.example.net/bigbluebutton/api/
+    b3scalectl rm backend https://bbbb01.example.net/bigbluebutton/api/
 
 This will initiate a decomissioning process, where the backend will not longer
 be used for creating new sessions.
 
 It will be permanently deleted after the last session was closed.
+
+## Disable/Enable frontends
+
+Frontends can be disabled without removing it completly with
+
+    b3scalectl disable frontend frontend1
+
+Disabled frontends can be enabled again with
+
+    b3scalectl enable frontend frontend1
 
 
 ## Middleware Configuration
