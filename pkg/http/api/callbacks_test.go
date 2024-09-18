@@ -41,4 +41,25 @@ func TestUpdateCallbackQuery(t *testing.T) {
 	}
 
 	t.Log(cb)
+
+	// Test with no query params in request
+	req = httptest.NewRequest(http.MethodGet,
+		"/endpoint",
+		nil)
+
+	ctx = e.NewContext(req, httptest.NewRecorder())
+	cb, err = updateCallbackQuery(ctx, "/callback")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cb != "/callback" {
+		t.Error("unexpected url:", cb)
+	}
+	cb, err = updateCallbackQuery(ctx, "/callback?meetingID=42")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cb != "/callback?meetingID=42" {
+		t.Error("unexpected url:", cb)
+	}
 }
