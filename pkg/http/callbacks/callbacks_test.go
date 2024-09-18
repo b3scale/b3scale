@@ -4,22 +4,22 @@ import (
 	"testing"
 )
 
-func TestCallbackValidate(t *testing.T) {
-	cb := &Callback{
+func TestSignedBodyValidate(t *testing.T) {
+	cb := &SignedBody{
 		SignedParameters: "PARAMS",
 	}
 	if err := cb.Validate(); err != nil {
 		t.Error(err)
 	}
 
-	cb = &Callback{}
+	cb = &SignedBody{}
 	if err := cb.Validate(); err == nil {
 		t.Error("expected error")
 	}
 }
 
-func TestCallbackEncode(t *testing.T) {
-	cb := &Callback{
+func TestSignedBodyEncode(t *testing.T) {
+	cb := &SignedBody{
 		SignedParameters: "PARAMS",
 	}
 	data := cb.Encode()

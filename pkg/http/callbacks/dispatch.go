@@ -22,14 +22,25 @@ const (
 // Request describes a callback invocation.
 type Request struct {
 	URL      string
-	Callback *Callback
+	Method   string
+	Callback Callback
 }
 
-// NewRequest creates a new request.
-func NewRequest(url string, cb *Callback) *Request {
+// Post creates a new POST request.
+func Post(url string, cb Callback) *Request {
 	return &Request{
 		URL:      url,
 		Callback: cb,
+		Method:   "POST",
+	}
+}
+
+// Get creates a new GET request with a
+// callback URL.
+func Get(url string) *Request {
+	return &Request{
+		URL:    url,
+		Method: "GET",
 	}
 }
 

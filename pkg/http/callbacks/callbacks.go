@@ -13,15 +13,24 @@ import (
 	"net/url"
 )
 
-// A Callback contains a singl attribute
-// in the body: signed_parameters.
-type Callback struct {
-	SignedParameters string `json:"signed_parameters"`
+// Callback interface provides a Validate and
+// an Encode method.
+type Callback interface {
+	Validate() error
+	Encode() string
+}
+
+// SignedBody contains signed parameters posted
+// by the bbb node agent to the callback URL.
+//
+// The signed_parameters attribute is a JWT.
+type SignedBody struct {
+	SignedParameters string `json:"signed_parameters" form:"signed_parameters"`
 }
 
 // Validate checks an OnRecordingReady request
-func (c *Callback) Validate() error {
-	if c.SignedParameters == "" {
+func (b *SignedBody) Validate() error {
+	if b.SignedParameters == "" {
 		return fmt.Errorf("signed_parameters is required")
 	}
 	return nil
@@ -29,8 +38,8 @@ func (c *Callback) Validate() error {
 
 // Encode encodes the callback request as
 // Form-Encoded data.
-func (c *Callback) Encode() string {
+func (b *SignedBody) Encode() string {
 	values := url.Values{}
-	values.Add("signed_parameters", c.SignedParameters)
+	values.Add("signed_parameters", b.SignedParameters)
 	return values.Encode()
 }
