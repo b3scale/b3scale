@@ -6,7 +6,7 @@ import (
 )
 
 func TestRecordingStorageCheckPath(t *testing.T) {
-	if err := os.Mkdir("./presentation", 755); err != nil {
+	if err := os.Mkdir("./presentation", 0755); err != nil {
 		t.Fatal(err)
 	}
 	defer func() {

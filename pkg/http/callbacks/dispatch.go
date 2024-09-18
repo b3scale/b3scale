@@ -84,8 +84,8 @@ func runCallback(ctx context.Context, req *Request) error {
 			Msg("dispatching callback")
 
 		err := doCallbackRequest(ctx, req)
-		dReq := time.Now().Sub(tReq)
-		dTotal := time.Now().Sub(tTotal)
+		dReq := time.Since(tReq)
+		dTotal := time.Since(tTotal)
 
 		if err != nil {
 			log.Error().

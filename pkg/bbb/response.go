@@ -718,22 +718,22 @@ func (res *GetDefaultConfigXMLResponse) Merge(other Response) error {
 
 // Header returns the HTTP response headers
 func (res *GetDefaultConfigXMLResponse) Header() http.Header {
-	return res.Header()
+	return res.header
 }
 
 // SetHeader sets the HTTP response headers
 func (res *GetDefaultConfigXMLResponse) SetHeader(h http.Header) {
-	res.SetHeader(h)
+	res.header = h
 }
 
 // Status returns the HTTP response status code
 func (res *GetDefaultConfigXMLResponse) Status() int {
-	return res.Status()
+	return res.status
 }
 
 // SetStatus sets the HTTP response status code
 func (res *GetDefaultConfigXMLResponse) SetStatus(s int) {
-	res.SetStatus(s)
+	res.status = s
 }
 
 // IsSuccess checks if the returncode of the response

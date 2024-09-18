@@ -193,10 +193,7 @@ func (req *Request) String() string {
 
 // HasBody checks for the presence of a request body
 func (req *Request) HasBody() bool {
-	if req.Body != nil && len(req.Body) > 0 {
-		return true
-	}
-	return false
+	return len(req.Body) > 0
 }
 
 // Request Builders:
