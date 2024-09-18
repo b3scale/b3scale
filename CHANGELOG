@@ -1,3 +1,11 @@
+1.2.0 - 2024-09-??
+* b3scalenoded: removed. deprecated since 1.0.0, superseded by b3scaleagent
+* b3scalectl: disable/enable frontends
+* b3scaled/b3scalectl: allow to limit overall attendees per frontend
+* b3scaled: also rewrite callback sent on session end
+* fix numerous issues uncovered by golang-lint
+* Updated dependencies
+
 1.1.1 - 2024-07-11
 * b3scaled: rewrite meta_ callback url for recording ready
 * b3scalectl: create meetings for frontend for testing purposes

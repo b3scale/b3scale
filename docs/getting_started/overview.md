@@ -25,4 +25,3 @@ b3scale consists of several components:
 * **b3scaled:** The central scaling service that accepts requests from frontends and distributes them to backends
 * **b3scalectl:** The command line tool, a wrapper
 * **b3scaleagent:**  An agent process that reports status and health of a backend to the central scaling service using a REST API
-* **b3scalenoded (*deprecated*):** Like *b3scaleagent*, but connects directly to the database 

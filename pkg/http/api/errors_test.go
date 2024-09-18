@@ -1,7 +1,7 @@
 package api
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -31,6 +31,6 @@ func TestAPIErrorHandler(t *testing.T) {
 		t.Error("unexpected status code:", res.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(res.Body)
+	body, _ := io.ReadAll(res.Body)
 	t.Log(string(body))
 }

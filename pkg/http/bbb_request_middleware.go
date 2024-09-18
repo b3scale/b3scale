@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	netHTTP "net/http"
 	"strings"
 	"time"
@@ -73,6 +73,11 @@ func BBBRequestMiddleware(
 			if frontend == nil {
 				return handleAPIError(c, fmt.Errorf(
 					"no such frontend for key: %s", frontendKey))
+			}
+			// Check if the frontend is enabled
+			if !frontend.IsActive() {
+				return handleAPIError(c, fmt.Errorf(
+					"frontend is disabled: %s", frontendKey))
 			}
 			ctx = cluster.ContextWithFrontend(ctx, frontend)
 
@@ -177,10 +182,10 @@ func handleAPIError(c echo.Context, err error) error {
 func readRequestBody(c echo.Context) []byte {
 	body := []byte{}
 	if c.Request().Body != nil { // Read
-		body, _ = ioutil.ReadAll(c.Request().Body)
+		body, _ = io.ReadAll(c.Request().Body)
 	}
 	// Reset after reading
-	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	c.Request().Body = io.NopCloser(bytes.NewBuffer(body))
 	return body
 }
 

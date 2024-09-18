@@ -104,7 +104,7 @@ func TestParamToMetadata(t *testing.T) {
 	}
 }
 
-func TestVerify(t *testing.T) {
+func TestRequestVerify(t *testing.T) {
 	// We use the example from the api documentation, now
 	// for validating against a frontend secret.
 	// order, different to the example, we will end up with
@@ -144,7 +144,7 @@ func TestVerify(t *testing.T) {
 	}
 }
 
-func TestString(t *testing.T) {
+func TestRequestString(t *testing.T) {
 	// Request create to backend
 	backend := &Backend{
 		Host:   "https://bbbackend",
@@ -181,7 +181,23 @@ func TestString(t *testing.T) {
 	}
 }
 
-func TestUnAndMarshalURLSafe(t *testing.T) {
+func TestRequestHasBody(t *testing.T) {
+	// No body
+	req := &Request{}
+	if req.HasBody() {
+		t.Error("expected no body")
+	}
+
+	// With body
+	req = &Request{
+		Body: []byte("foo"),
+	}
+	if !req.HasBody() {
+		t.Error("expected body")
+	}
+}
+
+func TestRequestMarshalURLSafe(t *testing.T) {
 	req := JoinRequest(Params{
 		"meetingID": "abcd1235789-foo",
 		"userID":    "optional",
@@ -253,7 +269,7 @@ func TestUpdateHostURL(t *testing.T) {
 	}
 }
 
-func TestSetPlaybackHost(t *testing.T) {
+func TestRecordingSetPlaybackHost(t *testing.T) {
 	host := "https://play.bbb.cluster"
 	rec := &Recording{
 		Formats: []*Format{

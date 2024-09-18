@@ -3,6 +3,7 @@ package callbacks
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -21,18 +22,26 @@ const (
 
 // Request describes a callback invocation.
 type Request struct {
-	// The callback URL
-	URL string
-
-	// Callback is any type of payload
+	URL      string
+	Method   string
 	Callback Callback
 }
 
-// NewRequest creates a new request.
-func NewRequest(url string, cb Callback) *Request {
+// Post creates a new POST request.
+func Post(url string, cb Callback) *Request {
 	return &Request{
 		URL:      url,
 		Callback: cb,
+		Method:   http.MethodPost,
+	}
+}
+
+// Get creates a new GET request with a
+// callback URL.
+func Get(url string) *Request {
+	return &Request{
+		URL:    url,
+		Method: http.MethodGet,
 	}
 }
 
@@ -59,9 +68,6 @@ func runCallback(ctx context.Context, req *Request) error {
 	wait := RetryWaitMin
 	tTotal := time.Now()
 
-	// Encode request body.
-	body := req.Callback.Encode()
-
 	// Request with backoff
 	for i := 1; i <= RetryCount; i++ {
 		// Check if context is ok. We can not garantee
@@ -77,9 +83,9 @@ func runCallback(ctx context.Context, req *Request) error {
 			Str("url", req.URL).
 			Msg("dispatching callback")
 
-		err := doCallbackRequest(ctx, req.URL, body)
-		dReq := time.Now().Sub(tReq)
-		dTotal := time.Now().Sub(tTotal)
+		err := doCallbackRequest(ctx, req)
+		dReq := time.Since(tReq)
+		dTotal := time.Since(tTotal)
 
 		if err != nil {
 			log.Error().
@@ -116,7 +122,10 @@ func runCallback(ctx context.Context, req *Request) error {
 // For now I assume that the method is always POST. In case
 // this assumption does not hold, we need to move the actual
 // invocation to the callback object.
-func doCallbackRequest(ctx context.Context, url, body string) error {
+func doCallbackRequest(
+	ctx context.Context,
+	req *Request,
+) error {
 	client := &http.Client{
 		Transport: &http.Transport{
 			ForceAttemptHTTP2:     true,
@@ -126,7 +135,7 @@ func doCallbackRequest(ctx context.Context, url, body string) error {
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(_req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse // No redirects.
 		},
 	}
@@ -134,17 +143,27 @@ func doCallbackRequest(ctx context.Context, url, body string) error {
 	ctx, cancel := context.WithTimeout(ctx, RequestTimeout)
 	defer cancel()
 
-	// Encode body: The BBB API expects 'multipart/form-data'.
+	var body io.Reader
+	if req.Callback != nil {
+		payload := req.Callback.Encode()
+		body = strings.NewReader(payload)
+	}
+
+	// Encode body: The BBB API expects 'multipart/form-data'
+	// when using POST.
 	cbReq, err := http.NewRequestWithContext(
 		ctx,
-		http.MethodPost,
-		url,
-		strings.NewReader(body))
+		req.Method,
+		req.URL,
+		body)
 	if err != nil {
 		return err
 	}
-	// Set content type
-	cbReq.Header.Set("Content-Type", "multipart/form-data")
+
+	// Set content type when posting a callback
+	if req.Callback != nil {
+		cbReq.Header.Set("Content-Type", "multipart/form-data")
+	}
 
 	res, err := client.Do(cbReq)
 	if err != nil {

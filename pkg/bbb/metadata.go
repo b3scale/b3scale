@@ -30,9 +30,8 @@ loop:
 			return err
 		}
 
-		switch t.(type) {
+		switch elem := t.(type) {
 		case xml.StartElement:
-			elem := t.(xml.StartElement)
 			key = string(elem.Name.Local)
 			err = d.DecodeElement(&value, &elem)
 			if err != nil {

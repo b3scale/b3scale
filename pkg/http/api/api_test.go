@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -43,7 +43,7 @@ func (rec *ResponseRecorder) StatusOK() error {
 
 func (rec *ResponseRecorder) Body() string {
 	res := rec.Result()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func (rec *ResponseRecorder) Body() string {
 
 func (rec *ResponseRecorder) JSON() map[string]interface{} {
 	res := rec.Result()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}

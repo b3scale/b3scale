@@ -293,7 +293,7 @@ func (b *Backend) refreshNodeState(
 // a request to the backend with a get meeting info request.
 // This is done for a specific meeting e.g. to sync the
 // attendees list - however - most of these things should
-// already be handled throught the b3scalenoded on the
+// already be handled throught the b3scaleagent on the
 // backend instance.
 func (b *Backend) refreshMeetingState(
 	ctx context.Context,

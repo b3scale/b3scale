@@ -98,6 +98,26 @@ func GetFrontendState(
 	return states[0], nil
 }
 
+// GetFrontendStateByKey retrieves a single frontend state
+// identified by the frontend key.
+func GetFrontendStateByKey(
+	ctx context.Context,
+	tx pgx.Tx,
+	key string,
+) (*FrontendState, error) {
+	return GetFrontendState(ctx, tx, Q().Where("frontends.key = ?", key))
+}
+
+// GetFrontendStateByID retrieves a single frontend state
+// identified by the frontend ID.
+func GetFrontendStateByID(
+	ctx context.Context,
+	tx pgx.Tx,
+	id string,
+) (*FrontendState, error) {
+	return GetFrontendState(ctx, tx, Q().Where("frontends.id = ?", id))
+}
+
 // Save will create or update a frontend state
 func (s *FrontendState) Save(
 	ctx context.Context,

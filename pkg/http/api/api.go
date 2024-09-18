@@ -148,10 +148,10 @@ func Init(e *echo.Echo) error {
 	protected.GET("/recordings/auth", apiProtectedRecordingsAuth)
 
 	// Backend Callbacks
-	publicV1 := e.Group("/api/v1")
-	publicV1.Use(ErrorHandler)
-
-	publicV1.POST("/recordings/ready/:token", apiOnRecordingReady)
+	callbacksV1 := e.Group("/api/v1/callbacks")
+	callbacksV1.Use(ErrorHandler)
+	callbacksV1.POST("/proxy/:token", apiOnProxyPost)
+	callbacksV1.GET("/proxy/:token", apiOnProxyGet)
 
 	return nil
 }
