@@ -3,6 +3,7 @@ package callbacks
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -67,9 +68,6 @@ func runCallback(ctx context.Context, req *Request) error {
 	wait := RetryWaitMin
 	tTotal := time.Now()
 
-	// Encode request body.
-	body := req.Callback.Encode()
-
 	// Request with backoff
 	for i := 1; i <= RetryCount; i++ {
 		// Check if context is ok. We can not garantee
@@ -85,7 +83,7 @@ func runCallback(ctx context.Context, req *Request) error {
 			Str("url", req.URL).
 			Msg("dispatching callback")
 
-		err := doCallbackRequest(ctx, req.URL, body)
+		err := doCallbackRequest(ctx, req)
 		dReq := time.Now().Sub(tReq)
 		dTotal := time.Now().Sub(tTotal)
 
@@ -124,7 +122,10 @@ func runCallback(ctx context.Context, req *Request) error {
 // For now I assume that the method is always POST. In case
 // this assumption does not hold, we need to move the actual
 // invocation to the callback object.
-func doCallbackRequest(ctx context.Context, url, body string) error {
+func doCallbackRequest(
+	ctx context.Context,
+	req *Request,
+) error {
 	client := &http.Client{
 		Transport: &http.Transport{
 			ForceAttemptHTTP2:     true,
@@ -134,7 +135,7 @@ func doCallbackRequest(ctx context.Context, url, body string) error {
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		CheckRedirect: func(_req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse // No redirects.
 		},
 	}
@@ -142,17 +143,26 @@ func doCallbackRequest(ctx context.Context, url, body string) error {
 	ctx, cancel := context.WithTimeout(ctx, RequestTimeout)
 	defer cancel()
 
-	// Encode body: The BBB API expects 'multipart/form-data'.
+	var body io.Reader
+	if req.Callback != nil {
+		payload := req.Callback.Encode()
+		body = strings.NewReader(payload)
+	}
+
+	// Encode body: The BBB API expects 'multipart/form-data'
+	// when using POST.
 	cbReq, err := http.NewRequestWithContext(
 		ctx,
-		http.MethodPost,
-		url,
-		strings.NewReader(body))
+		req.Method,
+		req.URL,
+		body)
 	if err != nil {
 		return err
 	}
 	// Set content type
-	cbReq.Header.Set("Content-Type", "multipart/form-data")
+	if req.Method == http.MethodPost {
+		cbReq.Header.Set("Content-Type", "multipart/form-data")
+	}
 
 	res, err := client.Do(cbReq)
 	if err != nil {
