@@ -16,7 +16,7 @@ import (
 func RewriteMetaCallbackURLs() cluster.RequestMiddleware {
 	return func(next cluster.RequestHandler) cluster.RequestHandler {
 		return func(ctx context.Context, req *bbb.Request) (bbb.Response, error) {
-			if err := rewriteRecordingReadyURL(ctx, req); err != nil {
+			if err := rewriteCallbacks(ctx, req); err != nil {
 				return nil, err
 			}
 			return next(ctx, req)
@@ -24,12 +24,37 @@ func RewriteMetaCallbackURLs() cluster.RequestMiddleware {
 	}
 }
 
-// Rewrite meta parameters when present.
-func rewriteRecordingReadyURL(ctx context.Context, req *bbb.Request) error {
+// Rewrite all well known callback parameters
+func rewriteCallbacks(
+	ctx context.Context,
+	req *bbb.Request,
+) error {
+	callbacks := []string{
+		bbb.MetaParamRecordingReadyURL,
+		bbb.MetaParamMeetingEndCallbackURL,
+		bbb.ParamMeetingEndedURL,
+	}
+	for _, callback := range callbacks {
+		if err := rewriteCallback(ctx, req, callback); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Rewrite meta callback URLs: Callback URLs are rewritten
+// to point to a b3scale endpoin. The original URL and callback
+// is encoded as the AUD attribute of the token.
+func rewriteCallback(
+	ctx context.Context,
+	req *bbb.Request,
+	callback string,
+) error {
 	apiURL := config.MustEnv(config.EnvAPIURL)
 	secret := config.MustEnv(config.EnvJWTSecret)
 
-	readyURL, ok := req.Params[bbb.MetaParamRecordingReadyURL]
+	// Check if we have a known callback URL
+	callbackURL, ok := req.Params[callback]
 	if !ok {
 		return nil // nothing to do here
 	}
@@ -41,7 +66,7 @@ func rewriteRecordingReadyURL(ctx context.Context, req *bbb.Request) error {
 
 	// Encode URL in token
 	token, err := auth.NewClaims(frontend.ID()).
-		WithAudience(readyURL).
+		WithAudience(callbackURL).
 		WithScopes(auth.ScopeCallback).
 		Sign(secret)
 	if err != nil {
@@ -49,11 +74,11 @@ func rewriteRecordingReadyURL(ctx context.Context, req *bbb.Request) error {
 	}
 
 	// Rewrite to our own endpoint
-	callbackURL := fmt.Sprintf(
-		"%s/api/v1/recordings/ready/%s",
+	proxyURL := fmt.Sprintf(
+		"%s/api/v1/callbacks/proxy/%s",
 		apiURL,
 		token)
-	req.Params[bbb.MetaParamRecordingReadyURL] = callbackURL
 
+	req.Params[callback] = proxyURL
 	return nil
 }

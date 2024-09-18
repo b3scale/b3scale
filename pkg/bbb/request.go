@@ -26,8 +26,10 @@ const (
 	ParamState     = "state"
 
 	ParamDisabledFeatures = "disabledFeatures"
+	ParamMeetingEndedURL  = "meetingEndedURL"
 
-	MetaParamRecordingReadyURL = "meta_bbb-recording-ready-url"
+	MetaParamMeetingEndCallbackURL = "meta_endCallbackUrl"
+	MetaParamRecordingReadyURL     = "meta_bbb-recording-ready-url"
 )
 
 var (
