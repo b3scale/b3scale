@@ -32,7 +32,7 @@ func Post(url string, cb Callback) *Request {
 	return &Request{
 		URL:      url,
 		Callback: cb,
-		Method:   "POST",
+		Method:   http.MethodPost,
 	}
 }
 
@@ -41,7 +41,7 @@ func Post(url string, cb Callback) *Request {
 func Get(url string) *Request {
 	return &Request{
 		URL:    url,
-		Method: "GET",
+		Method: http.MethodGet,
 	}
 }
 
@@ -159,8 +159,9 @@ func doCallbackRequest(
 	if err != nil {
 		return err
 	}
-	// Set content type
-	if req.Method == http.MethodPost {
+
+	// Set content type when posting a callback
+	if req.Callback != nil {
 		cbReq.Header.Set("Content-Type", "multipart/form-data")
 	}
 

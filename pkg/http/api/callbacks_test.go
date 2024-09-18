@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/b3scale/b3scale/pkg/middlewares/requests"
 	"github.com/labstack/echo/v4"
 )
 
@@ -62,4 +63,33 @@ func TestUpdateCallbackQuery(t *testing.T) {
 	if cb != "/callback?meetingID=42" {
 		t.Error("unexpected url:", cb)
 	}
+}
+
+func TestRewriteQueryParams(t *testing.T) {
+	callbackURL := "/callback?meetingID=42"
+	res, err := rewriteQueryParams(callbackURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res != "/callback?meetingID=42" {
+		t.Error("unexpected url:", res)
+	}
+
+	// Create FkMeetingID
+	fkMeetingID := (&requests.FrontendKeyMeetingID{
+		FrontendKey: "fkey",
+		MeetingID:   "2342",
+	}).EncodeToString()
+
+	callbackURL = "/callback?meetingID=" + fkMeetingID
+	res, err = rewriteQueryParams(callbackURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res != "/callback?meetingID=2342" {
+		t.Error("unexpected url:", res)
+	}
+
 }

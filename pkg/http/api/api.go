@@ -150,7 +150,8 @@ func Init(e *echo.Echo) error {
 	// Backend Callbacks
 	callbacksV1 := e.Group("/api/v1/callbacks")
 	callbacksV1.Use(ErrorHandler)
-	callbacksV1.POST("/proxy/:token", apiOnProxyCallback)
+	callbacksV1.POST("/proxy/:token", apiOnProxyPost)
+	callbacksV1.GET("/proxy/:token", apiOnProxyGet)
 
 	return nil
 }

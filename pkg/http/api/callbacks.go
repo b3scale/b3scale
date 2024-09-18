@@ -23,29 +23,109 @@ func updateCallbackQuery(c echo.Context, callbackURL string) (string, error) {
 	}
 	q := cbURL.Query()
 
-	// Update query parameters
+	// Update query parameters: This will replace
+	// the original query parameter if present.
 	params := c.QueryParams()
 	for k, v := range params {
-		for _, value := range v {
-			q.Add(k, value)
-		}
+		q[k] = v
 	}
 	cbURL.RawQuery = q.Encode()
 
 	return cbURL.String(), nil
 }
 
-// OnProxyCallback accepts a rewritten callback from a BBB node,
+// Rewrite meetingID in query parameters: unpack an
+// internal frontendKey meetingID pair and replace the
+// query param.
+func rewriteMeetingID(key string, query url.Values) {
+	mID := query.Get(key)
+	if mID == "" {
+		return
+	}
+
+	// Try to decode meetingID
+	fkmID := requests.DecodeFrontendKeyMeetingID(mID)
+	if fkmID == nil {
+		return // nothing to do here
+	}
+
+	// Rewrite meetingID
+	query.Set(key, fkmID.MeetingID)
+}
+
+// Rewrite query parameters: The meetingID parameter might be
+// set by the bbb node and contains a rewritten meetingID.
+//
+// For the callback we need to decode and patch the parameter.
+func rewriteQueryParams(callbackURL string) (string, error) {
+	cbURL, err := url.Parse(callbackURL)
+	if err != nil {
+		return "", err
+	}
+	q := cbURL.Query()
+
+	// Because of the way the BBB api is implemented and
+	// "designed", let's just assume the worst here.
+	rewriteMeetingID("meeting_id", q)
+	rewriteMeetingID("meetingID", q)
+	rewriteMeetingID("meetingId", q)
+	rewriteMeetingID("meetingid", q)
+
+	cbURL.RawQuery = q.Encode()
+	callbackURL = cbURL.String()
+
+	return callbackURL, nil
+}
+
+// OnProxyGet accepts a rewritten GET callback from a BBB node,
 // unpacks the original callback from the token and invokes it.
 //
-// The `rewrite_meta_callback_urls` middleware updates the parameters
-// of the request with a new callback URL.
+// There is no request body or JWT to reissue and the callback
+// is invoked directly.
+func apiOnProxyGet(c echo.Context) error {
+	secret := config.MustEnv(config.EnvJWTSecret)
+
+	rawToken := c.Param("token")
+	token, err := auth.ParseAPIToken(rawToken, secret)
+	if err != nil {
+		return err
+	}
+
+	if !token.HasScope(auth.ScopeCallback) {
+		return auth.ErrScopeRequired(auth.ScopeCallback)
+	}
+
+	callbackURL := token.Audience()
+	if callbackURL == "" {
+		return fmt.Errorf("callback url is required in request token")
+	}
+	callbackURL, err = updateCallbackQuery(c, callbackURL)
+	if err != nil {
+		return err
+	}
+	callbackURL, err = rewriteQueryParams(callbackURL)
+	if err != nil {
+		return err
+	}
+
+	// Invoke callback. This will happen in the background.
+	callbacks.Dispatch(callbacks.Get(callbackURL))
+
+	return c.NoContent(http.StatusOK)
+}
+
+// OnProxyPost accepts a rewritten POST callback from a BBB node,
+// unpacks the original callback from the token and invokes it.
+//
+// This is used by the meta_recording-ready-callback-url.
+// MeetingEnded callbacks are invoked via GET. Because.
+//
 // The endpoint accepts a "token" which is a JWT encoding the
 // original URL.
 //
 // The received content is a JWT, which needs to be decoded,
 // and signed with the secret of the frontend.
-func apiOnProxyCallback(c echo.Context) error {
+func apiOnProxyPost(c echo.Context) error {
 	ctx := c.Request().Context()
 	secret := config.MustEnv(config.EnvJWTSecret)
 
@@ -82,6 +162,10 @@ func apiOnProxyCallback(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	callbackURL, err = rewriteQueryParams(callbackURL)
+	if err != nil {
+		return err
+	}
 
 	// Get frontend and frontend secret
 	frontendID := token.Subject()
@@ -97,7 +181,7 @@ func apiOnProxyCallback(c echo.Context) error {
 
 	// Read request body form data. The token will be in the
 	// `signed_parameters` field.
-	req := &callbacks.Callback{}
+	req := &callbacks.SignedBody{}
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -117,16 +201,17 @@ func apiOnProxyCallback(c echo.Context) error {
 		return err
 	}
 
-	// The payload may contain a `meeting_id` parameters, which
+	// The payload must contain a `meeting_id` parameters, which
 	// needs to be rewritten.
 	cbMeetingID, ok := cbClaims["meeting_id"].(string)
-	if ok {
-		fkmID := requests.DecodeFrontendKeyMeetingID(cbMeetingID)
-		if fkmID == nil {
-			return fmt.Errorf("could not decode meetingID")
-		}
-		cbClaims["meeting_id"] = fkmID.MeetingID
+	if !ok {
+		return fmt.Errorf("meeting_id not found in callback payload")
 	}
+	fkmID := requests.DecodeFrontendKeyMeetingID(cbMeetingID)
+	if fkmID == nil {
+		return fmt.Errorf("could not decode meetingID")
+	}
+	cbClaims["meeting_id"] = fkmID.MeetingID
 
 	feSecret := frontend.Frontend.Secret
 	cbToken, err := auth.SignRawToken(cbClaims, feSecret)
@@ -135,9 +220,9 @@ func apiOnProxyCallback(c echo.Context) error {
 	}
 
 	// Invoke callback. This will happen in the background.
-	callbacks.Dispatch(callbacks.NewRequest(
+	callbacks.Dispatch(callbacks.Post(
 		callbackURL,
-		&callbacks.Callback{
+		&callbacks.SignedBody{
 			SignedParameters: cbToken,
 		}))
 
