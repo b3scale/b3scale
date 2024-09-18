@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/auth"
@@ -12,19 +13,39 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// OnRecordingReady provides an endpoint, for the backend to
-// call, in case the frontend uses `meta_bbb-recording-ready-url`
-// to signal that the recording is ready.
+// Update callback query parameters:
+// Some callbacks invoked by the bbb node will pass query parameters
+// (e.g. recordingmarks=true|false to the callback URL.
+func updateCallbackQuery(c echo.Context, callbackURL string) (string, error) {
+	cbURL, err := url.Parse(callbackURL)
+	if err != nil {
+		return "", err
+	}
+	q := cbURL.Query()
+
+	// Update query parameters
+	params := c.QueryParams()
+	for k, v := range params {
+		for _, value := range v {
+			q.Add(k, value)
+		}
+	}
+	cbURL.RawQuery = q.Encode()
+
+	return cbURL.String(), nil
+}
+
+// OnProxyCallback accepts a rewritten callback from a BBB node,
+// unpacks the original callback from the token and invokes it.
 //
-// The meeting create API request will be modified, to point to
-// this endpoint.
-//
-// The endpoints accepts a "token" which is a JWT encoding the
-// original bbb-recording-ready-url, which is then called.
+// The `rewrite_meta_callback_urls` middleware updates the parameters
+// of the request with a new callback URL.
+// The endpoint accepts a "token" which is a JWT encoding the
+// original URL.
 //
 // The received content is a JWT, which needs to be decoded,
 // and signed with the secret of the frontend.
-func apiOnRecordingReady(c echo.Context) error {
+func apiOnProxyCallback(c echo.Context) error {
 	ctx := c.Request().Context()
 	secret := config.MustEnv(config.EnvJWTSecret)
 
@@ -49,18 +70,21 @@ func apiOnRecordingReady(c echo.Context) error {
 		return err
 	}
 
-	frontendID := token.Subject()
-	callbackURL := token.Audience()
-
 	if !token.HasScope(auth.ScopeCallback) {
 		return auth.ErrScopeRequired(auth.ScopeCallback)
 	}
 
+	callbackURL := token.Audience()
 	if callbackURL == "" {
 		return fmt.Errorf("callback url is required in request token")
 	}
+	callbackURL, err = updateCallbackQuery(c, callbackURL)
+	if err != nil {
+		return err
+	}
 
 	// Get frontend and frontend secret
+	frontendID := token.Subject()
 	frontend, err := store.GetFrontendState(
 		ctx, tx, store.Q().Where(
 			"frontends.id = ?", frontendID))
@@ -73,7 +97,7 @@ func apiOnRecordingReady(c echo.Context) error {
 
 	// Read request body form data. The token will be in the
 	// `signed_parameters` field.
-	req := &callbacks.OnRecordingReady{}
+	req := &callbacks.Callback{}
 	if err := c.Bind(req); err != nil {
 		return err
 	}
@@ -93,17 +117,16 @@ func apiOnRecordingReady(c echo.Context) error {
 		return err
 	}
 
-	// The payload contains a `meeting_id` parameters, which
+	// The payload may contain a `meeting_id` parameters, which
 	// needs to be rewritten.
 	cbMeetingID, ok := cbClaims["meeting_id"].(string)
-	if !ok {
-		return fmt.Errorf("meeting_id not found in JWT payload")
+	if ok {
+		fkmID := requests.DecodeFrontendKeyMeetingID(cbMeetingID)
+		if fkmID == nil {
+			return fmt.Errorf("could not decode meetingID")
+		}
+		cbClaims["meeting_id"] = fkmID.MeetingID
 	}
-	fkmID := requests.DecodeFrontendKeyMeetingID(cbMeetingID)
-	if fkmID == nil {
-		return fmt.Errorf("could not decode meetingID")
-	}
-	cbClaims["meeting_id"] = fkmID.MeetingID
 
 	feSecret := frontend.Frontend.Secret
 	cbToken, err := auth.SignRawToken(cbClaims, feSecret)
@@ -114,19 +137,9 @@ func apiOnRecordingReady(c echo.Context) error {
 	// Invoke callback. This will happen in the background.
 	callbacks.Dispatch(callbacks.NewRequest(
 		callbackURL,
-		&callbacks.OnRecordingReady{
+		&callbacks.Callback{
 			SignedParameters: cbToken,
 		}))
 
 	return c.NoContent(http.StatusOK)
-}
-
-// OnApiMeetingEnd handles the internal rewritten
-// callback endpoint for meeting end events.
-//
-// The backend will invoke it with additional
-// query parameters: `recordingmarks`. The query
-// parameters must be appended to the original URL.
-func apiOnMeetingEnd(c echo.Context) error {
-	return c.NoContent(http.StatusNotImplemented)
 }

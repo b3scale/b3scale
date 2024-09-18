@@ -4,22 +4,22 @@ import (
 	"testing"
 )
 
-func TestOnRecordingReadyValidate(t *testing.T) {
-	cb := &OnRecordingReady{
+func TestCallbackValidate(t *testing.T) {
+	cb := &Callback{
 		SignedParameters: "PARAMS",
 	}
 	if err := cb.Validate(); err != nil {
 		t.Error(err)
 	}
 
-	cb = &OnRecordingReady{}
+	cb = &Callback{}
 	if err := cb.Validate(); err == nil {
 		t.Error("expected error")
 	}
 }
 
-func TestOnRecordingReadyEncode(t *testing.T) {
-	cb := &OnRecordingReady{
+func TestCallbackEncode(t *testing.T) {
+	cb := &Callback{
 		SignedParameters: "PARAMS",
 	}
 	data := cb.Encode()

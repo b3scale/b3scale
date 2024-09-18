@@ -150,9 +150,7 @@ func Init(e *echo.Echo) error {
 	// Backend Callbacks
 	callbacksV1 := e.Group("/api/v1/callbacks")
 	callbacksV1.Use(ErrorHandler)
-
-	callbacksV1.POST("/recording-ready/:token", apiOnRecordingReady)
-	callbacksV1.POST("/meeting-end/:token", apiOnMeetingEnd)
+	callbacksV1.POST("/proxy/:token", apiOnProxyCallback)
 
 	return nil
 }

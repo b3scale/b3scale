@@ -21,15 +21,12 @@ const (
 
 // Request describes a callback invocation.
 type Request struct {
-	// The callback URL
-	URL string
-
-	// Callback is any type of payload
-	Callback Callback
+	URL      string
+	Callback *Callback
 }
 
 // NewRequest creates a new request.
-func NewRequest(url string, cb Callback) *Request {
+func NewRequest(url string, cb *Callback) *Request {
 	return &Request{
 		URL:      url,
 		Callback: cb,

@@ -26,6 +26,7 @@ const (
 	ParamState     = "state"
 
 	ParamDisabledFeatures = "disabledFeatures"
+	ParamMeetingEndedURL  = "meetingEndedURL"
 
 	MetaParamMeetingEndCallbackURL = "meta_endCallbackUrl"
 	MetaParamRecordingReadyURL     = "meta_bbb-recording-ready-url"
