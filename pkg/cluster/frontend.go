@@ -42,6 +42,11 @@ func (f *Frontend) Frontend() *bbb.Frontend {
 	return f.state.Frontend
 }
 
+// IsActive gets the disable/enable state for the frontend
+func (f *Frontend) IsActive() bool {
+	return f.state.Active
+}
+
 // Settings gets the state settings
 func (f *Frontend) Settings() *store.FrontendSettings {
 	return &f.state.Settings
