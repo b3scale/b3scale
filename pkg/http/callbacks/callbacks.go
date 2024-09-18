@@ -20,15 +20,17 @@ type Callback interface {
 	Encode() string
 }
 
-// OnRecordingReady is a callback request
-// with a `signed_parameters` payload.
-type OnRecordingReady struct {
+// SignedBody contains signed parameters posted
+// by the bbb node agent to the callback URL.
+//
+// The signed_parameters attribute is a JWT.
+type SignedBody struct {
 	SignedParameters string `json:"signed_parameters" form:"signed_parameters"`
 }
 
 // Validate checks an OnRecordingReady request
-func (r *OnRecordingReady) Validate() error {
-	if r.SignedParameters == "" {
+func (b *SignedBody) Validate() error {
+	if b.SignedParameters == "" {
 		return fmt.Errorf("signed_parameters is required")
 	}
 	return nil
@@ -36,8 +38,8 @@ func (r *OnRecordingReady) Validate() error {
 
 // Encode encodes the callback request as
 // Form-Encoded data.
-func (r *OnRecordingReady) Encode() string {
+func (b *SignedBody) Encode() string {
 	values := url.Values{}
-	values.Add("signed_parameters", r.SignedParameters)
+	values.Add("signed_parameters", b.SignedParameters)
 	return values.Encode()
 }
