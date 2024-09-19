@@ -156,6 +156,23 @@ func apiRecordingsImport(
 	// Get visibility settings for the frontend and move
 	// recording dependent on the settings.
 	// TODO
+	// Notes and considerations:
+	// - The bbb node will move the recording to the shared
+	//   folder.
+	//
+	// - What happens if the first imported format is moved
+	//   to unpublished by the frontend?
+	//
+	//   The imported recording must be moved.
+	//
+	// - When moving a recording to published / unpublished,
+	//   we have to make sure, that the operation will not
+	//   delete an existing folder and merges the files.
+	//
+	//   This needs to be implemented in the
+	//   RecordingsStorage.
+	//
+	// - Next: Move recording and set visibility.
 
 	if err := state.Save(ctx, tx); err != nil {
 		return err
