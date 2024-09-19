@@ -24,12 +24,22 @@ type AttendeesLimitSettings struct {
 	Limit int `json:"limit" doc:"Limit of overall attendees for a frontend."`
 }
 
+// RecordingsVisibilitySettings can be used to configure
+// the default visibility of an imported recording.
+type RecordingsVisibilitySettings struct {
+	Published bool `json:"published" doc:"When true, the recording will published."`
+	Protected bool `json:"protected" doc:"When true, the recording will be protected and can only be accessed through the frontend."`
+	Public    bool `json:"public" doc:"When true, the recording will be published and listed."`
+}
+
 // FrontendSettings hold all well known settings for a
 // frontend.
 type FrontendSettings struct {
 	RequiredTags        Tags                         `json:"required_tags" doc:"When selecting a backend for creating a meeting, only consider nodes providing all of the required tags."`
 	DefaultPresentation *DefaultPresentationSettings `json:"default_presentation"`
 	AttendeesLimit      *AttendeesLimitSettings      `json:"attendees_limit"`
+
+	RecordingsVisibility *RecordingsVisibilitySettings `json:"recordings_visibility" doc:"Set the default visibility of imported recordings."`
 
 	CreateDefaultParams  bbb.Params `json:"create_default_params" doc:"Provide key value params, which will be used as a default when a meeting is created. See the BBB api documentation for which params are valid. The param value must be encoded as string."`
 	CreateOverrideParams bbb.Params `json:"create_override_params" doc:"A key value set of params which will override parameters from the frontend when a meeting is created."`

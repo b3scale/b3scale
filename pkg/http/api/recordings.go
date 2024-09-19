@@ -153,6 +153,10 @@ func apiRecordingsImport(
 	}
 	state.FrontendID = frontendID
 
+	// Get visibility settings for the frontend and move
+	// recording dependent on the settings.
+	// TODO
+
 	if err := state.Save(ctx, tx); err != nil {
 		return err
 	}
