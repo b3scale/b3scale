@@ -63,6 +63,7 @@ nav:
 - Home: index.md
 - Getting started:
   - getting_started/overview.md
+  - getting_started/b3scalectl.md
   - getting_started/b3scale.md
   - getting_started/b3scaleagent.md
   - getting_started/recording.md
