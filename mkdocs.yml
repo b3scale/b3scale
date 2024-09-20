@@ -39,7 +39,7 @@ extra:
 
 plugins:
   - search
-  - render_swagger
+  - swagger-ui-tag
   - offline
 
 markdown_extensions:
