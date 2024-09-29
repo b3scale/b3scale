@@ -128,7 +128,7 @@ func (c *Controller) StartBackground() {
 		log.Error().Err(err).Msg("requestCollectGarbage")
 	}
 
-	// Check if there are backends where the noded is
+	// Check if there are backends where the agent is
 	// not present.
 	if err := c.warnOfflineBackends(ctx); err != nil {
 		log.Error().Err(err).Msg("warnOfflineBackends")
@@ -578,7 +578,7 @@ func (c *Controller) warnOfflineBackends(ctx context.Context) error {
 		log.Warn().
 			Str("backendID", s.ID).
 			Str("host", s.Backend.Host).
-			Msg("noded is not available on the backend host")
+			Msg("agent is not available on the backend host")
 	}
 
 	return nil
