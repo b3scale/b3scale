@@ -57,12 +57,11 @@ for Q&A, Feedback, presenting clever solutions and more.
 
 ## License
 
-b3scale is provided under the [GNU Affero General Public License 3.0]
-(https://www.gnu.org/licenses/agpl-3.0.en.html). That means that all
-changes made to b3scale by an operating party must be provided as
-described by the license. Unlike other projects, contributing to b3scale
-do not require signing a Contributor Agreement or similar. This means
-fair, impartial treatment for the entire community.
+b3scale is provided under the [GNU Affero General Public License 3.0](https://www.gnu.org/licenses/agpl-3.0.en.html).
+That means that all changes made to b3scale by an operating party
+must be provided as described by the license. Unlike other projects,
+contributing to b3scale does not require signing a Contributor Agreement
+or similar. This means fair, impartial treatment for the entire community.
 
 ## Disclaimer
 
