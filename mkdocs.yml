@@ -72,6 +72,7 @@ nav:
   - maintenance/backends.md
   - maintenance/frontends.md
 - API: api-v1.md
+- Monitoring: monitoring.md
 - Sponsors: sponsors.md
 - Privacy: https://infra.run/datenschutz/
 - Imprint: https://infra.run/impressum/

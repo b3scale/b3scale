@@ -78,9 +78,22 @@ Finally, start the service:
 systemctl start b3scale
 ```
 
+## Further configuration parameters
+
+
+
+
 ## TLS termination
 
-By default, b3scale binds to port `42352` on `localhost`. Use a reverse-proxy capable web server for TLS termination.
+By default, b3scale binds to port `42352` on `localhost`. Use a reverse-proxy capable web server for TLS termination. 
+
+
+!!! note
+    You can change that port by setting `B3SCALE_LISTEN_HTTP` to something else than `127.0.0.1:42353`.
+
+!!! warning
+    Never expose b3scale to the internet directly! Always use a TLS terminating frontend!
+
 ### nginx
 
 To use nginx as a frontend proxy and TLS termination, adjust and use the following snippet:
@@ -160,3 +173,65 @@ b3scalectl --api https://api.bbb.example.org
 `b3scalectl` will now ask for the shared API secret that you provided to `b3scaled` as `B3SCALE_API_JWT_SECRET`. It uses this secret to derive
 a JWT token. The secret itself will not be stored. Next, run `b3scalectl --api https://api.bbb.example.org db migrate` to apply the initial
 database structure. b3scale is now operational.
+
+## Other settings
+
+b3scale will observe the following environment variables:
+
+ * `B3SCALE_DB_POOL_SIZE` the number of maximum parallel connections
+    we will allocate. Please note that one connection per request will
+    be blocked and returned to the pool afterwards.
+
+    Default: 128
+
+ * `B3SCALE_LOG_LEVEL` set the log level. Possible values are:
+
+        panic  5
+        fatal  4
+        error  3
+        warn   2
+        info   1
+        debug  0
+        trace -1
+
+    You can use either the numeric or integer value
+
+  * `B3SCALE_LOG_FORMAT` choose between `plain` or `structured` logging.
+     The default is `structured` and will emit JSON on stderr.
+
+ * `B3SCALE_API_URL` must be set for `b3scaled` for recordings, as it is used for redirections with *protected recordings*.
+
+The load factor of the backend can be set through:
+
+ * `B3SCALE_LOAD_FACTOR` (default `1.0`)
+
+ * `B3SCALE_API_JWT_SECRET` if not empty, the API will be enabled
+    and accessible through /api/v1/... with a JWT bearer token.
+    You can set the jwt claim `scope` to `b3scale:admin` to create
+    an admin token. You can generate an access token using `b3scalectl`:
+
+       b3scalectl auth create_access_token --sub node42 --scopes b3scale,b3scale:admin,b3scale:node
+
+    You are then prompted to paste the `B3SCALE_API_JWT_SECRET`.
+
+    You can pass the secret through the --secret longopt - however this is discouraged
+    because it might end up in the shell history. Be careful.
+
+    In case your `b3scalectl` responds with
+
+        3:43PM FTL this is fatal error="message: invalid or expired jwt"
+
+    remove the access token in `~/.config/b3scale/<host>.access_token`
+
+ 
+ * `B3SCALE_RECORDINGS_PUBLISHED_PATH` required if recordings are supported: This points to
+   the shared path where published recordings are.
+   Example: `/ceph/recordings/published`
+
+ * `B3SCALE_RECORDINGS_UNPUBLISHED_PATH` recordings are moved here, when unpublished
+   Please note that in both directories the subfolder for the format should
+   be present. (e.g. `/ceph/recordings/unpublished/presentation`)
+   Example: `/ceph/recordings/unpublished`
+
+ * `B3SCALE_RECORDINGS_PLAYBACK_HOST` path to host with the player.
+   For example: https://playback.mycluster.example.bbb/
