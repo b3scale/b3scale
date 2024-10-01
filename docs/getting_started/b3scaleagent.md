@@ -30,6 +30,8 @@ b3scalectl --api https://api.bbb.example.org authorize_node_agent --ref node23 -
 `BBB_CONFIG` should point to the `bbb-web` override config at `/etc/bigbluebutton/bbb-web.properties`. With that, you are ready to
 start the agent:
 
+If you want to change the node's load factor, you can set `B3SCALE_LOAD_FACTOR`. It acts as a penalty, so a node with a load factor of `2.0` is less likely to be chosen over one with no explicit load factor set (default is `1.0`).
+
 ```bash
 systemctl start b3scaleagent
 ```

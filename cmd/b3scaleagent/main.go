@@ -16,7 +16,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/logging"
 )
 
-// Flags and parameters, same as noded
+// Flags and parameters
 var (
 	autoregister bool
 )

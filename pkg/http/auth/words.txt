@@ -287,7 +287,6 @@ bscale
 bscaleadmin
 bscaleif
 bscalenode
-bscalenoded
 bsretryjoin
 bstate
 bstatebackend
@@ -1546,7 +1545,6 @@ nilresult
 nilreturn
 niltype
 nodeconst
-noded
 nodes
 nodesdeadline
 nodestate
