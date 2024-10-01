@@ -61,7 +61,8 @@ b3scale in an inexpensive, resource conserving fashion.
 
 The following architecture overview shows these concept coming together:
 
-![b3scale architecture](../assets/images/b3scale-architecture.png){ loading=lazy }
+![b3scale architecture](../assets/images/b3scale-architecture.png#only-light){ loading=lazy }
+![b3scale architecture](../assets/images/b3scale-architecture_dark.png#dark-light){ loading=lazy }
 <figure markdown>
   <figcaption>b3scale architecture overview</figcaption>
 </figure>
