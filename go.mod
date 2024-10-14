@@ -13,7 +13,7 @@ require (
 	github.com/labstack/echo/v4 v4.12.0
 	github.com/prometheus/client_golang v1.20.4
 	github.com/rs/zerolog v1.33.0
-	github.com/urfave/cli/v2 v2.27.4
+	github.com/urfave/cli/v2 v2.27.5
 	golang.org/x/net v0.30.0
 	golang.org/x/term v0.25.0
 )
@@ -21,7 +21,7 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
