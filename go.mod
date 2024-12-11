@@ -10,7 +10,7 @@ require (
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/labstack/echo-contrib v0.17.1
 	github.com/labstack/echo-jwt/v4 v4.3.0
-	github.com/labstack/echo/v4 v4.13.0
+	github.com/labstack/echo/v4 v4.13.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/rs/zerolog v1.33.0
 	github.com/urfave/cli/v2 v2.27.5
