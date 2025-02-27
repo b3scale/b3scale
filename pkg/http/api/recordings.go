@@ -70,13 +70,13 @@ func apiRecordingsImport(
 	// Create preview using the provided thumbnails
 	storage, err := store.NewRecordingsStorageFromEnv()
 	if err != nil {
-		log.Error().Err(err).Msg("could not use recordings storage")
-	} else {
-		preview := storage.MakeRecordingPreview(rec.RecordID)
-		// Use the same preview for all formats, for now...
-		for _, f := range rec.Formats {
-			f.Preview = preview
-		}
+		return err
+	}
+
+	preview := storage.MakeRecordingPreview(rec.RecordID)
+	// Use the same preview for all formats, for now...
+	for _, f := range rec.Formats {
+		f.Preview = preview
 	}
 
 	// Save to store
@@ -106,6 +106,12 @@ func apiRecordingsImport(
 		state, err := store.GetFrontendStateByKey(ctx, tx, frontendKeyOverride)
 		if err != nil {
 			return err
+		}
+		if state == nil {
+			msg := fmt.Sprintf("override_frontend_key: A frontend with key '%s' could not be found.", frontendKeyOverride)
+			return echo.NewHTTPError(
+				http.StatusNotFound,
+				msg)
 		}
 		feID := state.ID
 		feKey := state.Frontend.Key
