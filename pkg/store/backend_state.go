@@ -463,9 +463,6 @@ func (s *BackendState) Validate() ValidationError {
 	if !strings.HasPrefix(host, "http") {
 		err.Add("bbb.host", "should start with http(s)://")
 	}
-	if !strings.HasSuffix(host, "/") {
-		host += "/"
-	}
 
 	// Secret
 	secret := strings.TrimSpace(s.Backend.Secret)

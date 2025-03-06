@@ -73,6 +73,9 @@ func apiBackendsList(
 	q = q.OrderBy("backends.host ASC")
 
 	backends, err := store.GetBackendStates(ctx, tx, q)
+	if err != nil {
+		return err
+	}
 	return api.JSON(http.StatusOK, backends)
 }
 
@@ -150,7 +153,9 @@ func apiBackendShow(
 	}
 
 	backend, err := store.GetBackendState(ctx, tx, q)
-
+	if err != nil {
+		return err
+	}
 	if backend == nil {
 		return echo.ErrNotFound
 	}
@@ -181,6 +186,9 @@ func apiBackendDestroy(
 	}
 
 	backend, err := store.GetBackendState(ctx, tx, q)
+	if err != nil {
+		return err
+	}
 	if backend == nil {
 		return echo.ErrNotFound
 	}

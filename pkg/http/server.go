@@ -67,6 +67,7 @@ func NewServer(
 	// Serve static assets
 
 	s := &Server{
+		serviceID:  serviceID,
 		echo:       e,
 		gateway:    gateway,
 		controller: ctrl,

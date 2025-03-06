@@ -120,7 +120,7 @@ func (c *Cli) setBackend(ctx *cli.Context) error {
 					return err
 				}
 			} else {
-				state, err = client.BackendUpdate(ctx.Context, state)
+				_, err = client.BackendUpdate(ctx.Context, state)
 				if err != nil {
 					return err
 				}
@@ -256,7 +256,7 @@ func (c *Cli) setBackendAdminState(
 	}
 	if changes {
 		if !dry {
-			state, err = client.BackendUpdate(ctx.Context, state)
+			_, err = client.BackendUpdate(ctx.Context, state)
 			if err != nil {
 				return err
 			}
@@ -307,7 +307,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 			return nil
 		}
 		fmt.Println("deleting backend")
-		state, err = client.BackendDelete(
+		_, err = client.BackendDelete(
 			ctx.Context, state, url.Values{
 				"force": []string{"true"},
 			})
@@ -321,7 +321,7 @@ func (c *Cli) deleteBackend(ctx *cli.Context) error {
 			fmt.Println("skipping decommissioning backend (dry run)")
 			return nil
 		}
-		state, err = client.BackendUpdate(ctx.Context, state)
+		_, err = client.BackendUpdate(ctx.Context, state)
 		if err != nil {
 			return err
 		}

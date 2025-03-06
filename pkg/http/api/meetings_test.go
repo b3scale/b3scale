@@ -117,7 +117,7 @@ func TestMeetingDestroy(t *testing.T) {
 	}
 
 	// Query the meeting again, this should fail.
-	api, res = NewTestRequest().
+	api, _ = NewTestRequest().
 		Authorize("test-agent-2000", auth.ScopeNode).
 		KeepState().
 		Context()

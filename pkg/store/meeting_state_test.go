@@ -325,6 +325,8 @@ func TestMeetingStateUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log(id)
+
 	if !m1.UpdatedAt.IsZero() {
 		t.Error("unexpected updated_at:", m1.UpdatedAt)
 	}
@@ -337,12 +339,15 @@ func TestMeetingStateUpsert(t *testing.T) {
 	// Make update
 	m1.Meeting.Running = true
 	m1.UpdatedAt = now
-	id, err = m1.Upsert(ctx, tx)
+	id2, err := m1.Upsert(ctx, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(id)
 	t.Log(m1.UpdatedAt)
+
+	if id != id2 {
+		t.Error("ID should not have changed after update")
+	}
 
 	// Read state
 	m2, err := GetMeetingState(ctx, tx, Q().Where("meetings.id = ?", id))
@@ -380,9 +385,11 @@ func TestMeetingStateUpdateFrontendMeetingMapping(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	if ok {
 		t.Error("did not expect meeting id associated with frontend")
+	}
+	if feID != "" {
+		t.Error("unexpected frontend id:", feID, "expected: empty.")
 	}
 
 	if err := m.UpdateFrontendMeetingMapping(ctx, tx); err != nil {

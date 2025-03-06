@@ -198,10 +198,18 @@ func apiFrontendDestroy(
 		if err := tx.Commit(ctx); err != nil {
 			return err
 		}
+
+		// Close transaction
+		tx.Rollback(ctx) //nolint
 	}
 
 	// New transaction for deleting the frontend
 	tx, err = api.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
 	if err := frontend.Delete(ctx, tx); err != nil {
 		return err
 	}
