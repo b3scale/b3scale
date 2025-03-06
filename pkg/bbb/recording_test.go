@@ -159,3 +159,16 @@ func TestRecordingMetadataWithoutMeetingToRecording(t *testing.T) {
 	}
 
 }
+
+func TestRecordingVisibilityString(t *testing.T) {
+	if RecordingVisibilityPublished.String() != "published" {
+		t.Error("unexpected result:", RecordingVisibilityPublished.String())
+	}
+
+	var f RecordingVisibility
+	f = 12
+	s := f.String()
+	if s != "" {
+		t.Error("unexpected string value:", s)
+	}
+}
