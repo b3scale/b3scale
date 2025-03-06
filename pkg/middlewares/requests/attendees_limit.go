@@ -31,7 +31,7 @@ func CheckAttendeesLimit() cluster.RequestMiddleware {
 			if err != nil {
 				return nil, err
 			}
-			defer tx.Rollback(ctx)
+			defer tx.Rollback(ctx) //nolint
 
 			allowed := maybeCheckAttendeesLimit(ctx, tx, req, frontend)
 			if !allowed {
@@ -73,7 +73,11 @@ func maybeCheckAttendeesLimit(ctx context.Context, tx pgx.Tx, req *bbb.Request, 
 	qry := `
   select sum((state->>'ParticipantCount')::int) from meetings where frontend_id = $1
   `
-	tx.QueryRow(ctx, qry, fe.ID()).Scan(&curAt)
+	err := tx.QueryRow(ctx, qry, fe.ID()).Scan(&curAt)
+	if err != nil {
+		log.Warn().Str("frontend_key", fe.Key()).
+			Err(err).Msg("failed to get 'ParticipantCount' from 'meetings'")
+	}
 
 	// If limit was already reached stop request
 	if curAt >= opts.Limit {

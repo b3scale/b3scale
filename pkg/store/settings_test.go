@@ -10,7 +10,7 @@ import (
 func TestFrontendSettingsSave(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state := frontendStateFactory()
 

@@ -27,7 +27,7 @@ func readTestResponse(name string) []byte {
 func TestInsertAndUpdateRecording(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	b := backendStateFactory()
 	if err := b.Save(ctx, tx); err != nil {
@@ -81,7 +81,7 @@ func TestInsertAndUpdateRecording(t *testing.T) {
 func TestSetGetTextTracks(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	b := backendStateFactory()
 	if err := b.Save(ctx, tx); err != nil {
@@ -140,7 +140,7 @@ func TestSetGetTextTracks(t *testing.T) {
 func TestRecordingSetFrontendID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	b := backendStateFactory()
 	if err := b.Save(ctx, tx); err != nil {
@@ -209,7 +209,9 @@ func TestMerge(t *testing.T) {
 	}
 	rec = meta.ToRecording()
 	state2 := NewStateFromRecording(rec)
-	state2.Merge(state)
+	if err := state2.Merge(state); err != nil {
+		t.Fatal(err)
+	}
 
 	if len(state2.Recording.Formats) != 2 {
 		t.Error("expected 2 formats")

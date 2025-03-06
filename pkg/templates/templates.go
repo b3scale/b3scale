@@ -6,6 +6,8 @@ import (
 
 	// Use go16 embedding instead of inline templates
 	_ "embed"
+
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -51,38 +53,63 @@ func init() {
 // Redirect applies the redirect template
 func Redirect(url string) []byte {
 	res := new(bytes.Buffer)
-	tmplRedirect.Execute(res, url)
+	err := tmplRedirect.Execute(res, url)
+	if err != nil {
+		log.Error().Err(err).Str("template", "redirect").
+			Msg("render template failed")
+		return nil
+	}
 	return res.Bytes()
 }
 
 // RetryJoin applies the retry join template
 func RetryJoin(url string) []byte {
 	res := new(bytes.Buffer)
-	tmplRetryJoin.Execute(res, url)
+	err := tmplRetryJoin.Execute(res, url)
+	if err != nil {
+		log.Error().Err(err).Str("template", "retry_join").
+			Msg("render template failed")
+		return nil
+	}
 	return res.Bytes()
 }
 
 // MeetingNotFound applies the meeting not found template
 func MeetingNotFound() []byte {
 	res := new(bytes.Buffer)
-	tmplMeetingNotFound.Execute(res, nil)
+	err := tmplMeetingNotFound.Execute(res, nil)
+	if err != nil {
+		log.Error().Err(err).Str("template", "meeting_not_found").
+			Msg("render template failed")
+		return nil
+	}
 	return res.Bytes()
 }
 
 // AttendeesLimitReached applies the attendees limit reached template
 func AttendeesLimitReached() []byte {
 	res := new(bytes.Buffer)
-	tmplAttendeesLimitReached.Execute(res, nil)
+	err := tmplAttendeesLimitReached.Execute(res, nil)
+	if err != nil {
+		log.Error().Err(err).Str("template", "attendees_limit_reached").
+			Msg("render template failed")
+		return nil
+	}
 	return res.Bytes()
 }
 
 // ErrorPage renders the error page template
 func ErrorPage(title, message string) []byte {
 	res := new(bytes.Buffer)
-	tmplErrorPage.Execute(res, map[string]interface{}{
+	err := tmplErrorPage.Execute(res, map[string]interface{}{
 		"Message": message,
 		"Title":   title,
 	})
+	if err != nil {
+		log.Error().Err(err).Str("template", "error_page").
+			Msg("render template failed")
+		return nil
+	}
 	return res.Bytes()
 }
 
@@ -90,9 +117,16 @@ func ErrorPage(title, message string) []byte {
 // a default presentation.
 func DefaultPresentationBody(u, filename string) []byte {
 	res := new(bytes.Buffer)
-	tmplDefaultPresentationBody.Execute(res, struct{ URL, Filename string }{
+	err := tmplDefaultPresentationBody.Execute(res, struct{ URL, Filename string }{
 		URL:      u,
 		Filename: filename,
 	})
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("template", "default_presentation").
+			Msg("render template failed")
+		return nil
+	}
 	return res.Bytes()
 }

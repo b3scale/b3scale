@@ -75,7 +75,7 @@ func (h *MeetingsHandler) Join(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Lookup meeting
 	meetingID, _ := req.Params.MeetingID()
@@ -217,7 +217,7 @@ func (h *MeetingsHandler) GetMeetings(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get all meetings from our store associated
 	// with the requesting frontend.
@@ -228,7 +228,7 @@ func (h *MeetingsHandler) GetMeetings(
 	if err != nil {
 		return nil, err
 	}
-	tx.Rollback(ctx)
+	tx.Rollback(ctx) //nolint
 
 	meetings := make([]*bbb.Meeting, 0, len(mstates))
 	for _, state := range mstates {

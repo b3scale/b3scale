@@ -49,7 +49,7 @@ func bindMeetingFrontend(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 	meeting, err := store.GetMeetingStateByID(ctx, tx, meetingID)
 	if err != nil {
 		return err

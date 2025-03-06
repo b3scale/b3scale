@@ -65,7 +65,7 @@ func apiFrontendsList(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 	frontends, err := store.GetFrontendStates(ctx, tx, q)
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func apiFrontendCreate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	if err := frontend.Save(ctx, tx); err != nil {
 		return err
@@ -122,7 +122,7 @@ func apiFrontendShow(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	q := store.Q().Where("id = ?", id)
 	if !api.HasScope(auth.ScopeAdmin) {
@@ -155,7 +155,7 @@ func apiFrontendDestroy(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	q := store.Q().Where("id = ?", id)
 	frontend, err := store.GetFrontendState(ctx, tx, q)
@@ -182,7 +182,7 @@ func apiFrontendDestroy(
 		if err != nil {
 			return err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		// Remove from FS (this will fail more likely than deleting
 		// the database record, so we do this first in case this fails.
@@ -226,7 +226,7 @@ func apiFrontendUpdate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	q := store.Q().Where("id = ?", id)
 	if !api.HasScope(auth.ScopeAdmin) {

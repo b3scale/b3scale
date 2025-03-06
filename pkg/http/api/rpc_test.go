@@ -52,7 +52,7 @@ func TestMeetingStateReset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(api.Ctx())
+	defer tx.Rollback(api.Ctx()) //nolint
 	state, err := store.GetMeetingState(api.Ctx(), tx, store.Q().
 		Where("meetings.id = ?", meeting.ID))
 	if err != nil {
@@ -82,7 +82,7 @@ func TestMeetingSetRunning(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(api.Ctx())
+	defer tx.Rollback(api.Ctx()) //nolint
 	state, err := store.GetMeetingState(api.Ctx(), tx, store.Q().
 		Where("meetings.id = ?", meeting.ID))
 	if err != nil {
@@ -120,7 +120,7 @@ func TestMeetingAddAttendee(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(api.Ctx())
+	defer tx.Rollback(api.Ctx()) //nolint
 	state, err := store.GetMeetingState(api.Ctx(), tx, store.Q().
 		Where("meetings.id = ?", meeting.ID))
 	if err != nil {
@@ -178,7 +178,7 @@ func TestMeetingRemoveAttendee(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 	state, err := store.GetMeetingState(ctx, tx, store.Q().
 		Where("meetings.id = ?", meeting.ID))
 	if err != nil {

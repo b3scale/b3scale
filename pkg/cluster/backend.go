@@ -105,11 +105,15 @@ func GetBackends(
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Rollback(ctx) //nolint
+
 	states, err := store.GetBackendStates(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
-	tx.Rollback(ctx)
+
+	// Close TX early
+	tx.Rollback(ctx) //nolint
 
 	// Make cluster backend from each state
 	backends := make([]*Backend, 0, len(states))
@@ -173,7 +177,7 @@ func (b *Backend) refreshNodeState(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Measure latency
 	t0 := time.Now()
@@ -233,10 +237,10 @@ func (b *Backend) refreshNodeState(
 		if err != nil {
 			continue
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		if err := b.state.CreateOrUpdateMeetingState(ctx, tx, meeting); err != nil {
-			tx.Rollback(ctx)
+			tx.Rollback(ctx) //nolint
 			log.Error().
 				Err(err).
 				Str("meetingID", meeting.MeetingID).
@@ -258,7 +262,7 @@ func (b *Backend) refreshNodeState(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	count, err := store.DeleteOrphanMeetings(ctx, tx, b.state.ID, backendMeetings)
 	if err != nil {
@@ -280,7 +284,7 @@ func (b *Backend) refreshNodeState(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	if err := b.state.UpdateStatCounters(ctx, tx); err != nil {
 		return err
@@ -314,7 +318,7 @@ func (b *Backend) refreshMeetingState(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	res := rep.(*bbb.GetMeetingInfoResponse)
 	if res.XMLResponse.Returncode != "SUCCESS" {
@@ -511,7 +515,7 @@ func (b *Backend) GetMeetingInfo(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	meetingID, _ := req.Params.MeetingID()
 	mstate, err := store.GetMeetingState(ctx, tx, store.Q().

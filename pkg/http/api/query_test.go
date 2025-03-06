@@ -13,7 +13,7 @@ func TestBackendFromQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	backend := createTestBackend(api)
 
@@ -33,7 +33,7 @@ func TestBackendFromQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	if lookup, err := BackendFromQuery(ctx, api, tx); err != nil {
 		t.Error(err)
@@ -54,7 +54,7 @@ func TestBackendFromQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 	if lookup, err := BackendFromQuery(ctx, api, tx); err != nil {
 		t.Error(err)
 	} else {
@@ -74,7 +74,7 @@ func TestBackendFromQuery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 	if lookup, err := BackendFromQuery(ctx, api, tx); err != nil {
 		t.Error(err)
 	} else {

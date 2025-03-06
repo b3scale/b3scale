@@ -188,7 +188,7 @@ func (h *RecordingsHandler) GetRecordings(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	playbackHost, hasPlaybackHost := config.GetEnvOpt(
 		config.EnvRecordingsPlaybackHost)
@@ -253,7 +253,7 @@ func (h *RecordingsHandler) PublishRecordings(
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		rec, err := store.GetRecordingStateByID(ctx, tx, id)
 		if err != nil {
@@ -317,7 +317,7 @@ func (h *RecordingsHandler) UpdateRecordings(
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		rec, err := store.GetRecordingStateByID(ctx, tx, recordID)
 		if err != nil {
@@ -367,7 +367,7 @@ func (h *RecordingsHandler) DeleteRecordings(
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		rec, err := store.GetRecordingState(
 			ctx, tx, store.QueryRecordingsByFrontendKey(req.Frontend.Key).

@@ -95,7 +95,7 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		log.Error().Err(err).Msg("could not collect metrics")
 		return
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Collect attendees and meetings
 	if err := c.collectMeetingMetrics(ctx, tx, ch); err != nil {

@@ -84,7 +84,7 @@ func apiRecordingsImport(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get override frontend from request:
 	// Sometimes we need to import a legacy recording for a new
@@ -143,7 +143,9 @@ func apiRecordingsImport(
 		return err
 	}
 	if current != nil {
-		state.Merge(current)
+		if err := state.Merge(current); err != nil {
+			return err
+		}
 	}
 
 	// Lookup frontendID for this recording
@@ -189,7 +191,7 @@ func apiProtectedRecordingsShow(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get configuration and request token
 	secret := config.MustEnv(config.EnvJWTSecret)
@@ -295,7 +297,7 @@ func apiProtectedRecordingsAuth(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get the requested path from X-Resource-Path header
 	// and the access token from the cookie.

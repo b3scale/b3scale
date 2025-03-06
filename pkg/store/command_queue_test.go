@@ -9,7 +9,7 @@ import (
 func TestSafeExecHandler(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	h1 := func(ctx context.Context, cmd *Command) (interface{}, error) {
 		panic("panic with fatal error")
@@ -52,9 +52,12 @@ func TestSafeExecHandler(t *testing.T) {
 func TestCountCommandsRequested(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
-	tx.Exec(ctx, "DELETE FROM commands")
+	_, err := tx.Exec(ctx, "DELETE FROM commands")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	count, err := CountCommandsRequested(ctx, tx)
 	if err != nil {

@@ -76,13 +76,13 @@ func GetFrontends(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	states, err := store.GetFrontendStates(ctx, tx, q)
 	if err != nil {
 		return nil, err
 	}
-	tx.Rollback(ctx)
+	tx.Rollback(ctx) //nolint
 
 	// Make cluster backend from each state
 	frontends := make([]*Frontend, 0, len(states))

@@ -374,7 +374,7 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 
 func (c *Cli) showStatusHelp(ctx *cli.Context) error {
 	// Show help text
-	cli.ShowAppHelp(ctx)
+	_ = cli.ShowAppHelp(ctx)
 	fmt.Println("")
 	return c.showStatus(ctx)
 }

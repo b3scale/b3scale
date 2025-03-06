@@ -30,7 +30,9 @@ func TestRewriteMetaCallbackURLs(t *testing.T) {
 		},
 	}
 
-	rewriteCallbacks(ctx, req)
+	if err := rewriteCallbacks(ctx, req); err != nil {
+		t.Fatal(err)
+	}
 
 	t.Log(req.Params)
 

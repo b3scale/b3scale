@@ -55,7 +55,7 @@ func meetingStateFactory(
 func TestGetMeetingStates(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	m1, err := meetingStateFactory(ctx, tx, &MeetingState{
 		ID:         uuid.New().String(),
@@ -87,7 +87,7 @@ func TestGetMeetingStates(t *testing.T) {
 func TestMeetingStateSave(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -109,7 +109,7 @@ func TestMeetingStateSave(t *testing.T) {
 func TestMeetingStateSaveUpdate(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -132,7 +132,7 @@ func TestMeetingStateSaveUpdate(t *testing.T) {
 func TestMeetingStateQueryUpdate(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -160,7 +160,7 @@ func TestMeetingStateQueryUpdate(t *testing.T) {
 func TestMeetingStateIsStale(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -196,7 +196,7 @@ func TestMeetingStateIsStale(t *testing.T) {
 func TestDeleteMeetingStateByInternalID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -215,7 +215,7 @@ func TestDeleteMeetingStateByInternalID(t *testing.T) {
 func TestDeleteMeetingStateByID(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -234,7 +234,7 @@ func TestDeleteMeetingStateByID(t *testing.T) {
 func TestDeleteOrphanMeetings(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	m1, err := meetingStateFactory(ctx, tx, nil)
 	if err != nil {
@@ -306,7 +306,7 @@ func TestDeleteOrphanMeetings(t *testing.T) {
 func TestMeetingStateUpsert(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	m0, err := meetingStateFactory(ctx, tx, nil) // unrelated
 	if err != nil {
@@ -365,7 +365,7 @@ func TestMeetingStateUpsert(t *testing.T) {
 func TestMeetingStateUpdateFrontendMeetingMapping(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	frontend := frontendStateFactory()
 	if err := frontend.Save(ctx, tx); err != nil {

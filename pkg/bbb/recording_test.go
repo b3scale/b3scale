@@ -77,7 +77,10 @@ func TestMergeRecordings(t *testing.T) {
 	}
 	rec2 := meta.ToRecording()
 
-	rec2.Merge(rec1)
+	if err := rec2.Merge(rec1); err != nil {
+		t.Fatal(err)
+	}
+
 	if rec2.Name != rec1.Name {
 		t.Error("Unexpected Name:", rec2.Name)
 	}

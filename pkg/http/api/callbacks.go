@@ -140,7 +140,7 @@ func apiOnProxyPost(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get request token and get frontend and original
 	// callback URL. The token must be signed.

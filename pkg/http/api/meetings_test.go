@@ -20,7 +20,7 @@ func createTestMeeting(
 	if err != nil {
 		panic(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	m := store.InitMeetingState(&store.MeetingState{
 		BackendID: &backend.ID,

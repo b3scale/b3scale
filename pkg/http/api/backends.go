@@ -50,7 +50,7 @@ func apiBackendsList(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q()
@@ -108,7 +108,7 @@ func apiBackendCreate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	if err := backend.Save(ctx, tx); err != nil {
 		return err
@@ -140,7 +140,7 @@ func apiBackendShow(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
@@ -172,7 +172,7 @@ func apiBackendDestroy(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
@@ -219,7 +219,7 @@ func apiBackendUpdate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
