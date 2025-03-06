@@ -44,7 +44,7 @@ func TestGetBackendStateByID(t *testing.T) {
 		return
 	}
 	if dbState == nil {
-		t.Error("did not find backend by id")
+		t.Fatal("did not find backend by id")
 	}
 	if dbState.ID != state.ID {
 		t.Error("unexpected id:", dbState.ID)

@@ -212,10 +212,6 @@ func TestRequestMarshalURLSafe(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log(req1)
-	id, _ := req1.Params.MeetingID()
-	if id != "abcd1235789-foo" {
-
-	}
 }
 
 func TestDecodeURLSafeRequest(t *testing.T) {
@@ -244,7 +240,7 @@ func TestDecodeURLSafeRequest(t *testing.T) {
 
 	req1 := decodeURLSafeRequest(r)
 	if req1 == nil {
-		t.Error("decode failed.")
+		t.Fatal("decode failed.")
 	}
 	/*
 		if req1.Request.Header.Get("content-type") != "application/test" {
