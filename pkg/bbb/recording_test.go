@@ -172,3 +172,15 @@ func TestRecordingVisibilityString(t *testing.T) {
 		t.Error("unexpected string value:", s)
 	}
 }
+
+func TestRecordingVisibilityParse(t *testing.T) {
+
+	v, err := ParseRecordingVisibility("published")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != RecordingVisibilityPublished {
+		t.Error("unexpected visibility:", v)
+	}
+
+}
