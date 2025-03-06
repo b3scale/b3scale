@@ -183,4 +183,9 @@ func TestRecordingVisibilityParse(t *testing.T) {
 		t.Error("unexpected visibility:", v)
 	}
 
+	_, err = ParseRecordingVisibility("unknown")
+	if err == nil {
+		t.Fatal("visibility 'unknown' should not parse")
+	}
+
 }
