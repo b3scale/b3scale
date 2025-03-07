@@ -20,6 +20,9 @@ func TestFrontendSettingsSave(t *testing.T) {
 		"disabledFeatures": "chat,captions,virtualBackgrounds",
 		"groups":           "[{id:'1',name:'GroupA',roster:['1235']}]",
 	}
+	state.Settings.Recordings = &RecordingsSettings{
+		DefaultVisibility: bbb.RecordingVisibilityProtected,
+	}
 
 	if err := state.Save(ctx, tx); err != nil {
 		t.Fatal(err)
@@ -32,6 +35,9 @@ func TestFrontendSettingsSave(t *testing.T) {
 	}
 
 	if state.Settings.CreateDefaultParams["duration"] != "42" {
-		t.Error("Unexpected settings:", state.Settings.CreateDefaultParams)
+		t.Error("unexpected settings:", state.Settings.CreateDefaultParams)
+	}
+	if state.Settings.Recordings.DefaultVisibility != bbb.RecordingVisibilityProtected {
+		t.Error("unexpected settings:", state.Settings.Recordings)
 	}
 }
