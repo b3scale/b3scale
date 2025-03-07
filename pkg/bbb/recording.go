@@ -1,6 +1,7 @@
 package bbb
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"net/url"
@@ -313,4 +314,34 @@ func ParseRecordingVisibility(s string) (RecordingVisibility, error) {
 	}
 
 	return 0, fmt.Errorf("unknown recording visibility: '%s'", s)
+}
+
+// MarshalJSON implements the Marshaler interface
+// for serializing a recording visibility.
+func (v RecordingVisibility) MarshalJSON() ([]byte, error) {
+	repr, ok := recordingVisiblityKeys[v]
+	if !ok {
+		return nil, fmt.Errorf("unknown recording visibility: '%d'", v)
+	}
+
+	return json.Marshal(repr)
+}
+
+// UnmarshalJSON implements the Unmarshaler interface
+// for deserializing a recording visibility.
+func (v *RecordingVisibility) UnmarshalJSON(b []byte) error {
+	var repr string
+	err := json.Unmarshal(b, &repr)
+	if err != nil {
+		return err
+	}
+
+	val, err := ParseRecordingVisibility(repr)
+	if err != nil {
+		return err
+	}
+
+	*v = val
+
+	return nil
 }
