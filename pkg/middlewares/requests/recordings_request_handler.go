@@ -190,8 +190,11 @@ func (h *RecordingsHandler) GetRecordings(
 	}
 	defer tx.Rollback(ctx) //nolint
 
+	// Config
 	playbackHost, hasPlaybackHost := config.GetEnvOpt(
 		config.EnvRecordingsPlaybackHost)
+	apiURL := config.MustEnv(config.EnvAPIURL)
+	apiSecret := config.MustEnv(config.EnvJWTSecret)
 
 	qry := store.QueryRecordingsByFrontendKey(req.Frontend.Key)
 
@@ -217,7 +220,7 @@ func (h *RecordingsHandler) GetRecordings(
 		}
 		protect, _ := rec.Metadata.GetBool(bbb.ParamProtect)
 		if protect {
-			rec.Protect(state.FrontendID)
+			rec.Protect(state.FrontendID, apiSecret, apiURL)
 		}
 
 		recordings = append(recordings, state.Recording)

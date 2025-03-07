@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"testing"
+
+	"github.com/b3scale/b3scale/pkg/bbb"
 )
 
 // TestIsEnabled tests IsEnabled
@@ -49,14 +51,14 @@ func TestGetRecordingsDefaultVisibility(t *testing.T) {
 	// Default
 	os.Unsetenv(EnvRecordingsDefaultVisibility)
 	v := GetRecordingsDefaultVisibility()
-	if v != RecordingVisibilityPublished {
+	if v != bbb.RecordingVisibilityPublished {
 		t.Error("unexpected:", v)
 	}
 
 	// From env
 	os.Setenv(EnvRecordingsDefaultVisibility, "public_protected")
 	v = GetRecordingsDefaultVisibility()
-	if v != RecordingVisibilityPublicProtected {
+	if v != bbb.RecordingVisibilityPublicProtected {
 		t.Error("unexpected:", v)
 	}
 }

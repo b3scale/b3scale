@@ -2,7 +2,6 @@ package store
 
 import (
 	"github.com/b3scale/b3scale/pkg/bbb"
-	"github.com/b3scale/b3scale/pkg/config"
 )
 
 // Tags are a list of strings with labels to declare
@@ -30,7 +29,7 @@ type AttendeesLimitSettings struct {
 // RecordingsSettings configure per frontend options
 // for handling recordings.
 type RecordingsSettings struct {
-	DefaultVisibility config.RecordingVisibility `json:"default_visibility" doc:"Recordings created by this frontend will have this visibility by default unless overriden through metadata."`
+	DefaultVisibility bbb.RecordingVisibility `json:"default_visibility" doc:"Recordings created by this frontend will have this visibility by default unless overriden through metadata."`
 }
 
 // FrontendSettings hold all well known settings for a

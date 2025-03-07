@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/rs/zerolog/log"
 )
 
@@ -186,11 +187,11 @@ func DomainOf(addr string) string {
 
 // Internal: Get default visibility from environemnt and parse
 // into a RecordingVisiblity enum.
-func envGetRecordingsDefaultVisibility() (RecordingVisibility, error) {
+func envGetRecordingsDefaultVisibility() (bbb.RecordingVisibility, error) {
 	repr := EnvOpt(
 		EnvRecordingsDefaultVisibility,
 		EnvRecordingsDefaultVisibilityDefault)
-	return ParseRecordingVisibility(repr)
+	return bbb.ParseRecordingVisibility(repr)
 }
 
 // GetRecordingsDefaultVisibility returns the parsed default
@@ -199,7 +200,7 @@ func envGetRecordingsDefaultVisibility() (RecordingVisibility, error) {
 // This function will never panic: CheckEnv will ensure that
 // the configured value is valid. Make sure CheckEnv is invoked
 // prior to using this function.
-func GetRecordingsDefaultVisibility() RecordingVisibility {
+func GetRecordingsDefaultVisibility() bbb.RecordingVisibility {
 	v, _ := envGetRecordingsDefaultVisibility()
 	return v
 }

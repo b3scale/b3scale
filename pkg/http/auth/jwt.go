@@ -9,8 +9,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-
-	"github.com/b3scale/b3scale/pkg/config"
 )
 
 // Scopes is a list of scopes
@@ -169,8 +167,7 @@ func SignRawToken(claims jwt.MapClaims, secret string) (string, error) {
 // echojwt middleware.
 // Parameters like shared secrets, public keys, etc..
 // are retrieved from the environment.
-func NewJWTAuthMiddleware() echo.MiddlewareFunc {
-	secret := config.MustEnv(config.EnvJWTSecret)
+func NewJWTAuthMiddleware(secret string) echo.MiddlewareFunc {
 	cfg := echojwt.Config{
 		SigningKey:    []byte(secret),
 		SigningMethod: "HS384",
