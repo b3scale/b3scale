@@ -50,7 +50,6 @@ func updateHostURL(target, base string) string {
 // and preview thumbnails
 func (r *Recording) SetPlaybackHost(host string) {
 	for _, f := range r.Formats {
-
 		// Update recording host
 		f.URL = updateHostURL(f.URL, host)
 
@@ -273,7 +272,7 @@ type RecordingMetadataPlayback struct {
 }
 
 // RecordingVisibility is an enum represeting the visibility
-// of the recording: Published, Unpublishe, Protected
+// of the recording: Published, Unpublished, Protected
 type RecordingVisibility int
 
 // The recording visibility affects the state of the recording
