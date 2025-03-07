@@ -184,6 +184,8 @@ func DomainOf(addr string) string {
 	return domain
 }
 
+// Internal: Get default visibility from environemnt and parse
+// into a RecordingVisiblity enum.
 func envGetRecordingsDefaultVisibility() (RecordingVisibility, error) {
 	repr := EnvOpt(
 		EnvRecordingsDefaultVisibility,

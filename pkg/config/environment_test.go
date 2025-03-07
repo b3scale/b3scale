@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"testing"
 )
 
@@ -42,4 +43,20 @@ func TestDomainOf(t *testing.T) {
 		t.Error("DomainOf failed:", host, DomainOf(host))
 	}
 
+}
+
+func TestGetRecordingsDefaultVisibility(t *testing.T) {
+	// Default
+	os.Unsetenv(EnvRecordingsDefaultVisibility)
+	v := GetRecordingsDefaultVisibility()
+	if v != RecordingVisibilityPublished {
+		t.Error("unexpected:", v)
+	}
+
+	// From env
+	os.Setenv(EnvRecordingsDefaultVisibility, "public_protected")
+	v = GetRecordingsDefaultVisibility()
+	if v != RecordingVisibilityPublicProtected {
+		t.Error("unexpected:", v)
+	}
 }
