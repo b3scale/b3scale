@@ -14,17 +14,23 @@ import (
 
 // Well Known Environment Keys
 const (
-	EnvDbURL                       = "B3SCALE_DB_URL"
-	EnvDbPoolSize                  = "B3SCALE_DB_POOL_SIZE"
-	EnvLogLevel                    = "B3SCALE_LOG_LEVEL"
-	EnvLogFormat                   = "B3SCALE_LOG_FORMAT"
-	EnvListenHTTP                  = "B3SCALE_LISTEN_HTTP"
-	EnvReverseProxy                = "B3SCALE_REVERSE_PROXY_MODE"
-	EnvLoadFactor                  = "B3SCALE_LOAD_FACTOR"
-	EnvJWTSecret                   = "B3SCALE_API_JWT_SECRET"
-	EnvAPIURL                      = "B3SCALE_API_URL"
-	EnvAPIAccessToken              = "B3SCALE_API_ACCESS_TOKEN"
-	EnvBBBConfig                   = "BBB_CONFIG"
+	EnvBBBConfig = "BBB_CONFIG"
+
+	EnvDbURL      = "B3SCALE_DB_URL"
+	EnvDbPoolSize = "B3SCALE_DB_POOL_SIZE"
+
+	EnvLogLevel  = "B3SCALE_LOG_LEVEL"
+	EnvLogFormat = "B3SCALE_LOG_FORMAT"
+
+	EnvListenHTTP   = "B3SCALE_LISTEN_HTTP"
+	EnvReverseProxy = "B3SCALE_REVERSE_PROXY_MODE"
+	EnvLoadFactor   = "B3SCALE_LOAD_FACTOR"
+
+	EnvJWTSecret      = "B3SCALE_API_JWT_SECRET"
+	EnvAPIURL         = "B3SCALE_API_URL"
+	EnvAPIAccessToken = "B3SCALE_API_ACCESS_TOKEN"
+
+	EnvRecordingsInboxPath         = "B3SCALE_RECORDINGS_INBOX_PATH"
 	EnvRecordingsPublishedPath     = "B3SCALE_RECORDINGS_PUBLISHED_PATH"
 	EnvRecordingsUnpublishedPath   = "B3SCALE_RECORDINGS_UNPUBLISHED_PATH"
 	EnvRecordingsPlaybackHost      = "B3SCALE_RECORDINGS_PLAYBACK_HOST"
@@ -33,14 +39,18 @@ const (
 
 // Defaults
 const (
-	EnvDbPoolSizeDefault                  = "128"
-	EnvDbURLDefault                       = "postgres://postgres:postgres@localhost:5432/b3scale"
-	EnvLogLevelDefault                    = "info"
-	EnvLogFormatDefault                   = "structured"
-	EnvListenHTTPDefault                  = "127.0.0.1:42353" // :B3S
-	EnvReverseProxyDefault                = "false"
-	EnvBBBConfigDefault                   = "/etc/bigbluebutton/bbb-web.properties"
-	EnvLoadFactorDefault                  = "1.0"
+	EnvBBBConfigDefault = "/etc/bigbluebutton/bbb-web.properties"
+
+	EnvDbPoolSizeDefault = "128"
+	EnvDbURLDefault      = "postgres://postgres:postgres@localhost:5432/b3scale"
+
+	EnvLogLevelDefault  = "info"
+	EnvLogFormatDefault = "structured"
+
+	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
+	EnvReverseProxyDefault = "false"
+	EnvLoadFactorDefault   = "1.0"
+
 	EnvRecordingsDefaultVisibilityDefault = "published"
 )
 
@@ -50,35 +60,6 @@ func LoadEnv(envfiles []string) {
 	for _, filename := range envfiles {
 		loadEnvFile(filename)
 	}
-}
-
-// CheckEnv checks if the environment is configured
-func CheckEnv() error {
-	missing := []string{}
-
-	// API and Secret
-	if _, ok := GetEnvOpt(EnvAPIURL); !ok {
-		missing = append(missing, EnvAPIURL)
-	}
-
-	if _, ok := GetEnvOpt(EnvJWTSecret); !ok {
-		missing = append(missing, EnvJWTSecret)
-	}
-
-	// Recordings Default Visibility
-	vis, err := envGetRecordingsDefaultVisibility()
-	if err != nil {
-		return err
-	}
-	log.Info().Str("default_visibility", vis.String()).
-		Msg("global recordings default visibility")
-
-	if len(missing) > 0 {
-		return fmt.Errorf("missing environment variables: %s",
-			strings.Join(missing, ", "))
-	}
-
-	return nil
 }
 
 // Internal load a single env file
@@ -203,4 +184,60 @@ func envGetRecordingsDefaultVisibility() (bbb.RecordingVisibility, error) {
 func GetRecordingsDefaultVisibility() bbb.RecordingVisibility {
 	v, _ := envGetRecordingsDefaultVisibility()
 	return v
+}
+
+// CheckEnv checks if the environment is configured
+func CheckEnv() error {
+	missing := []string{}
+
+	// API and Secret
+	if _, ok := GetEnvOpt(EnvAPIURL); !ok {
+		missing = append(missing, EnvAPIURL)
+	}
+
+	if _, ok := GetEnvOpt(EnvJWTSecret); !ok {
+		missing = append(missing, EnvJWTSecret)
+	}
+
+	// Recordings Default Visibility
+	vis, err := envGetRecordingsDefaultVisibility()
+	if err != nil {
+		return err
+	}
+
+	// Recordings paths
+	// In case the Published Path is configured, check that
+	// the configuration is complete.
+	recEnabled := false
+	inPath, hasInPath := GetEnvOpt(EnvRecordingsInboxPath)
+	pubPath, hasPubPath := GetEnvOpt(EnvRecordingsPublishedPath)
+	unpubPath, hasUnpubPath := GetEnvOpt(EnvRecordingsUnpublishedPath)
+	if hasInPath || hasPubPath || hasUnpubPath {
+		if !hasInPath {
+			missing = append(missing, EnvRecordingsInboxPath)
+		}
+		if !hasPubPath {
+			missing = append(missing, EnvRecordingsPublishedPath)
+		}
+		if !hasUnpubPath {
+			missing = append(missing, EnvRecordingsUnpublishedPath)
+		}
+		recEnabled = true
+	}
+
+	// Log recording settings
+	log.Info().
+		Bool("recordings_enabled", recEnabled).
+		Str("inbox_path", inPath).
+		Str("published_path", pubPath).
+		Str("unpublished_path", unpubPath).
+		Str("default_visibility", vis.String()).
+		Msg("recordings settings")
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing environment variables: %s",
+			strings.Join(missing, ", "))
+	}
+
+	return nil
 }
