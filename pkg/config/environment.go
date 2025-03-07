@@ -13,32 +13,34 @@ import (
 
 // Well Known Environment Keys
 const (
-	EnvDbURL                     = "B3SCALE_DB_URL"
-	EnvDbPoolSize                = "B3SCALE_DB_POOL_SIZE"
-	EnvLogLevel                  = "B3SCALE_LOG_LEVEL"
-	EnvLogFormat                 = "B3SCALE_LOG_FORMAT"
-	EnvListenHTTP                = "B3SCALE_LISTEN_HTTP"
-	EnvReverseProxy              = "B3SCALE_REVERSE_PROXY_MODE"
-	EnvLoadFactor                = "B3SCALE_LOAD_FACTOR"
-	EnvJWTSecret                 = "B3SCALE_API_JWT_SECRET"
-	EnvAPIURL                    = "B3SCALE_API_URL"
-	EnvAPIAccessToken            = "B3SCALE_API_ACCESS_TOKEN"
-	EnvBBBConfig                 = "BBB_CONFIG"
-	EnvRecordingsPublishedPath   = "B3SCALE_RECORDINGS_PUBLISHED_PATH"
-	EnvRecordingsUnpublishedPath = "B3SCALE_RECORDINGS_UNPUBLISHED_PATH"
-	EnvRecordingsPlaybackHost    = "B3SCALE_RECORDINGS_PLAYBACK_HOST"
+	EnvDbURL                       = "B3SCALE_DB_URL"
+	EnvDbPoolSize                  = "B3SCALE_DB_POOL_SIZE"
+	EnvLogLevel                    = "B3SCALE_LOG_LEVEL"
+	EnvLogFormat                   = "B3SCALE_LOG_FORMAT"
+	EnvListenHTTP                  = "B3SCALE_LISTEN_HTTP"
+	EnvReverseProxy                = "B3SCALE_REVERSE_PROXY_MODE"
+	EnvLoadFactor                  = "B3SCALE_LOAD_FACTOR"
+	EnvJWTSecret                   = "B3SCALE_API_JWT_SECRET"
+	EnvAPIURL                      = "B3SCALE_API_URL"
+	EnvAPIAccessToken              = "B3SCALE_API_ACCESS_TOKEN"
+	EnvBBBConfig                   = "BBB_CONFIG"
+	EnvRecordingsPublishedPath     = "B3SCALE_RECORDINGS_PUBLISHED_PATH"
+	EnvRecordingsUnpublishedPath   = "B3SCALE_RECORDINGS_UNPUBLISHED_PATH"
+	EnvRecordingsPlaybackHost      = "B3SCALE_RECORDINGS_PLAYBACK_HOST"
+	EnvRecordingsDefaultVisibility = "B3SCALE_RECORDINGS_DEFAULT_VISIBILITY"
 )
 
 // Defaults
 const (
-	EnvDbPoolSizeDefault   = "128"
-	EnvDbURLDefault        = "postgres://postgres:postgres@localhost:5432/b3scale"
-	EnvLogLevelDefault     = "info"
-	EnvLogFormatDefault    = "structured"
-	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
-	EnvReverseProxyDefault = "false"
-	EnvBBBConfigDefault    = "/etc/bigbluebutton/bbb-web.properties"
-	EnvLoadFactorDefault   = "1.0"
+	EnvDbPoolSizeDefault                  = "128"
+	EnvDbURLDefault                       = "postgres://postgres:postgres@localhost:5432/b3scale"
+	EnvLogLevelDefault                    = "info"
+	EnvLogFormatDefault                   = "structured"
+	EnvListenHTTPDefault                  = "127.0.0.1:42353" // :B3S
+	EnvReverseProxyDefault                = "false"
+	EnvBBBConfigDefault                   = "/etc/bigbluebutton/bbb-web.properties"
+	EnvLoadFactorDefault                  = "1.0"
+	EnvRecordingsDefaultVisibilityDefault = "published"
 )
 
 // LoadEnv loads the environment from a file and
@@ -53,6 +55,7 @@ func LoadEnv(envfiles []string) {
 func CheckEnv() error {
 	missing := []string{}
 
+	// API and Secret
 	if _, ok := GetEnvOpt(EnvAPIURL); !ok {
 		missing = append(missing, EnvAPIURL)
 	}
@@ -60,6 +63,14 @@ func CheckEnv() error {
 	if _, ok := GetEnvOpt(EnvJWTSecret); !ok {
 		missing = append(missing, EnvJWTSecret)
 	}
+
+	// Recordings Default Visibility
+	vis, err := envGetRecordingsDefaultVisibility()
+	if err != nil {
+		return err
+	}
+	log.Info().Str("default_visibility", vis.String()).
+		Msg("global recordings default visibility")
 
 	if len(missing) > 0 {
 		return fmt.Errorf("missing environment variables: %s",
@@ -171,4 +182,22 @@ func DomainOf(addr string) string {
 	}
 	domain := tokens[len(tokens)-2] + "." + tokens[len(tokens)-1]
 	return domain
+}
+
+func envGetRecordingsDefaultVisibility() (RecordingVisibility, error) {
+	repr := EnvOpt(
+		EnvRecordingsDefaultVisibility,
+		EnvRecordingsDefaultVisibilityDefault)
+	return ParseRecordingVisibility(repr)
+}
+
+// GetRecordingsDefaultVisibility returns the parsed default
+// visibility from the environment.
+//
+// This function will never panic: CheckEnv will ensure that
+// the configured value is valid. Make sure CheckEnv is invoked
+// prior to using this function.
+func GetRecordingsDefaultVisibility() RecordingVisibility {
+	v, _ := envGetRecordingsDefaultVisibility()
+	return v
 }

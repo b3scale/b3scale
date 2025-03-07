@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/config"
 )
 
 func TestFrontendSettingsSave(t *testing.T) {
@@ -21,7 +22,7 @@ func TestFrontendSettingsSave(t *testing.T) {
 		"groups":           "[{id:'1',name:'GroupA',roster:['1235']}]",
 	}
 	state.Settings.Recordings = &RecordingsSettings{
-		DefaultVisibility: bbb.RecordingVisibilityProtected,
+		DefaultVisibility: config.RecordingVisibilityProtected,
 	}
 
 	if err := state.Save(ctx, tx); err != nil {
@@ -37,7 +38,7 @@ func TestFrontendSettingsSave(t *testing.T) {
 	if state.Settings.CreateDefaultParams["duration"] != "42" {
 		t.Error("unexpected settings:", state.Settings.CreateDefaultParams)
 	}
-	if state.Settings.Recordings.DefaultVisibility != bbb.RecordingVisibilityProtected {
+	if state.Settings.Recordings.DefaultVisibility != config.RecordingVisibilityProtected {
 		t.Error("unexpected settings:", state.Settings.Recordings)
 	}
 }
