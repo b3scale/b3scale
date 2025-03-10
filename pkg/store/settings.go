@@ -29,7 +29,7 @@ type AttendeesLimitSettings struct {
 // RecordingsSettings configure per frontend options
 // for handling recordings.
 type RecordingsSettings struct {
-	DefaultVisibility bbb.RecordingVisibility `json:"default_visibility" doc:"Recordings created by this frontend will have this visibility by default unless overriden through metadata."`
+	VisibilityOverride *bbb.RecordingVisibility `json:"visibility_override" doc:"Recordings created by this frontend will have this visibility when imported."`
 }
 
 // FrontendSettings hold all well known settings for a
