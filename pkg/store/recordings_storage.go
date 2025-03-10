@@ -354,6 +354,7 @@ func (s *RecordingsStorage) ImportRecording(rec *RecordingState) error {
 			return err
 		}
 
+		// Inbox
 		src := s.inboxRecordingPath(recID, format)
 
 		// Destination depends on the recording being published
