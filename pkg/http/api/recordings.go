@@ -14,6 +14,7 @@ import (
 	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/b3scale/b3scale/pkg/middlewares/requests"
 	"github.com/b3scale/b3scale/pkg/store"
+	"github.com/jackc/pgx/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 )
@@ -43,6 +44,100 @@ var ResourceRecordingsImport = &Resource{
 		auth.ScopeAdmin,
 		auth.ScopeNode,
 	)(apiRecordingsImport),
+}
+
+// Internal: Apply meeting overrides. Set the frontend key
+// and associated meeting ID.
+//
+// Sometimes we need to import a legacy recording for a new
+// frontend. In this case, we need to rewrite the meetingID
+// to the new frontend.
+func recordingsImportApplyOverrides(
+	ctx context.Context,
+	api *API,
+	tx pgx.Tx,
+	rec *bbb.Recording,
+) error {
+	// Use override_originial_meeting_id to associate the
+	// recording with a different meetingID.
+	meetingIDOverride := api.QueryParam("override_original_meeting_id")
+	if meetingIDOverride != "" {
+		rec.MeetingID = meetingIDOverride
+	}
+	// Use override_frontend_key to associate the recording
+	// with a differnt tenant.
+	frontendKeyOverride := api.QueryParam("override_frontend_key")
+	if frontendKeyOverride != "" {
+		log.Info().
+			Str("override_frontend_key", frontendKeyOverride).
+			Str("override_original_meeting_id", rec.MeetingID).
+			Msg("importing recording with override")
+
+		state, err := store.GetFrontendStateByKey(ctx, tx, frontendKeyOverride)
+		if err != nil {
+			return err
+		}
+		if state == nil {
+			msg := fmt.Sprintf(
+				"override_frontend_key: A frontend with key '%s' could not be found.",
+				frontendKeyOverride)
+			return echo.NewHTTPError(
+				http.StatusNotFound,
+				msg)
+		}
+		feID := state.ID
+		feKey := state.Frontend.Key
+
+		// Rewrite meetingID
+		meetingID := (&requests.FrontendKeyMeetingID{
+			FrontendKey: feKey,
+			MeetingID:   rec.MeetingID,
+		}).EncodeToString()
+		rec.MeetingID = meetingID
+
+		// Update meetingID in recording and register meeting
+		// if not present with the frontend.
+		mapping := &store.MeetingState{
+			FrontendID: &feID,
+			ID:         meetingID,
+		}
+		if err := mapping.UpdateFrontendMeetingMapping(ctx, tx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Internal: Apply frontend settings. Set the visiblity to
+// published / unpublished and update gl-listed metadata
+// in recording.
+func recordingsImportApplyFrontendSettings(
+	ctx context.Context,
+	tx pgx.Tx,
+	rec *bbb.Recording,
+	feID string,
+) error {
+	// Get frontend settings
+	fe, err := store.GetFrontendStateByID(ctx, tx, feID)
+	if err != nil {
+		return err
+	}
+	if fe == nil {
+		return fmt.Errorf("could not get frontend by ID: %s", feID)
+	}
+
+	// Get recording visibility overrides
+	rs := fe.Settings.Recordings
+	if rs == nil {
+		return nil // nothing to do here
+	}
+	vo := rs.VisibilityOverride
+	if vo != nil {
+		rec.SetVisibility(*vo)
+	}
+
+	return nil
 }
 
 // RecordingsImportMeta will accept the contents of a
@@ -79,59 +174,37 @@ func apiRecordingsImport(
 		f.Preview = preview
 	}
 
-	// Save to store
+	// Start store transaction
 	tx, err := api.Conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx) //nolint
 
-	// Get override frontend from request:
-	// Sometimes we need to import a legacy recording for a new
-	// frontend. In this case, we need to rewrite the meetingID
-	// to the new frontend.
-	// Use override_originial_meeting_id to associate the
-	// recording with a different meetingID.
-	meetingIDOverride := api.QueryParam("override_original_meeting_id")
-	if meetingIDOverride != "" {
-		rec.MeetingID = meetingIDOverride
+	// Apply overrides, settings and defaults
+	if err := recordingsImportApplyOverrides(
+		ctx, api, tx, rec,
+	); err != nil {
+		return err
 	}
-	frontendKeyOverride := api.QueryParam("override_frontend_key")
-	if frontendKeyOverride != "" {
-		log.Info().
-			Str("override_frontend_key", frontendKeyOverride).
-			Str("override_original_meeting_id", rec.MeetingID).
-			Msg("importing recording with override")
 
-		state, err := store.GetFrontendStateByKey(ctx, tx, frontendKeyOverride)
-		if err != nil {
-			return err
-		}
-		if state == nil {
-			msg := fmt.Sprintf("override_frontend_key: A frontend with key '%s' could not be found.", frontendKeyOverride)
-			return echo.NewHTTPError(
-				http.StatusNotFound,
-				msg)
-		}
-		feID := state.ID
-		feKey := state.Frontend.Key
+	// Lookup frontendID for this recording
+	frontendID, ok, err := store.LookupFrontendIDByMeetingID(
+		ctx, tx, rec.MeetingID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf(
+			"could not find frontendID for meetingID: %s",
+			rec.MeetingID)
+	}
 
-		// Rewrite meetingID
-		meetingID := (&requests.FrontendKeyMeetingID{
-			FrontendKey: feKey,
-			MeetingID:   rec.MeetingID,
-		}).EncodeToString()
-		rec.MeetingID = meetingID
-
-		// Update meetingID in recording and register meeting
-		// if not present with the frontend.
-		mapping := &store.MeetingState{
-			FrontendID: &feID,
-			ID:         meetingID,
-		}
-		if err := mapping.UpdateFrontendMeetingMapping(ctx, tx); err != nil {
-			return err
-		}
+	// Apply frontend overrides
+	if err := recordingsImportApplyFrontendSettings(
+		ctx, tx, rec, frontendID,
+	); err != nil {
+		return err
 	}
 
 	state := store.NewStateFromRecording(rec)
@@ -148,23 +221,12 @@ func apiRecordingsImport(
 		}
 	}
 
-	// Lookup frontendID for this recording
-	frontendID, ok, err := store.LookupFrontendIDByMeetingID(
-		ctx, tx, state.MeetingID)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return fmt.Errorf(
-			"could not find frontendID for meetingID: %s",
-			state.MeetingID)
-	}
 	state.FrontendID = frontendID
 
+	// Persist
 	if err := state.Save(ctx, tx); err != nil {
 		return err
 	}
-
 	if err := tx.Commit(ctx); err != nil {
 		return err
 	}
