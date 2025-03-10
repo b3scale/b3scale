@@ -339,7 +339,8 @@ func (v RecordingVisibility) String() string {
 	return recordingVisiblityKeys[v]
 }
 
-// Parse resolves the recording visibility key into the enum value
+// ParseRecordingVisibility resolves the recording visibility
+// key into the enum value.
 func ParseRecordingVisibility(s string) (RecordingVisibility, error) {
 	for value, key := range recordingVisiblityKeys {
 		if s == key {
