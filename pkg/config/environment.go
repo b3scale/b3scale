@@ -149,6 +149,7 @@ func GetLoadFactor() float64 {
 
 // DomainOf returns the domain name (with TLD) of the given
 // address or URL.
+// FIXME: This feels out of place here.
 func DomainOf(addr string) string {
 	u, err := url.Parse(addr)
 	if err != nil {
