@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"os"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -258,24 +257,7 @@ func (s *RecordingState) DeleteFiles() error {
 	if err != nil {
 		return err
 	}
-
-	path := storage.PublishedRecordingPath(s.RecordID)
-	if !s.Recording.Published {
-		path = storage.UnpublishedRecordingPath(s.RecordID)
-	}
-
-	return os.RemoveAll(path)
-}
-
-// Helper: move recording files
-func moveRecordingFiles(src, dst string) error {
-	// Check if we are already present
-	if _, err := os.Stat(dst); err == nil {
-		return nil // nothing to do here
-	}
-
-	// Move files
-	return os.Rename(src, dst)
+	return storage.DeleteRecording(s)
 }
 
 // PublishFiles will move the recording from the unpublished
@@ -285,9 +267,7 @@ func (s *RecordingState) PublishFiles() error {
 	if err != nil {
 		return err
 	}
-	publishedPath := storage.PublishedRecordingPath(s.RecordID)
-	unpublishedPath := storage.UnpublishedRecordingPath(s.RecordID)
-	return moveRecordingFiles(unpublishedPath, publishedPath)
+	return storage.PublishRecording(s)
 }
 
 // UnpublishFiles will move the recording from the published
@@ -297,9 +277,17 @@ func (s *RecordingState) UnpublishFiles() error {
 	if err != nil {
 		return err
 	}
-	publishedPath := storage.PublishedRecordingPath(s.RecordID)
-	unpublishedPath := storage.UnpublishedRecordingPath(s.RecordID)
-	return moveRecordingFiles(publishedPath, unpublishedPath)
+	return storage.UnpublishRecording(s)
+}
+
+// ImportFiles will move incoming files from the
+// inbox to the published or unpublished folder.
+func (s *RecordingState) ImportFiles() error {
+	storage, err := NewRecordingsStorageFromEnv()
+	if err != nil {
+		return err
+	}
+	return storage.ImportRecording(s)
 }
 
 // GetRecordingTextTracks retrieves the text tracks from

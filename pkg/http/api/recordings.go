@@ -73,7 +73,7 @@ func apiRecordingsImport(
 		return err
 	}
 
-	preview := storage.MakeRecordingPreview(rec.RecordID)
+	preview := storage.MakeRecordingPreview(rec)
 	// Use the same preview for all formats, for now...
 	for _, f := range rec.Formats {
 		f.Preview = preview
@@ -166,6 +166,11 @@ func apiRecordingsImport(
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Import from inbox
+	if err := state.ImportFiles(); err != nil {
 		return err
 	}
 

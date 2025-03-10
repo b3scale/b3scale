@@ -146,6 +146,13 @@ func (r *Recording) Merge(other *Recording) error {
 	return nil
 }
 
+// Well known recoding formats
+const (
+	RecordingFormatPresentation = "presentation"
+	RecordingFormatVideo        = "video"
+	RecordingFormatPodcast      = "podcast"
+)
+
 // Format contains a link to the playable media
 type Format struct {
 	XMLName        xml.Name `xml:"format"`
