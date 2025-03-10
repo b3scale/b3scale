@@ -225,3 +225,16 @@ func TestRecordingVisibilityUnmarshalJSON(t *testing.T) {
 		t.Error("unexpected result", res)
 	}
 }
+
+func TestRecordingSetVisibility(t *testing.T) {
+	r := &Recording{
+		Metadata: Metadata{},
+	}
+
+	// test parameters are getting updated.
+	r.SetVisibility(RecordingVisibilityPublicProtected)
+	if r.Metadata[ParamProtect] != "true" {
+		t.Error("unexpected metadata", r.Metadata)
+	}
+	t.Log(r)
+}

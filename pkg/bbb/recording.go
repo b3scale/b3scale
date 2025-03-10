@@ -146,6 +146,38 @@ func (r *Recording) Merge(other *Recording) error {
 	return nil
 }
 
+// SetVisibility updates all attributes of the recording
+// encoding the visibility.
+func (r *Recording) SetVisibility(v RecordingVisibility) {
+	switch v {
+	case RecordingVisibilityUnpublished:
+		r.State = StateUnpublished
+		r.Published = false
+		r.Metadata[ParamListed] = "false"
+		r.Metadata[ParamProtect] = "false"
+	case RecordingVisibilityPublished:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "false"
+		r.Metadata[ParamProtect] = "false"
+	case RecordingVisibilityProtected:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "false"
+		r.Metadata[ParamProtect] = "true"
+	case RecordingVisibilityPublic:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "true"
+		r.Metadata[ParamProtect] = "false"
+	case RecordingVisibilityPublicProtected:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "true"
+		r.Metadata[ParamProtect] = "true"
+	}
+}
+
 // Well known recoding formats
 const (
 	RecordingFormatPresentation = "presentation"

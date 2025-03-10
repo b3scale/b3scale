@@ -24,6 +24,7 @@ const (
 	ParamPublish   = "publish"
 	ParamProtect   = "protect"
 	ParamState     = "state"
+	ParamListed    = "gl-listed"
 
 	ParamDisabledFeatures = "disabledFeatures"
 	ParamMeetingEndedURL  = "meetingEndedURL"
