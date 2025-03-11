@@ -58,24 +58,6 @@ func NewRecordingsStorageFromEnv() (*RecordingsStorage, error) {
 	return s, nil
 }
 
-// Internal: inboxRecordingPath returns the full filepath to a recording
-// in the inbox.
-func (s *RecordingsStorage) inboxRecordingPath(id, format string) string {
-	return filepath.Join(s.InboxPath, format, id)
-}
-
-// Internal: publishedRecoreingPath  returns the joined filepath
-// for an "id" (this will be the internal meeting id).
-func (s *RecordingsStorage) publishedRecordingPath(id, format string) string {
-	return filepath.Join(s.PublishedPath, format, id)
-}
-
-// Internal: unpublishedRecordingPath returns the joined filepath
-// for an "id" (this will be the internal meeting id).
-func (s *RecordingsStorage) unpublishedRecordingPath(id, format string) string {
-	return filepath.Join(s.UnpublishedPath, format, id)
-}
-
 // Internal: assertPathAccess will test if the path is
 // read- and writable.
 func assertPathAccess(path string) error {
@@ -97,16 +79,18 @@ func assertPathAccess(path string) error {
 func (s *RecordingsStorage) Check() error {
 	canary := ".rwtest.b3scale"
 
-	p := s.inboxRecordingPath(canary, bbb.RecordingFormatPresentation)
+	// Inbox
+	p := filepath.Join(s.InboxPath, canary)
 	if err := assertPathAccess(p); err != nil {
 		return err
 	}
-
-	p = s.publishedRecordingPath(canary, bbb.RecordingFormatPresentation)
+	// Published
+	p = filepath.Join(s.PublishedPath, canary)
 	if err := assertPathAccess(p); err != nil {
 		return err
 	}
-	p = s.unpublishedRecordingPath(canary, bbb.RecordingFormatPresentation)
+	// Unpublished
+	p = filepath.Join(s.UnpublishedPath, canary)
 	if err := assertPathAccess(p); err != nil {
 		return err
 	}
@@ -115,21 +99,40 @@ func (s *RecordingsStorage) Check() error {
 
 // ListThumbnailFiles retrievs all thumbnail files from presentations
 // relative to the published path.
-func (s *RecordingsStorage) ListThumbnailFiles(recordID string) []string {
-	// Retrieve the thumbnail files from the presentation
-	th, _ := filepath.Glob(
-		filepath.Join(
-			s.publishedRecordingPath(recordID, bbb.RecordingFormatPresentation),
-			"presentation", "*", "thumbnails", "*.png"))
-
-	// Strip base path
-	thumbnails := make([]string, 0, len(th))
-	prefix := s.publishedRecordingPath(recordID, bbb.RecordingFormatPresentation)
-	for _, t := range th {
-		thumbnails = append(thumbnails, t[len(prefix)+1:])
+func (s *RecordingsStorage) ListThumbnailFiles(rec *bbb.Recording) []string {
+	recID := rec.RecordID
+	storeBasePaths := []string{
+		s.InboxPath,
+		s.PublishedPath,
+		s.UnpublishedPath,
 	}
 
-	return thumbnails
+	for _, basePath := range storeBasePaths {
+
+		// Retrieve the thumbnail files from the presentation.
+		// The recording might be located in the inbox, published or
+		// unpublished path.
+		formatBasePath := filepath.Join(
+			basePath,
+			bbb.RecordingFormatPresentation,
+			recID,
+		)
+
+		th, _ := filepath.Glob(filepath.Join(
+			formatBasePath, "presentation", "*", "thumbnails", "*.png"))
+
+		// Strip base path
+		thumbnails := make([]string, 0, len(th))
+		for _, t := range th {
+			thumbnails = append(thumbnails, t[len(formatBasePath)+1:])
+		}
+
+		if len(thumbnails) > 0 {
+			return thumbnails
+		}
+	}
+
+	return []string{}
 }
 
 // MakeRecordingPreview will use the thumbnails to create previews
@@ -137,7 +140,7 @@ func (s *RecordingsStorage) MakeRecordingPreview(
 	rec *bbb.Recording,
 ) *bbb.Preview {
 	recordID := rec.RecordID
-	thumbnails := s.ListThumbnailFiles(recordID)
+	thumbnails := s.ListThumbnailFiles(rec)
 	images := make([]*bbb.Image, 0, len(thumbnails))
 
 	for i, th := range thumbnails {
@@ -180,6 +183,21 @@ func assertFsSafe(v string) error {
 	return nil
 }
 
+// Internal: unsafeAssertFsPath will check if a (base) path
+// exists and will try to create it.
+//
+// Caveat: Make sure the path is not constructed from
+// _unchecked_ user input.
+func unsafeAssertFsPath(p string) error {
+	// Check the path exists
+	if _, err := os.Stat(p); err == nil {
+		return nil // nothing to do here
+	}
+
+	// Create directory
+	return os.MkdirAll(p, 0755)
+}
+
 // Internal: safeDeleteRecording will delete files
 // for a recording with a given format from all known paths
 // Format and recordID will be validated.
@@ -192,19 +210,19 @@ func (s *RecordingsStorage) safeDeleteRecording(recordID, format string) error {
 	}
 
 	// Published
-	path := s.publishedRecordingPath(recordID, format)
+	path := filepath.Join(s.PublishedPath, recordID, format)
 	if err := os.RemoveAll(path); err != nil {
 		return err
 	}
 
 	// Unpublished
-	path = s.unpublishedRecordingPath(recordID, format)
+	path = filepath.Join(s.UnpublishedPath, recordID, format)
 	if err := os.RemoveAll(path); err != nil {
 		return err
 	}
 
 	// Inbox
-	path = s.inboxRecordingPath(recordID, format)
+	path = filepath.Join(s.InboxPath, recordID, format)
 	if err := os.RemoveAll(path); err != nil {
 		return err
 	}
@@ -275,9 +293,12 @@ func unsafeMoveFiles(src, dst string) error {
 	return os.Rename(src, dst)
 }
 
-// PublishRecording will move the recording to the published path.
-func (s *RecordingsStorage) PublishRecording(
+// Internal: saveMoveRecording will move recording
+// files within the storage. Src and dst are the base paths
+// within the storage. For example published, unpublished.
+func (s *RecordingsStorage) saveMoveRecording(
 	rec *RecordingState,
+	src, dst string,
 ) error {
 	recID := rec.RecordID
 	if err := assertFsSafe(recID); err != nil {
@@ -286,93 +307,57 @@ func (s *RecordingsStorage) PublishRecording(
 
 	// Move recording to published path, for all recording formats
 	for _, f := range rec.Recording.Formats {
+		// Check format is safe
 		format := f.Type
 		if err := assertFsSafe(format); err != nil {
 			return err
 		}
 
-		// Unpublished -> Published
-		src := s.unpublishedRecordingPath(recID, format)
-		dst := s.publishedRecordingPath(recID, format)
-		if err := unsafeMoveFiles(src, dst); err != nil {
+		// Base path for a recording format
+		fmtSrcBase := filepath.Join(src, format)
+		fmtDstBase := filepath.Join(dst, format)
+
+		// Make sure the destination base path exists
+		if err := unsafeAssertFsPath(fmtDstBase); err != nil {
+			return err
+		}
+
+		recSrc := filepath.Join(fmtSrcBase, recID)
+		recDst := filepath.Join(fmtDstBase, recID)
+		if err := unsafeMoveFiles(recSrc, recDst); err != nil {
 			return err
 		}
 
 		log.Debug().
 			Str("recID", recID).Str("format", format).
 			Str("src", src).Str("dst", dst).
-			Msg("moved recording files to published")
+			Str("recSrc", recSrc).Str("recDst", recDst).
+			Msg("moved recording files")
 	}
 
 	return nil
+}
+
+// PublishRecording will move the recording to the published path.
+func (s *RecordingsStorage) PublishRecording(
+	rec *RecordingState,
+) error {
+	return s.saveMoveRecording(rec, s.UnpublishedPath, s.PublishedPath)
 }
 
 // UnpublishRecording will move the recording to the unpublished path
 func (s *RecordingsStorage) UnpublishRecording(
 	rec *RecordingState,
 ) error {
-	recID := rec.RecordID
-	if err := assertFsSafe(recID); err != nil {
-		return err
-	}
-
-	// Move recording to published path, for all recording formats
-	for _, f := range rec.Recording.Formats {
-		format := f.Type
-		if err := assertFsSafe(format); err != nil {
-			return err
-		}
-
-		// Published -> Unpublished
-		src := s.publishedRecordingPath(recID, format)
-		dst := s.unpublishedRecordingPath(recID, format)
-		if err := unsafeMoveFiles(src, dst); err != nil {
-			return err
-		}
-
-		log.Debug().
-			Str("recID", recID).Str("format", format).
-			Str("src", src).Str("dst", dst).
-			Msg("moved recording files to unpublished")
-	}
-
-	return nil
+	return s.saveMoveRecording(rec, s.PublishedPath, s.UnpublishedPath)
 }
 
 // ImportRecording will import the recording files to either
 // the unpublished or published path.
 func (s *RecordingsStorage) ImportRecording(rec *RecordingState) error {
-	recID := rec.RecordID
-	if err := assertFsSafe(recID); err != nil {
-		return err
+	dst := s.PublishedPath
+	if !rec.Recording.Published {
+		dst = s.UnpublishedPath
 	}
-
-	// Move recording to published path, for all recording formats
-	for _, f := range rec.Recording.Formats {
-		format := f.Type
-		if err := assertFsSafe(format); err != nil {
-			return err
-		}
-
-		// Inbox
-		src := s.inboxRecordingPath(recID, format)
-
-		// Destination depends on the recording being published
-		// or unpublished.
-		dst := s.unpublishedRecordingPath(recID, format)
-		if rec.Recording.Published {
-			dst = s.publishedRecordingPath(recID, format)
-		}
-
-		// Move files
-		if err := unsafeMoveFiles(src, dst); err != nil {
-			return err
-		}
-		log.Debug().
-			Str("recID", recID).Str("format", format).
-			Str("src", src).Str("dst", dst).
-			Msg("imported recording")
-	}
-
-	return nil
+	return s.saveMoveRecording(rec, s.InboxPath, dst)
 }

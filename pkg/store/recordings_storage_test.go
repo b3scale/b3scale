@@ -40,7 +40,9 @@ func TestRecordingStoreageListThumbnailFiles(t *testing.T) {
 	}
 
 	id := "f8bedf660bfa3604f9b6c63fe37c8a85d46e8e90-1647280741542"
-	thumbnails := s.ListThumbnailFiles(id)
+	thumbnails := s.ListThumbnailFiles(&bbb.Recording{
+		RecordID: id,
+	})
 	t.Log(thumbnails)
 
 	if len(thumbnails) != 6 {
