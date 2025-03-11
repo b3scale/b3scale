@@ -694,12 +694,53 @@
         ]
       }
     },
+    "/v1/recordings": {
+      "get": {
+        "description": "Retrieve the recordings collection. Mandatory filter is by either `frontend_key` or `frontend_id`.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Recordings"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          }
+        },
+        "operationId": "recordingsList",
+        "parameters": [
+          {
+            "description": "Filter recordings by frontend-key.",
+            "in": "query",
+            "name": "frontend_key",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter recordings by frontend-id.",
+            "in": "query",
+            "name": "frontend_id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "summary": "List recordings",
+        "tags": [
+          "Recordings"
+        ]
+      }
+    },
     "/v1/recordings-import": {
       "post": {
         "description": "Upload an recordings metadata XML document. The recording will be imported.\n\nThese are typically read from `/var/bigbluebutton/published/presentation/...meetingID.../metadata.xml`, see `post_publish_b3scale_import.rb` script.",
         "responses": {
           "200": {
-            "$ref": "#/components/responses/Recording"
+            "$ref": "#/components/responses/RecordingData"
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
@@ -723,6 +764,74 @@
           "Recordings"
         ]
       }
+    },
+    "/v1/recordings-visibility": {
+      "patch": {
+        "description": "Change the recordings visibility.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Recording"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "recordingsVisibilityUpdate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingVisibilityUpdate"
+              }
+            }
+          }
+        },
+        "summary": "Update Visibility",
+        "tags": [
+          "Recordings"
+        ]
+      }
+    },
+    "/v1/recordings/{id}": {
+      "get": {
+        "description": "Fetch a single recording identified by ID.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/Recording"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/InvalidJWTError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        },
+        "operationId": "recordingsRead",
+        "summary": "Read",
+        "tags": [
+          "Recordings"
+        ]
+      },
+      "parameters": [
+        {
+          "description": "The identifier of the object.",
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ]
     }
   },
   "components": {
@@ -768,6 +877,19 @@
           "HasJoinedVoice",
           "HasVideo",
           "ClientType"
+        ],
+        "type": "object"
+      },
+      "AttendeesLimitSettings": {
+        "description": "Limits",
+        "properties": {
+          "limit": {
+            "description": "Limit of overall attendees for a frontend.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit"
         ],
         "type": "object"
       },
@@ -1010,6 +1132,9 @@
             "type": "array"
           }
         },
+        "required": [
+          "tags"
+        ],
         "type": "object"
       },
       "Backends": {
@@ -1332,6 +1457,9 @@
       "FrontendSettings": {
         "description": "Frontend Settings",
         "properties": {
+          "attendees_limit": {
+            "$ref": "#/components/schemas/AttendeesLimitSettings"
+          },
           "create_default_params": {
             "additionalProperties": {
               "type": "string"
@@ -1349,6 +1477,10 @@
           "default_presentation": {
             "$ref": "#/components/schemas/DefaultPresentationSettings"
           },
+          "recordings": {
+            "$ref": "#/components/schemas/RecordingsSettings",
+            "description": "Settings for new and imported recordings."
+          },
           "required_tags": {
             "description": "When selecting a backend for creating a meeting, only consider nodes providing all of the required tags.",
             "items": {
@@ -1357,6 +1489,14 @@
             "type": "array"
           }
         },
+        "required": [
+          "required_tags",
+          "default_presentation",
+          "attendees_limit",
+          "create_default_params",
+          "create_override_params",
+          "recordings"
+        ],
         "type": "object"
       },
       "Frontends": {
@@ -1781,6 +1921,54 @@
       "Recording": {
         "description": "Recording",
         "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "frontend_id": {
+            "description": "The id of the associated frontend.",
+            "type": "string"
+          },
+          "internal_meeting_id": {
+            "description": "The internal meeting id.",
+            "type": "string"
+          },
+          "meeting_id": {
+            "description": "The id of the related meeting.",
+            "type": "string"
+          },
+          "record_id": {
+            "description": "ID of the recording.",
+            "type": "string"
+          },
+          "recording": {
+            "$ref": "#/components/schemas/RecordingData",
+            "description": "The bbb recording data"
+          },
+          "synced_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "recording",
+          "meeting_id",
+          "internal_meeting_id",
+          "frontend_id",
+          "created_at",
+          "updated_at",
+          "synced_at"
+        ],
+        "type": "object"
+      },
+      "RecordingData": {
+        "description": "Recording",
+        "properties": {
           "EndTime": {
             "type": "integer"
           },
@@ -1837,6 +2025,44 @@
           "Participants",
           "Metadata",
           "Formats"
+        ],
+        "type": "object"
+      },
+      "RecordingVisibilityUpdate": {
+        "description": "RecordingVisibilityUpdate",
+        "properties": {
+          "record_id": {
+            "description": "The ID of the recording. (RecordID)",
+            "type": "string"
+          },
+          "visibility": {
+            "description": "The new visibilty.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "record_id",
+          "visibility"
+        ],
+        "type": "object"
+      },
+      "Recordings": {
+        "description": "List of Recordings",
+        "items": {
+          "$ref": "#/components/schemas/Recording"
+        },
+        "type": "array"
+      },
+      "RecordingsSettings": {
+        "description": "Recordings Settings",
+        "properties": {
+          "visibility_override": {
+            "description": "Recordings created by this frontend will have this visibility when imported.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "visibility_override"
         ],
         "type": "object"
       },
@@ -2079,6 +2305,26 @@
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Recording"
+            }
+          }
+        }
+      },
+      "RecordingData": {
+        "description": "Recording",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RecordingData"
+            }
+          }
+        }
+      },
+      "Recordings": {
+        "description": "List of Recordings",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Recordings"
             }
           }
         }

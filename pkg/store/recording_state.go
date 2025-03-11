@@ -14,18 +14,18 @@ import (
 // RecordingState holds a recording and its relation to a
 // meeting.
 type RecordingState struct {
-	RecordID string
+	RecordID string `json:"record_id" doc:"ID of the recording."`
 
-	Recording *bbb.Recording
+	Recording *bbb.Recording `json:"recording" api:"RecordingData" doc:"The bbb recording data"`
 
-	MeetingID         string
-	InternalMeetingID string
+	MeetingID         string `json:"meeting_id" doc:"The id of the related meeting."`
+	InternalMeetingID string `json:"internal_meeting_id" doc:"The internal meeting id."`
 
-	FrontendID string
+	FrontendID string `json:"frontend_id" doc:"The id of the associated frontend."`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	SyncedAt  time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	SyncedAt  time.Time `json:"synced_at"`
 }
 
 // InitRecordingState initializes the state with

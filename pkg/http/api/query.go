@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/b3scale/b3scale/pkg/http/auth"
@@ -91,4 +92,45 @@ func MeetingFromRequest(
 		return nil, echo.ErrNotFound
 	}
 	return meeting, nil
+}
+
+// Get the frontend from the store for the
+// identified either bei key or id. ID has
+// precedence over key.
+func FrontendFromQueryParams(
+	ctx context.Context,
+	api *API,
+	tx pgx.Tx,
+) (*store.FrontendState, error) {
+	var (
+		fe  *store.FrontendState
+		err error
+	)
+
+	feID := api.QueryParam("frontend_id")
+	feKey := api.QueryParam("frontend_key")
+
+	if feID == "" && feKey == "" {
+		return nil, fmt.Errorf("frontend_id and frontend_key are missing")
+	}
+
+	// When empty, get by key.
+	if feID == "" {
+		fe, err = store.GetFrontendStateByKey(ctx, tx, feKey)
+		if err != nil {
+			return nil, err
+		}
+	} else { // Otherwise use the ID
+		fe, err = store.GetFrontendStateByID(ctx, tx, feID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Check if we could find a frontend
+	if fe == nil {
+		return nil, fmt.Errorf("a frontend could not be found")
+	}
+
+	return fe, nil
 }

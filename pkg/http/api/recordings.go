@@ -415,3 +415,137 @@ func apiProtectedRecordingsAuth(c echo.Context) error {
 
 	return c.NoContent(http.StatusOK)
 }
+
+// ResourceRecordings is a restful group for managing recordings
+var ResourceRecordings = &Resource{
+	List: RequireScope(
+		auth.ScopeAdmin,
+	)(apiRecordingsList),
+	Show: RequireScope(
+		auth.ScopeAdmin,
+	)(apiRecordingsShow),
+}
+
+// API: Recordings list endpoint
+func apiRecordingsList(
+	ctx context.Context,
+	api *API,
+) error {
+	tx, err := api.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
+	fe, err := FrontendFromQueryParams(ctx, api, tx)
+	if err != nil {
+		return err
+	}
+
+	// Get recordings for frontend
+	res, err := store.GetRecordingStates(ctx, tx, store.Q().
+		Where("recordings.frontend_id = ?", fe.ID))
+	if err != nil {
+		return err
+	}
+
+	return api.JSON(http.StatusOK, res)
+}
+
+// API: Read a single recording
+func apiRecordingsShow(
+	ctx context.Context,
+	api *API,
+) error {
+	tx, err := api.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
+	id := api.Param("id") // RecordID
+
+	// Get recording by ID
+	rec, err := store.GetRecordingState(ctx, tx, store.Q().
+		Where("recordings.record_id = ?", id))
+	if err != nil {
+		return err
+	}
+
+	if rec == nil {
+		return echo.ErrNotFound
+	}
+
+	return api.JSON(http.StatusOK, rec)
+}
+
+var ResourceRecordingsVisibility = &Resource{
+	Create: RequireScope(
+		auth.ScopeAdmin,
+		auth.ScopeNode,
+	)(apiRecordingsVisibilityUpdate),
+}
+
+// RecordingVisibilityUpdate requests changing the visibility
+// of a recording.
+type RecordingVisibilityUpdate struct {
+	RecordID   string                  `json:"record_id" doc:"The ID of the recording. (RecordID)"`
+	Visibility bbb.RecordingVisibility `json:"visibility" doc:"The new visibilty."`
+}
+
+// API: Update the recording visiblity.
+func apiRecordingsVisibilityUpdate(
+	ctx context.Context,
+	api *API,
+) error {
+	tx, err := api.Conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint
+
+	update := &RecordingVisibilityUpdate{}
+	if err := api.Bind(update); err != nil {
+		return err
+	}
+
+	recID := update.RecordID
+	if recID == "" {
+		return fmt.Errorf("recordID may not be empty")
+	}
+
+	// Get recording for update
+	rec, err := store.GetRecordingState(ctx, tx, store.Q().
+		Where("recordings.record_id = ?", recID))
+	if err != nil {
+		return err
+	}
+	if rec == nil {
+		return echo.ErrBadRequest
+	}
+
+	// Update visibility
+	rec.Recording.SetVisibility(update.Visibility)
+
+	if err := rec.Save(ctx, tx); err != nil {
+		return err
+	}
+	// Release connection before fsops, to prevent
+	// exhausting the pool.
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Update filesystem
+	if rec.Recording.Published {
+		if err := rec.PublishFiles(); err != nil {
+			return err
+		}
+	} else {
+		if err := rec.UnpublishFiles(); err != nil {
+			return err
+		}
+	}
+
+	return api.JSON(http.StatusOK, rec)
+}

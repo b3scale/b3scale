@@ -355,9 +355,82 @@ func NewRecordingsImportAPISchema() map[string]oa.Path {
 				},
 				Tags: []string{"Recordings"},
 				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("RecordingData"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+			},
+		},
+	}
+}
+
+// NewRecordingsAPISchema creates the schema for
+// the 'recordings' resource.
+func NewRecordingsAPISchema() map[string]oa.Path {
+	return map[string]oa.Path{
+		"/v1/recordings": oa.Path{
+			"get": oa.Operation{
+				OperationID: "recordingsList",
+				Summary:     "List recordings",
+				Description: "Retrieve the recordings collection. Mandatory filter is by either `frontend_key` or `frontend_id`.",
+				Tags:        []string{"Recordings"},
+				Parameters: []oa.Schema{
+					oa.ParamQuery(
+						"frontend_key",
+						"Filter recordings by frontend-key."),
+					oa.ParamQuery(
+						"frontend_id",
+						"Filter recordings by frontend-id."),
+				},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Recordings"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+				},
+			},
+		},
+		"/v1/recordings/{id}": oa.Path{
+			"parameters": []oa.Schema{
+				oa.ParamID(),
+			},
+			"get": oa.Operation{
+				Description: "Fetch a single recording identified by ID.",
+				OperationID: "recordingsRead",
+				Summary:     "Read",
+				Tags:        []string{"Recordings"},
+				Responses: oa.ResponseRefs{
 					"200": oa.ResponseRef("Recording"),
 					"400": oa.ResponseRef("BadRequest"),
 					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
+				},
+			},
+		},
+	}
+}
+
+// NewRecordingsVisibilityAPISchema creates the schema for
+// the 'recordings-visibility' resource.
+func NewRecordingsVisibilityAPISchema() map[string]oa.Path {
+	return map[string]oa.Path{
+		"/v1/recordings-visibility": oa.Path{
+			"patch": oa.Operation{
+				Description: "Change the recordings visibility.",
+				OperationID: "recordingsVisibilityUpdate",
+				Summary:     "Update Visibility",
+				Tags:        []string{"Recordings"},
+				RequestBody: &oa.Request{
+					Content: map[string]oa.MediaType{
+						oa.ApplicationJSON: oa.MediaType{
+							Schema: oa.SchemaRef("RecordingVisibilityUpdate"),
+						},
+					},
+				},
+				Responses: oa.ResponseRefs{
+					"200": oa.ResponseRef("Recording"),
+					"400": oa.ResponseRef("BadRequest"),
+					"401": oa.ResponseRef("InvalidJWTError"),
+					"404": oa.ResponseRef("NotFoundError"),
 				},
 			},
 		},
@@ -465,6 +538,8 @@ func NewAPIEndpointsSchema() map[string]oa.Path {
 		NewBackendsAPISchema(),
 		NewMeetingsAPISchema(),
 		NewCommandsAPISchema(),
+		NewRecordingsAPISchema(),
+		NewRecordingsVisibilityAPISchema(),
 		NewRecordingsImportAPISchema(),
 		NewAgentAPISchema(),
 		NewCtrlEndpointsSchema(),
@@ -555,6 +630,22 @@ func NewAPIResponses() map[string]oa.Response {
 			Content: map[string]oa.MediaType{
 				oa.ApplicationJSON: oa.MediaType{
 					Schema: oa.SchemaRef("Recording"),
+				},
+			},
+		},
+		"RecordingData": oa.Response{
+			Description: "Recording",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("RecordingData"),
+				},
+			},
+		},
+		"Recordings": oa.Response{
+			Description: "List of Recordings",
+			Content: map[string]oa.MediaType{
+				oa.ApplicationJSON: oa.MediaType{
+					Schema: oa.SchemaRef("Recordings"),
 				},
 			},
 		},
@@ -653,6 +744,14 @@ func NewAPISchemas() map[string]oa.Schema {
 			"Default Presentation",
 			store.DefaultPresentationSettings{}).
 			RequireFrom(store.DefaultPresentationSettings{}),
+		"AttendeesLimitSettings": oa.ObjectSchema(
+			"Limits",
+			store.AttendeesLimitSettings{}).
+			RequireFrom(store.AttendeesLimitSettings{}),
+		"RecordingsSettings": oa.ObjectSchema(
+			"Recordings Settings",
+			store.RecordingsSettings{}).
+			RequireFrom(store.RecordingsSettings{}),
 
 		"Backends": oa.ArraySchema(
 			"List of Backends",
@@ -723,8 +822,20 @@ func NewAPISchemas() map[string]oa.Schema {
 
 		"Recording": oa.ObjectSchema(
 			"Recording",
+			store.RecordingState{}).
+			RequireFrom(store.RecordingState{}),
+		"RecordingData": oa.ObjectSchema(
+			"Recording",
 			bbb.Recording{}).
 			RequireFrom(bbb.Recording{}),
+		"Recordings": oa.ArraySchema(
+			"List of Recordings",
+			oa.SchemaRef("Recording")),
+		"RecordingVisibilityUpdate": oa.ObjectSchema(
+			"RecordingVisibilityUpdate",
+			RecordingVisibilityUpdate{}).
+			RequireFrom(RecordingVisibilityUpdate{}),
+
 		"Format": oa.ObjectSchema(
 			"Format",
 			bbb.Format{}).
