@@ -94,15 +94,17 @@ func (res *Response) JSON(o interface{}) error {
 type Client struct {
 	Host        string
 	AccessToken string
+	UserAgent   string
 
 	*http.Client
 }
 
 // New initializes the client
-func New(host, token string) *Client {
+func New(host, token, userAgent string) *Client {
 	return &Client{
 		Host:        host,
 		AccessToken: token,
+		UserAgent:   userAgent,
 		Client:      http.DefaultClient,
 	}
 }
@@ -151,6 +153,7 @@ func (c *Client) Request(
 	if req.ContentType != "" {
 		httpReq.Header.Set("Content-Type", req.ContentType)
 	}
+	httpReq.Header.Set("User-Agent", c.UserAgent)
 
 	// Make request
 	res, err := c.Client.Do(c.AuthorizeRequest(httpReq))
