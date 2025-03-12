@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -20,7 +21,6 @@ func (c *Cli) showMeetings(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	//	beKey := ctx.String("backend")
 
 	meetings, err := client.MeetingsList(ctx.Context, nil)
 	if err != nil {
@@ -32,23 +32,68 @@ func (c *Cli) showMeetings(ctx *cli.Context) error {
 		meetingCount = i + 1
 		backendName := "<unknown>"
 		if m.BackendID != nil {
-			frontend, err := client.BackendRetrieve(ctx.Context, *m.BackendID)
+			backend, err := client.BackendRetrieve(ctx.Context, *m.BackendID)
 			if err != nil {
 				return err
 			}
-			backendName = frontend.Backend.Host
+			backendName = backend.Backend.Host
 		}
 		frontendName := "<unknown>"
 		if m.FrontendID != nil {
 			frontend, err := client.FrontendRetrieve(ctx.Context, *m.FrontendID)
 			if err != nil {
-				frontendName = frontend.Frontend.Key
+				return err
 			}
+			frontendName = frontend.Frontend.Key
 		}
+		//t.AppendRow(table.Row{m.Meeting.MeetingID, m.Meeting.MeetingName, len(m.Meeting.Attendees), frontendName, backendName})
 		t.AppendRow(table.Row{m.Meeting.MeetingID, m.Meeting.MeetingName, len(m.Meeting.Attendees), frontendName, backendName})
 	}
 	t.AppendFooter(table.Row{"", "", "Total", meetingCount})
 	t.Render()
+	return nil
+}
+
+func (c *Cli) showMeeting(ctx *cli.Context) error {
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need meeting id for showing info")
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	meeting, err := client.MeetingRetrieve(ctx.Context, key)
+	if err != nil {
+		return err
+	}
+
+	jmeeting, err := json.MarshalIndent(meeting, "", "\t")
+	if err != nil {
+		return err
+	}
+	println(string(jmeeting))
+	return nil
+}
+
+func (c *Cli) deleteMeeting(ctx *cli.Context) error {
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need meeting id for showing info")
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.MeetingDelete(ctx.Context, key)
+	if err != nil {
+		return err
+	}
+	println("Meeting deleted")
 	return nil
 }
 

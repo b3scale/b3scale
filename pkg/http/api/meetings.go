@@ -52,9 +52,8 @@ func apiMeetingsList(
 
 	// Begin Query
 	q := store.Q()
-
 	if id != "" || host != "" {
-		backend, err := BackendFromQuery(ctx, tx, id, host)
+		backend, err := BackendFromQuery(ctx, api, tx)
 		if err != nil {
 			return err
 		}
