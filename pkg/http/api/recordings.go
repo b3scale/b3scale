@@ -479,10 +479,11 @@ func apiRecordingsShow(
 	return api.JSON(http.StatusOK, rec)
 }
 
+// ResourceRecordingsVisibility implements the recordings-
+// visibility endpoint. For now only 'POST' is allowed.
 var ResourceRecordingsVisibility = &Resource{
 	Create: RequireScope(
 		auth.ScopeAdmin,
-		auth.ScopeNode,
 	)(apiRecordingsVisibilityUpdate),
 }
 

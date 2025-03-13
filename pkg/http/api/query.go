@@ -94,9 +94,8 @@ func MeetingFromRequest(
 	return meeting, nil
 }
 
-// Get the frontend from the store for the
-// identified either bei key or id. ID has
-// precedence over key.
+// FrontendFromQueryParams retrieves the frontend from the store
+// identified either by key or id. ID has precedence over key.
 func FrontendFromQueryParams(
 	ctx context.Context,
 	api *API,
