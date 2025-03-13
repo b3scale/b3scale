@@ -16,6 +16,38 @@ b3scale expects two directories with full write access to the `b3scaled` process
 
 The playback URL will be created using the host provided via the `B3SCALE_RECORDINGS_PLAYBACK_HOST` variable. The playback HTTPS host needs to be set up separately and requires (read-only) access to `B3SCALE_RECORDINGS_PUBLISHED_PATH`.
 
+Recordings can also be configured using the `B3SCALE_RECORDINGS_INBOX_PATH`
+to use a dedicated recordings inbox, where
+new recordings will be initially placed before importing.
+
+If the `B3SCALE_RECORDINGS_INBOX_PATH` is not set, either
+`B3SCALE_RECORDINGS_PUBLISHED_PATH` or `B3SCALE_RECORDINGS_UNPUBLISHED_PATH`
+will be used, depending on `B3SCALE_RECORDINGS_DEFAULT_VISIBILITY`.
+
+Please note: `B3SCALE_RECORDINGS_DEFAULT_VISIBILITY` only informs b3scale
+where to expect the recording before import and does not affect the actual
+visibility.
+
+
+### Managing recordings
+
+Using `b3scalectl` recordings associated with a frontend can be listed
+with
+
+    b3scalectl show recordings --frontend example-frontend-key
+
+you can also enable `json` output:
+
+    b3scalectl show --json recordings --frontend example-frontend-key
+
+By listing the recordings you can get the ID of a recording.
+With a known recording ID, you can change the visibility:
+
+    b3scalectl set recording-visiblity <id> <visiblity>
+
+where `<visibility>` may be anything of `published`, `protected`, `public`,
+`public_protected` and `unpublished`.
+
 ### On the BigBlueButton node
 
 Publishing the recordings requires a post-publish hook script to be placed in the in `/usr/local/bigbluebutton/core/scripts/post_publish`folder on all BBB nodes.
