@@ -187,6 +187,34 @@ func GetRecordingsDefaultVisibility() bbb.RecordingVisibility {
 	return v
 }
 
+// GetRecordingsPublishedPath returns the configured
+// published path.
+func GetRecordingsPublishedPath() string {
+	return os.Getenv(EnvRecordingsPublishedPath)
+}
+
+// GetRecordingsUnpublishedPath returns the configured
+// path to unpublished recordings.
+func GetRecordingsUnpublishedPath() string {
+	return os.Getenv(EnvRecordingsUnpublishedPath)
+}
+
+// GetRecordingsInboxPath returns the configured inbox
+// path. If the environment variable is not set,
+// either the published or unpublished path will be returned
+// depending on the default visibility.
+func GetRecordingsInboxPath() string {
+	v := GetRecordingsDefaultVisibility()
+	p := os.Getenv(EnvRecordingsInboxPath)
+	if p == "" && v == bbb.RecordingVisibilityUnpublished {
+		return GetRecordingsUnpublishedPath()
+	}
+	if p == "" {
+		return GetRecordingsPublishedPath()
+	}
+	return p
+}
+
 // CheckEnv checks if the environment is configured
 func CheckEnv() error {
 	missing := []string{}
@@ -210,20 +238,18 @@ func CheckEnv() error {
 	// In case the Published Path is configured, check that
 	// the configuration is complete.
 	recEnabled := false
-	inPath, hasInPath := GetEnvOpt(EnvRecordingsInboxPath)
+	inPath, _ := GetEnvOpt(EnvRecordingsInboxPath)
 	pubPath, hasPubPath := GetEnvOpt(EnvRecordingsPublishedPath)
 	unpubPath, hasUnpubPath := GetEnvOpt(EnvRecordingsUnpublishedPath)
-	if hasInPath || hasPubPath || hasUnpubPath {
-		if !hasInPath {
-			missing = append(missing, EnvRecordingsInboxPath)
-		}
-		if !hasPubPath {
-			missing = append(missing, EnvRecordingsPublishedPath)
-		}
-		if !hasUnpubPath {
-			missing = append(missing, EnvRecordingsUnpublishedPath)
-		}
+
+	if hasPubPath || hasUnpubPath {
 		recEnabled = true
+	}
+	if !hasPubPath {
+		missing = append(missing, EnvRecordingsPublishedPath)
+	}
+	if !hasUnpubPath {
+		missing = append(missing, EnvRecordingsUnpublishedPath)
 	}
 
 	// Log recording settings

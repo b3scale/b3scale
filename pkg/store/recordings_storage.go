@@ -38,22 +38,17 @@ type RecordingsStorage struct {
 // NewRecordingsStorageFromEnv creates a new recordings storage
 // instance and configures it through well known environment variables.
 func NewRecordingsStorageFromEnv() (*RecordingsStorage, error) {
-	inboxPath, ok := config.GetEnvOpt(config.EnvRecordingsInboxPath)
-	if !ok {
-		return nil, ErrRecordingsStorageUnconfigured
-	}
-	publishedPath, ok := config.GetEnvOpt(config.EnvRecordingsPublishedPath)
-	if !ok {
-		return nil, ErrRecordingsStorageUnconfigured
-	}
-	unpublishedPath, ok := config.GetEnvOpt(config.EnvRecordingsUnpublishedPath)
-	if !ok {
+	inPath := config.GetRecordingsInboxPath()
+	pubPath := config.GetRecordingsPublishedPath()
+	unpubPath := config.GetRecordingsUnpublishedPath()
+
+	if pubPath == "" || unpubPath == "" {
 		return nil, ErrRecordingsStorageUnconfigured
 	}
 	s := &RecordingsStorage{
-		InboxPath:       inboxPath,
-		PublishedPath:   publishedPath,
-		UnpublishedPath: unpublishedPath,
+		InboxPath:       inPath,
+		PublishedPath:   pubPath,
+		UnpublishedPath: unpubPath,
 	}
 	return s, nil
 }
