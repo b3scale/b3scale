@@ -7,6 +7,6 @@ import (
 )
 
 func TestClientImplementsInterface(t *testing.T) {
-	var c api.Client = New("foo", "bar")
+	var c api.Client = New("foo", "bar", "agent/1.0")
 	_ = c
 }
