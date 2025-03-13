@@ -233,5 +233,16 @@ The load factor of the backend can be set through:
    be present. (e.g. `/ceph/recordings/unpublished/presentation`)
    Example: `/ceph/recordings/unpublished`
 
+ * `B3SCALE_RECORDINGS_INBOX_PATH` (optional) recordings will be
+   imported from here. If not set, either the published or unpublished
+   path will be used depending on the default visibility.
+
+ * `B3SCALE_RECORDINGS_DEFAULT_VISIBILITY` (default: `published`) informs
+   b3scale where to expect new recordings. Please note this will not
+   override the visibility of a recording. You can force the visibility
+   of a recording on a per fontend basis using the `visibility_override`
+   frontend setting.
+
+
  * `B3SCALE_RECORDINGS_PLAYBACK_HOST` path to host with the player.
    For example: https://playback.mycluster.example.bbb/
