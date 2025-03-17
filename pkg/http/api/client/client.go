@@ -100,13 +100,17 @@ type Client struct {
 }
 
 // New initializes the client
-func New(host, token, userAgent string) *Client {
+func New(host, token string) *Client {
 	return &Client{
 		Host:        host,
 		AccessToken: token,
-		UserAgent:   userAgent,
 		Client:      http.DefaultClient,
 	}
+}
+
+func (c *Client) WithUserAgent(userAgent string) *Client {
+	c.UserAgent = userAgent
+	return c
 }
 
 // Build the request URL by joining the API base with the
@@ -153,7 +157,9 @@ func (c *Client) Request(
 	if req.ContentType != "" {
 		httpReq.Header.Set("Content-Type", req.ContentType)
 	}
-	httpReq.Header.Set("User-Agent", c.UserAgent)
+	if c.UserAgent != "" {
+		httpReq.Header.Set("User-Agent", c.UserAgent)
+	}
 
 	// Make request
 	res, err := c.Client.Do(c.AuthorizeRequest(httpReq))

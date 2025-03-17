@@ -478,7 +478,7 @@ func (c *Cli) authorizeAPI(ctx *cli.Context) error {
 			return err
 		}
 
-		client := client.New(apiHost, token, "b3scalectl/"+config.Version)
+		client := client.New(apiHost, token).WithUserAgent("b3scalectl/" + config.Version)
 		_, err = client.Status(ctx.Context)
 		if err != nil {
 			fmt.Println("error using the token:", err)
