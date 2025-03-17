@@ -1,6 +1,8 @@
 package store
 
-import "github.com/b3scale/b3scale/pkg/bbb"
+import (
+	"github.com/b3scale/b3scale/pkg/bbb"
+)
 
 // Tags are a list of strings with labels to declare
 // for example backend capabilities
@@ -24,6 +26,12 @@ type AttendeesLimitSettings struct {
 	Limit int `json:"limit" doc:"Limit of overall attendees for a frontend."`
 }
 
+// RecordingsSettings configure per frontend options
+// for handling recordings.
+type RecordingsSettings struct {
+	VisibilityOverride *bbb.RecordingVisibility `json:"visibility_override" doc:"Recordings created by this frontend will have this visibility when imported."`
+}
+
 // FrontendSettings hold all well known settings for a
 // frontend.
 type FrontendSettings struct {
@@ -33,4 +41,6 @@ type FrontendSettings struct {
 
 	CreateDefaultParams  bbb.Params `json:"create_default_params" doc:"Provide key value params, which will be used as a default when a meeting is created. See the BBB api documentation for which params are valid. The param value must be encoded as string."`
 	CreateOverrideParams bbb.Params `json:"create_override_params" doc:"A key value set of params which will override parameters from the frontend when a meeting is created."`
+
+	Recordings *RecordingsSettings `json:"recordings" doc:"Settings for new and imported recordings."`
 }

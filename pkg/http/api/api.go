@@ -117,13 +117,16 @@ func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 // Init sets up a group with authentication
 // for a restful management interface.
 func Init(e *echo.Echo) error {
+	// Get Configuration
+	apiSecret := config.MustEnv(config.EnvJWTSecret)
+
 	// Register routes
 	log.Info().Str("path", "/api/v1").Msg("initializing http api v1")
 	v1 := e.Group("/api/v1")
 
 	// API Auth and Context Middlewares
 	v1.Use(ErrorHandler)
-	v1.Use(auth.NewJWTAuthMiddleware())
+	v1.Use(auth.NewJWTAuthMiddleware(apiSecret))
 	v1.Use(ContextMiddleware)
 
 	// Status
@@ -135,7 +138,9 @@ func Init(e *echo.Echo) error {
 	ResourceBackends.Mount(v1, "/backends")
 	ResourceMeetings.Mount(v1, "/meetings")
 	ResourceCommands.Mount(v1, "/commands")
+	ResourceRecordingsVisibility.Mount(v1, "/recordings-visibility")
 	ResourceRecordingsImport.Mount(v1, "/recordings-import")
+	ResourceRecordings.Mount(v1, "/recordings")
 	ResourceAgentRPC.Mount(v1, "/agent/rpc")
 	ResourceAgentBackend.Mount(v1, "/agent/backend")
 	ResourceAgentHeartbeat.Mount(v1, "/agent/heartbeat")

@@ -1,7 +1,10 @@
 package config
 
 import (
+	"os"
 	"testing"
+
+	"github.com/b3scale/b3scale/pkg/bbb"
 )
 
 // TestIsEnabled tests IsEnabled
@@ -42,4 +45,45 @@ func TestDomainOf(t *testing.T) {
 		t.Error("DomainOf failed:", host, DomainOf(host))
 	}
 
+}
+
+func TestGetRecordingsDefaultVisibility(t *testing.T) {
+	// Default
+	os.Unsetenv(EnvRecordingsDefaultVisibility)
+	v := GetRecordingsDefaultVisibility()
+	if v != bbb.RecordingVisibilityPublished {
+		t.Error("unexpected:", v)
+	}
+
+	// From env
+	os.Setenv(EnvRecordingsDefaultVisibility, "public_protected")
+	v = GetRecordingsDefaultVisibility()
+	if v != bbb.RecordingVisibilityPublicProtected {
+		t.Error("unexpected:", v)
+	}
+}
+
+func TestGetRecordingsInboxPath(t *testing.T) {
+	// Prepare env
+	os.Unsetenv(EnvRecordingsDefaultVisibility)
+	os.Setenv(EnvRecordingsPublishedPath, "published")
+	os.Setenv(EnvRecordingsUnpublishedPath, "unpublished")
+	os.Setenv(EnvRecordingsInboxPath, "inbox")
+
+	p := GetRecordingsInboxPath()
+	if p != "inbox" {
+		t.Error("unexpected inbox path:", p)
+	}
+
+	os.Unsetenv(EnvRecordingsInboxPath)
+	p = GetRecordingsInboxPath()
+	if p != "published" {
+		t.Error("expected published, got", p)
+	}
+
+	os.Setenv(EnvRecordingsDefaultVisibility, "unpublished")
+	p = GetRecordingsInboxPath()
+	if p != "unpublished" {
+		t.Error("expected unpublished, got", p)
+	}
 }

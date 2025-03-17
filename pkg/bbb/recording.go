@@ -1,12 +1,12 @@
 package bbb
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"net/url"
 	"time"
 
-	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/http/auth"
 	"github.com/rs/zerolog/log"
 )
@@ -50,7 +50,6 @@ func updateHostURL(target, base string) string {
 // and preview thumbnails
 func (r *Recording) SetPlaybackHost(host string) {
 	for _, f := range r.Formats {
-
 		// Update recording host
 		f.URL = updateHostURL(f.URL, host)
 
@@ -73,10 +72,7 @@ func (r *Recording) SetPlaybackHost(host string) {
 //
 // As a subject, the frontendID will most likely be used,
 // but it could be any identifier.
-func (r *Recording) Protect(subject string) {
-	apiURL := config.MustEnv(config.EnvAPIURL)
-	secret := config.MustEnv(config.EnvJWTSecret)
-
+func (r *Recording) Protect(subject, secret, apiURL string) {
 	for _, f := range r.Formats {
 		// Create resource token and update target URL.
 		// A note on the token lifetime:
@@ -149,6 +145,45 @@ func (r *Recording) Merge(other *Recording) error {
 
 	return nil
 }
+
+// SetVisibility updates all attributes of the recording
+// encoding the visibility.
+func (r *Recording) SetVisibility(v RecordingVisibility) {
+	switch v {
+	case RecordingVisibilityUnpublished:
+		r.State = StateUnpublished
+		r.Published = false
+		r.Metadata[ParamListed] = "false"
+		r.Metadata[ParamProtect] = "false"
+	case RecordingVisibilityPublished:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "false"
+		r.Metadata[ParamProtect] = "false"
+	case RecordingVisibilityProtected:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "false"
+		r.Metadata[ParamProtect] = "true"
+	case RecordingVisibilityPublic:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "true"
+		r.Metadata[ParamProtect] = "false"
+	case RecordingVisibilityPublicProtected:
+		r.State = StatePublished
+		r.Published = true
+		r.Metadata[ParamListed] = "true"
+		r.Metadata[ParamProtect] = "true"
+	}
+}
+
+// Well known recoding formats
+const (
+	RecordingFormatPresentation = "presentation"
+	RecordingFormatVideo        = "video"
+	RecordingFormatPodcast      = "podcast"
+)
 
 // Format contains a link to the playable media
 type Format struct {
@@ -273,4 +308,75 @@ type RecordingMetadataPlayback struct {
 	ProcessingTime int      `xml:"processing_time"`
 	Duration       int      `xml:"duration"`
 	Size           int      `xml:"size"`
+}
+
+// RecordingVisibility is an enum represeting the visibility
+// of the recording: Published, Unpublished, Protected
+type RecordingVisibility int
+
+// The recording visibility affects the state of the recording
+// as in 'published' / 'unpublished', the 'protection' and
+// the 'gl-listed' meta-parameter ('public').
+const (
+	RecordingVisibilityUnpublished RecordingVisibility = iota
+	RecordingVisibilityPublished
+	RecordingVisibilityProtected
+	RecordingVisibilityPublic
+	RecordingVisibilityPublicProtected
+)
+
+var recordingVisiblityKeys = map[RecordingVisibility]string{
+	RecordingVisibilityUnpublished:     "unpublished",
+	RecordingVisibilityPublished:       "published",
+	RecordingVisibilityProtected:       "protected",
+	RecordingVisibilityPublic:          "public",
+	RecordingVisibilityPublicProtected: "public_protected",
+}
+
+// String implements the stringer interface for recording
+// visibilty.
+func (v RecordingVisibility) String() string {
+	return recordingVisiblityKeys[v]
+}
+
+// ParseRecordingVisibility resolves the recording visibility
+// key into the enum value.
+func ParseRecordingVisibility(s string) (RecordingVisibility, error) {
+	for value, key := range recordingVisiblityKeys {
+		if s == key {
+			return value, nil
+		}
+	}
+
+	return 0, fmt.Errorf("unknown recording visibility: '%s'", s)
+}
+
+// MarshalJSON implements the Marshaler interface
+// for serializing a recording visibility.
+func (v RecordingVisibility) MarshalJSON() ([]byte, error) {
+	repr, ok := recordingVisiblityKeys[v]
+	if !ok {
+		return nil, fmt.Errorf("unknown recording visibility: '%d'", v)
+	}
+
+	return json.Marshal(repr)
+}
+
+// UnmarshalJSON implements the Unmarshaler interface
+// for deserializing a recording visibility.
+func (v *RecordingVisibility) UnmarshalJSON(b []byte) error {
+	var repr string
+	err := json.Unmarshal(b, &repr)
+	if err != nil {
+		return err
+	}
+
+	val, err := ParseRecordingVisibility(repr)
+	if err != nil {
+		return err
+	}
+
+	*v = val
+
+	return nil
 }

@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"os"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -15,18 +14,18 @@ import (
 // RecordingState holds a recording and its relation to a
 // meeting.
 type RecordingState struct {
-	RecordID string
+	RecordID string `json:"record_id" doc:"ID of the recording."`
 
-	Recording *bbb.Recording
+	Recording *bbb.Recording `json:"recording" api:"RecordingData" doc:"The bbb recording data"`
 
-	MeetingID         string
-	InternalMeetingID string
+	MeetingID         string `json:"meeting_id" doc:"The id of the related meeting."`
+	InternalMeetingID string `json:"internal_meeting_id" doc:"The internal meeting id."`
 
-	FrontendID string
+	FrontendID string `json:"frontend_id" doc:"The id of the associated frontend."`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	SyncedAt  time.Time
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	SyncedAt  time.Time `json:"synced_at"`
 }
 
 // InitRecordingState initializes the state with
@@ -258,24 +257,7 @@ func (s *RecordingState) DeleteFiles() error {
 	if err != nil {
 		return err
 	}
-
-	path := storage.PublishedRecordingPath(s.RecordID)
-	if !s.Recording.Published {
-		path = storage.UnpublishedRecordingPath(s.RecordID)
-	}
-
-	return os.RemoveAll(path)
-}
-
-// Helper: move recording files
-func moveRecordingFiles(src, dst string) error {
-	// Check if we are already present
-	if _, err := os.Stat(dst); err == nil {
-		return nil // nothing to do here
-	}
-
-	// Move files
-	return os.Rename(src, dst)
+	return storage.DeleteRecording(s)
 }
 
 // PublishFiles will move the recording from the unpublished
@@ -285,9 +267,7 @@ func (s *RecordingState) PublishFiles() error {
 	if err != nil {
 		return err
 	}
-	publishedPath := storage.PublishedRecordingPath(s.RecordID)
-	unpublishedPath := storage.UnpublishedRecordingPath(s.RecordID)
-	return moveRecordingFiles(unpublishedPath, publishedPath)
+	return storage.PublishRecording(s)
 }
 
 // UnpublishFiles will move the recording from the published
@@ -297,9 +277,17 @@ func (s *RecordingState) UnpublishFiles() error {
 	if err != nil {
 		return err
 	}
-	publishedPath := storage.PublishedRecordingPath(s.RecordID)
-	unpublishedPath := storage.UnpublishedRecordingPath(s.RecordID)
-	return moveRecordingFiles(publishedPath, unpublishedPath)
+	return storage.UnpublishRecording(s)
+}
+
+// ImportFiles will move incoming files from the
+// inbox to the published or unpublished folder.
+func (s *RecordingState) ImportFiles() error {
+	storage, err := NewRecordingsStorageFromEnv()
+	if err != nil {
+		return err
+	}
+	return storage.ImportRecording(s)
 }
 
 // GetRecordingTextTracks retrieves the text tracks from
