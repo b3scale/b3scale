@@ -229,7 +229,7 @@ func (rpc *RPCHandler) MeetingStateReset(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Update state
 	meeting.Meeting.Running = false
@@ -262,7 +262,7 @@ func (rpc *RPCHandler) MeetingSetRunning(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Update state
 	meeting.Meeting.Running = req.Running
@@ -294,7 +294,7 @@ func (rpc *RPCHandler) MeetingAddAttendee(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Update state
 	attendees := meeting.Meeting.Attendees
@@ -330,7 +330,7 @@ func (rpc *RPCHandler) MeetingRemoveAttendee(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Update state
 	attendees := meeting.Meeting.Attendees
@@ -373,7 +373,7 @@ var ResourceAgentRPC = &Resource{
 		if err != nil {
 			return err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		// Get current backend
 		backend, err := BackendFromAgentRef(ctx, api, tx)
@@ -383,7 +383,8 @@ var ResourceAgentRPC = &Resource{
 		if backend == nil {
 			return echo.ErrForbidden // We require an active agent
 		}
-		tx.Rollback(ctx) // Transaction is not longer required
+		// Transaction is not longer required
+		tx.Rollback(ctx) //nolint
 
 		// Execute op
 		res := rpc.Dispatch(ctx, &RPCHandler{

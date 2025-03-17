@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 
+	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/store"
 	"github.com/b3scale/b3scale/pkg/store/schema"
 )
@@ -88,6 +89,27 @@ type MeetingResourceClient interface {
 	) (*store.MeetingState, error)
 }
 
+// RecordingsResourceClient defines recording related methods.
+type RecordingsResourceClient interface {
+	RecordingsListByFrontendID(
+		ctx context.Context,
+		feID string,
+	) ([]*store.RecordingState, error)
+	RecordingsListByFrontendKey(
+		ctx context.Context,
+		feKey string,
+	) ([]*store.RecordingState, error)
+	RecordingsRetrieve(
+		ctx context.Context,
+		id string,
+	) (*store.RecordingState, error)
+	RecordingsSetVisibility(
+		ctx context.Context,
+		id string,
+		v bbb.RecordingVisibility,
+	) (*store.RecordingState, error)
+}
+
 // CommandResourceClient defines methods for creating
 // and polling commands
 type CommandResourceClient interface {
@@ -133,6 +155,7 @@ type Client interface {
 	FrontendResourceClient
 	BackendResourceClient
 	MeetingResourceClient
+	RecordingsResourceClient
 	CommandResourceClient
 	AgentResourceClient
 }

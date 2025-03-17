@@ -27,7 +27,7 @@ func apiAgentBackendShow(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	q := store.Q().Where("agent_ref = ?", api.Ref)
 	backend, err := store.GetBackendState(ctx, tx, q)
@@ -57,7 +57,7 @@ func apiAgentHeartbeatCreate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q().Where("agent_ref = ?", api.Ref)

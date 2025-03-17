@@ -17,7 +17,7 @@ func TestFrontendKeyMeetingIDEncodeDecode(t *testing.T) {
 
 	id2 := DecodeFrontendKeyMeetingID(enc)
 	if id2 == nil {
-		t.Error("decode should have been successful")
+		t.Fatal("decode should have been successful")
 	}
 
 	if id2.FrontendKey != "fkey1" {
@@ -71,6 +71,93 @@ func TestRewriteUniqueMeetingIDsRequest(t *testing.T) {
 		t.Error("expected a changed meeting ID")
 	}
 	t.Log(mids)
+}
+
+func TestMaybeRewriteMeeting(t *testing.T) {
+	m := &bbb.Meeting{
+		MeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+		Breakout: &bbb.Breakout{
+			ParentMeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+		},
+	}
+
+	maybeRewriteMeeting(m)
+
+	if m.MeetingID != "mid1" {
+		t.Error("unexpected meeting ID:", m.MeetingID)
+	}
+
+	if m.Breakout.ParentMeetingID != "mid1" {
+		t.Error("unexpected parent meeting ID:", m.Breakout.ParentMeetingID)
+	}
+}
+
+func TestMaybeRewriteMeetingsCollection(t *testing.T) {
+	c := []*bbb.Meeting{
+		&bbb.Meeting{
+			MeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+			Breakout: &bbb.Breakout{
+				ParentMeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+			},
+		},
+		&bbb.Meeting{
+			MeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+			Breakout: &bbb.Breakout{
+				ParentMeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+			},
+		},
+	}
+
+	maybeRewriteMeetingsCollection(c)
+
+	for _, m := range c {
+		if m.MeetingID != "mid1" {
+			t.Error("unexpected meeting ID:", m.MeetingID)
+		}
+
+		if m.Breakout.ParentMeetingID != "mid1" {
+			t.Error("unexpected parent meeting ID:", m.Breakout.ParentMeetingID)
+		}
+	}
+}
+
+func TestMaybeRewriteRecording(t *testing.T) {
+	r := &bbb.Recording{
+		MeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+		Metadata: bbb.Metadata{
+			"meetingId": "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+		},
+	}
+
+	maybeRewriteRecording(r)
+
+	if r.MeetingID != "mid1" {
+		t.Error("unexpected meeting id:", r.MeetingID)
+	}
+	if r.Metadata["meetingId"] != "mid1" {
+		t.Error("unexpected meeting id:", r.Metadata["meetingId"])
+	}
+}
+
+func TestMaybeRewriteRecordingCollection(t *testing.T) {
+	c := []*bbb.Recording{
+		&bbb.Recording{
+			MeetingID: "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+			Metadata: bbb.Metadata{
+				"meetingId": "WyJma2V5MSIsIm1pZDEiLCJiM3NjbCJd",
+			},
+		},
+	}
+
+	maybeRewriteRecordingsCollection(c)
+
+	r := c[0]
+	if r.MeetingID != "mid1" {
+		t.Error("unexpected meeting id:", r.MeetingID)
+	}
+	if r.Metadata["meetingId"] != "mid1" {
+		t.Error("unexpected meeting id:", r.Metadata["meetingId"])
+	}
 }
 
 func TestMaybeDecodeMeetingID(t *testing.T) {

@@ -188,10 +188,13 @@ func (h *RecordingsHandler) GetRecordings(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
+	// Config
 	playbackHost, hasPlaybackHost := config.GetEnvOpt(
 		config.EnvRecordingsPlaybackHost)
+	apiURL := config.MustEnv(config.EnvAPIURL)
+	apiSecret := config.MustEnv(config.EnvJWTSecret)
 
 	qry := store.QueryRecordingsByFrontendKey(req.Frontend.Key)
 
@@ -217,7 +220,7 @@ func (h *RecordingsHandler) GetRecordings(
 		}
 		protect, _ := rec.Metadata.GetBool(bbb.ParamProtect)
 		if protect {
-			rec.Protect(state.FrontendID)
+			rec.Protect(state.FrontendID, apiSecret, apiURL)
 		}
 
 		recordings = append(recordings, state.Recording)
@@ -253,7 +256,7 @@ func (h *RecordingsHandler) PublishRecordings(
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		rec, err := store.GetRecordingStateByID(ctx, tx, id)
 		if err != nil {
@@ -317,7 +320,7 @@ func (h *RecordingsHandler) UpdateRecordings(
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		rec, err := store.GetRecordingStateByID(ctx, tx, recordID)
 		if err != nil {
@@ -367,7 +370,7 @@ func (h *RecordingsHandler) DeleteRecordings(
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback(ctx)
+		defer tx.Rollback(ctx) //nolint
 
 		rec, err := store.GetRecordingState(
 			ctx, tx, store.QueryRecordingsByFrontendKey(req.Frontend.Key).

@@ -396,6 +396,9 @@ func TestMarshalPublishRecordingsResponse(t *testing.T) {
 		t.Error(err)
 	}
 	data1, err := response.Marshal()
+	if err != nil {
+		t.Error(err)
+	}
 	if len(data1) != 80 {
 		t.Error("Unexpected data:", string(data1), len(data1))
 	}

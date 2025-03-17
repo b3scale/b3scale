@@ -180,7 +180,7 @@ func (c *Controller) handleDecommissionBackend(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get backend for decommissioning
 	bstate, err := store.GetBackendState(ctx, tx, store.Q().
@@ -267,7 +267,7 @@ func (c *Controller) handleUpdateMeetingState(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get meeting from store
 	mstate, err := store.GetMeetingState(ctx, tx, store.Q().
@@ -340,14 +340,15 @@ func (c *Controller) handleEndAllMeetings(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	mstates, err := store.GetMeetingStates(ctx, tx, store.Q().
 		Where("backend_id = ?", req.BackendID))
 	if err != nil {
 		return nil, err
 	}
-	tx.Rollback(ctx) // We should not block the connection any longer
+	// Release early: we should not block the connection any longer
+	tx.Rollback(ctx) //nolint
 
 	for _, m := range mstates {
 		log.Info().
@@ -386,7 +387,7 @@ func (c *Controller) handleCollectGarbage(
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Clear stale frontend meeting mappings,
 	// older than a week.
@@ -410,7 +411,7 @@ func (c *Controller) requestSyncStaleNodes(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	log.Debug().Msg("starting stale node refresh")
 	stale, err := store.GetBackendStates(ctx, tx, store.Q().
@@ -452,7 +453,7 @@ func (c *Controller) requestSyncStaleMeetings(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	log.Debug().Msg("starting stale meeting refresh")
 	stale, err := store.GetMeetingStates(ctx, tx, store.Q().
@@ -494,7 +495,7 @@ func (c *Controller) requestBackendDecommissions(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get backend states to decommission
 	states, err := store.GetBackendStates(ctx, tx, store.Q().
@@ -544,7 +545,7 @@ func (c *Controller) requestCollectGarbage(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	log.Debug().
 		Str("cmd", "CollectGarbage").
@@ -564,7 +565,7 @@ func (c *Controller) warnOfflineBackends(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Get offline backends
 	deadline := time.Now().UTC().Add(-5 * time.Second)

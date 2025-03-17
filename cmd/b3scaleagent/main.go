@@ -65,7 +65,7 @@ func initAPI() api.Client {
 		log.Fatal().Msg(config.EnvAPIAccessToken + " is not configured")
 	}
 	log.Info().Str("host", apiURL).Msg("api")
-	return client.New(apiURL, accessToken)
+	return client.New(apiURL, accessToken).WithUserAgent("b3scaleagent/" + config.Version)
 }
 
 func initBBBConfig() config.Properties {

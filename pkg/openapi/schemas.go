@@ -59,7 +59,7 @@ func propFromSliceType(ftype reflect.Type) FieldProperty {
 		elem = elem.Elem()
 	}
 
-	itemProps := FieldProperty{}
+	var itemProps FieldProperty
 	switch elem.Kind() {
 	case reflect.String:
 		itemProps = FieldProperty{

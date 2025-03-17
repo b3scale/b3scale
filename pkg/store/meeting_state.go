@@ -119,7 +119,8 @@ func AwaitMeetingState(
 
 		state, err := GetMeetingState(ctx, tx, q)
 		if err != nil {
-			tx.Rollback(ctx)
+			// Close TX
+			tx.Rollback(ctx)     //nolint
 			return nil, nil, err // Database error
 		}
 
@@ -128,7 +129,7 @@ func AwaitMeetingState(
 		}
 
 		// Close tx and wait before retry
-		tx.Rollback(ctx)
+		tx.Rollback(ctx) //nolint
 		time.Sleep(150 * time.Millisecond)
 	}
 }

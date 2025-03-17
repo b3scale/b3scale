@@ -52,7 +52,7 @@ func apiClient(ctx *cli.Context) (api.Client, error) {
 	}
 
 	// Initialize client and test connection
-	client := client.New(apiHost, token)
+	client := client.New(apiHost, token).WithUserAgent("b3scalectl/" + config.Version)
 	status, err := client.Status(ctx.Context)
 	if err != nil {
 		return nil, err

@@ -228,7 +228,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// We dequeue and fetch a command within a transaction.
 	// During handling the command will be locked.

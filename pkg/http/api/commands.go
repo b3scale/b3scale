@@ -46,7 +46,7 @@ func apiCommandList(ctx context.Context, api *API) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	commands, err := store.GetCommands(ctx, tx, store.Q())
 	if err != nil {
@@ -62,7 +62,7 @@ func apiCommandShow(ctx context.Context, api *API) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Fetch command
 	id := api.Param("id")
@@ -82,7 +82,7 @@ func apiCommandCreate(ctx context.Context, api *API) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Parse command and insert into queue
 	cmd := &store.Command{}

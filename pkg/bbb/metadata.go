@@ -38,13 +38,11 @@ loop:
 				return err
 			}
 			(*meta)[key] = value
-			break
 
 		case xml.EndElement:
 			if t.(xml.EndElement) == start.End() {
 				break loop // We reached our end
 			}
-			break
 		}
 	}
 	return nil

@@ -50,7 +50,7 @@ func apiBackendsList(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q()
@@ -73,6 +73,9 @@ func apiBackendsList(
 	q = q.OrderBy("backends.host ASC")
 
 	backends, err := store.GetBackendStates(ctx, tx, q)
+	if err != nil {
+		return err
+	}
 	return api.JSON(http.StatusOK, backends)
 }
 
@@ -108,7 +111,7 @@ func apiBackendCreate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	if err := backend.Save(ctx, tx); err != nil {
 		return err
@@ -140,7 +143,7 @@ func apiBackendShow(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
@@ -150,7 +153,9 @@ func apiBackendShow(
 	}
 
 	backend, err := store.GetBackendState(ctx, tx, q)
-
+	if err != nil {
+		return err
+	}
 	if backend == nil {
 		return echo.ErrNotFound
 	}
@@ -172,7 +177,7 @@ func apiBackendDestroy(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)
@@ -181,6 +186,9 @@ func apiBackendDestroy(
 	}
 
 	backend, err := store.GetBackendState(ctx, tx, q)
+	if err != nil {
+		return err
+	}
 	if backend == nil {
 		return echo.ErrNotFound
 	}
@@ -219,7 +227,7 @@ func apiBackendUpdate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	// Begin Query
 	q := store.Q().Where("id = ?", id)

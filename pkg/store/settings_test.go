@@ -10,7 +10,7 @@ import (
 func TestFrontendSettingsSave(t *testing.T) {
 	ctx := context.Background()
 	tx := beginTest(ctx, t)
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	state := frontendStateFactory()
 
@@ -19,6 +19,10 @@ func TestFrontendSettingsSave(t *testing.T) {
 		"duration":         "42",
 		"disabledFeatures": "chat,captions,virtualBackgrounds",
 		"groups":           "[{id:'1',name:'GroupA',roster:['1235']}]",
+	}
+	vo := bbb.RecordingVisibilityProtected
+	state.Settings.Recordings = &RecordingsSettings{
+		VisibilityOverride: &vo,
 	}
 
 	if err := state.Save(ctx, tx); err != nil {
@@ -32,6 +36,9 @@ func TestFrontendSettingsSave(t *testing.T) {
 	}
 
 	if state.Settings.CreateDefaultParams["duration"] != "42" {
-		t.Error("Unexpected settings:", state.Settings.CreateDefaultParams)
+		t.Error("unexpected settings:", state.Settings.CreateDefaultParams)
+	}
+	if *state.Settings.Recordings.VisibilityOverride != bbb.RecordingVisibilityProtected {
+		t.Error("unexpected settings:", state.Settings.Recordings)
 	}
 }

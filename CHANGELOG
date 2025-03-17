@@ -1,3 +1,9 @@
+1.3.0 - 2025-03
+* b3scalectl/b3scaleagent: Add custom user agent
+* b3scaled: Add recording visibility override per frontend
+* b3scaled/b3scalectl: Allow to set visibility of individual recordings
+* Updated dependencies
+
 1.2.0 - 2024-10-01
 * b3scalenoded: removed. deprecated since 1.0.0, superseded by b3scaleagent
 * b3scalectl: disable/enable frontends

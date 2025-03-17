@@ -17,7 +17,9 @@ func TestMeetingUpdate(t *testing.T) {
 	m2.Running = false
 	m2.ParticipantCount = 5000
 
-	m1.Update(m2)
+	if err := m1.Update(m2); err != nil {
+		t.Fatal(err)
+	}
 
 	if m1.ParticipantCount != 5000 {
 		t.Error("unexpected participant count")

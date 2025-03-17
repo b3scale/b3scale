@@ -246,6 +246,9 @@ func (c *Cli) enableFrontend(ctx *cli.Context) error {
 		return err
 	}
 	state, err := getFrontendByKey(ctx.Context, client, key)
+	if err != nil {
+		return err
+	}
 	if state == nil {
 		return fmt.Errorf("frontend with key %s not found", key)
 	}
@@ -276,6 +279,9 @@ func (c *Cli) disableFrontend(ctx *cli.Context) error {
 		return err
 	}
 	state, err := getFrontendByKey(ctx.Context, client, key)
+	if err != nil {
+		return err
+	}
 	if state == nil {
 		return fmt.Errorf("frontend with key %s not found", key)
 	}

@@ -14,7 +14,7 @@ func createTestFrontend(api *API) *store.FrontendState {
 	if err != nil {
 		panic(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	ref := "user23"
 	f := store.InitFrontendState(&store.FrontendState{

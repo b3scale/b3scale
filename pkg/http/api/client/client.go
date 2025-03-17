@@ -94,6 +94,7 @@ func (res *Response) JSON(o interface{}) error {
 type Client struct {
 	Host        string
 	AccessToken string
+	UserAgent   string
 
 	*http.Client
 }
@@ -105,6 +106,12 @@ func New(host, token string) *Client {
 		AccessToken: token,
 		Client:      http.DefaultClient,
 	}
+}
+
+// WithUserAgent defines a custom user agent in the client
+func (c *Client) WithUserAgent(userAgent string) *Client {
+	c.UserAgent = userAgent
+	return c
 }
 
 // Build the request URL by joining the API base with the
@@ -150,6 +157,9 @@ func (c *Client) Request(
 	}
 	if req.ContentType != "" {
 		httpReq.Header.Set("Content-Type", req.ContentType)
+	}
+	if c.UserAgent != "" {
+		httpReq.Header.Set("User-Agent", c.UserAgent)
 	}
 
 	// Make request

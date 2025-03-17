@@ -46,6 +46,12 @@ func NewCli() *Cli {
 				Name:    "show",
 				Aliases: []string{"s"},
 				Usage:   "show the cluster state",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "json",
+						Usage: "Return json output",
+					},
+				},
 				Subcommands: []*cli.Command{
 					{
 						Name:   "backends",
@@ -68,6 +74,27 @@ func NewCli() *Cli {
 						Usage:        "show frontend settings",
 						Action:       c.showFrontend,
 						BashComplete: c.completeFrontend,
+					},
+					{
+						Name:         "recordings",
+						Usage:        "show all recordings for a frontend",
+						Action:       c.showRecordings,
+						BashComplete: c.completeFrontend,
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "frontend-id",
+								Aliases: []string{"feid"},
+							},
+							&cli.StringFlag{
+								Name:    "frontend",
+								Aliases: []string{"fe"},
+							},
+						},
+					},
+					{
+						Name:   "recording",
+						Usage:  "show frontend settings",
+						Action: c.showRecording,
 					},
 				},
 			},
@@ -114,6 +141,11 @@ func NewCli() *Cli {
 							},
 						},
 						Action: c.setFrontend,
+					},
+					{
+						Name:   "recording-visibility",
+						Usage:  "set visibility for a recording",
+						Action: c.setRecordingVisibility,
 					},
 				},
 			},
@@ -374,7 +406,7 @@ func (c *Cli) createNodeAccessToken(ctx *cli.Context) error {
 
 func (c *Cli) showStatusHelp(ctx *cli.Context) error {
 	// Show help text
-	cli.ShowAppHelp(ctx)
+	_ = cli.ShowAppHelp(ctx)
 	fmt.Println("")
 	return c.showStatus(ctx)
 }
@@ -478,7 +510,7 @@ func (c *Cli) authorizeAPI(ctx *cli.Context) error {
 			return err
 		}
 
-		client := client.New(apiHost, token)
+		client := client.New(apiHost, token).WithUserAgent("b3scalectl/" + config.Version)
 		_, err = client.Status(ctx.Context)
 		if err != nil {
 			fmt.Println("error using the token:", err)

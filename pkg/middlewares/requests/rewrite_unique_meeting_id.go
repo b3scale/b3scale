@@ -71,41 +71,39 @@ func maybeDecodeMeetingID(id string) string {
 
 // Apply the meetingID rewrite to meetingID fields
 // of a meeting and breakout.
-func maybeRewriteMeeting(m *bbb.Meeting) *bbb.Meeting {
+func maybeRewriteMeeting(m *bbb.Meeting) {
 	if m == nil {
-		return nil
+		return
 	}
 	m.MeetingID = maybeDecodeMeetingID(m.MeetingID)
 	if m.Breakout != nil {
 		m.Breakout.ParentMeetingID = maybeDecodeMeetingID(
 			m.Breakout.ParentMeetingID)
 	}
-	return m
 }
 
-func maybeRewriteMeetingsCollection(c []*bbb.Meeting) []*bbb.Meeting {
+// Rewrite all meetings in a collection
+func maybeRewriteMeetingsCollection(c []*bbb.Meeting) {
 	for _, m := range c {
-		m = maybeRewriteMeeting(m)
+		maybeRewriteMeeting(m)
 	}
-	return c
 }
 
-func maybeRewriteRecording(r *bbb.Recording) *bbb.Recording {
+// Rewrite recording meeting ids and update metadata.
+func maybeRewriteRecording(r *bbb.Recording) {
 	r.MeetingID = maybeDecodeMeetingID(r.MeetingID)
 
 	// Also update recording metadata
 	if r.Metadata != nil {
 		r.Metadata["meetingId"] = r.MeetingID
 	}
-
-	return r
 }
 
-func maybeRewriteRecordingsCollection(c []*bbb.Recording) []*bbb.Recording {
+// Rewrite all recordings in a collection
+func maybeRewriteRecordingsCollection(c []*bbb.Recording) {
 	for _, r := range c {
-		r = maybeRewriteRecording(r)
+		maybeRewriteRecording(r)
 	}
-	return c
 }
 
 // RewriteUniqueMeetingID ensures that the meeting id is unique
@@ -171,13 +169,13 @@ func rewriteUniqueMeetingIDResponse(res bbb.Response) (bbb.Response, error) {
 	case *bbb.JoinResponse:
 		r.MeetingID = maybeDecodeMeetingID(r.MeetingID)
 	case *bbb.CreateResponse:
-		r.Meeting = maybeRewriteMeeting(r.Meeting)
+		maybeRewriteMeeting(r.Meeting)
 	case *bbb.GetMeetingInfoResponse:
-		r.Meeting = maybeRewriteMeeting(r.Meeting)
+		maybeRewriteMeeting(r.Meeting)
 	case *bbb.GetMeetingsResponse:
-		r.Meetings = maybeRewriteMeetingsCollection(r.Meetings)
+		maybeRewriteMeetingsCollection(r.Meetings)
 	case *bbb.GetRecordingsResponse:
-		r.Recordings = maybeRewriteRecordingsCollection(r.Recordings)
+		maybeRewriteRecordingsCollection(r.Recordings)
 	}
 
 	return res, nil

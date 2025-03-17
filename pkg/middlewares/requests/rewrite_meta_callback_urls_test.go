@@ -30,7 +30,9 @@ func TestRewriteMetaCallbackURLs(t *testing.T) {
 		},
 	}
 
-	rewriteCallbacks(ctx, req)
+	if err := rewriteCallbacks(ctx, req); err != nil {
+		t.Fatal(err)
+	}
 
 	t.Log(req.Params)
 
@@ -48,7 +50,7 @@ func TestRewriteMetaCallbackURLs(t *testing.T) {
 	}
 	t.Log(newURL)
 
-	newURL, _ = req.Params[bbb.MetaParamMeetingEndCallbackURL]
+	newURL = req.Params[bbb.MetaParamMeetingEndCallbackURL]
 	if !strings.HasPrefix(
 		newURL,
 		"https://b3s.example.com/api/v1/callbacks/proxy/") {
@@ -56,7 +58,7 @@ func TestRewriteMetaCallbackURLs(t *testing.T) {
 	}
 	t.Log(newURL)
 
-	newURL, _ = req.Params[bbb.ParamMeetingEndedURL]
+	newURL = req.Params[bbb.ParamMeetingEndedURL]
 	if !strings.HasPrefix(
 		newURL,
 		"https://b3s.example.com/api/v1/callbacks/proxy/") {

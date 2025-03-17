@@ -20,7 +20,7 @@ func createTestMeeting(
 	if err != nil {
 		panic(err)
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	m := store.InitMeetingState(&store.MeetingState{
 		BackendID: &backend.ID,
@@ -117,7 +117,7 @@ func TestMeetingDestroy(t *testing.T) {
 	}
 
 	// Query the meeting again, this should fail.
-	api, res = NewTestRequest().
+	api, _ = NewTestRequest().
 		Authorize("test-agent-2000", auth.ScopeNode).
 		KeepState().
 		Context()

@@ -44,7 +44,7 @@ func apiMeetingsList(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	backend, err := BackendFromQuery(ctx, api, tx)
 	if err != nil {
@@ -78,7 +78,7 @@ func apiMeetingShow(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	meeting, err := MeetingFromRequest(ctx, api, tx)
 	if err != nil {
@@ -97,7 +97,7 @@ func apiMeetingUpdate(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	meeting, err := MeetingFromRequest(ctx, api, tx)
 	if err != nil {
@@ -135,7 +135,7 @@ func apiMeetingDestroy(
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint
 
 	meeting, err := MeetingFromRequest(ctx, api, tx)
 	if err != nil {
