@@ -108,6 +108,7 @@ func New(host, token string) *Client {
 	}
 }
 
+// WithUserAgent defines a custom user agent in the client
 func (c *Client) WithUserAgent(userAgent string) *Client {
 	c.UserAgent = userAgent
 	return c
