@@ -69,6 +69,17 @@ func NewCli() *Cli {
 						Action:       c.showFrontend,
 						BashComplete: c.completeFrontend,
 					},
+					{
+						Name:   "meetings",
+						Usage:  "show running meetings",
+						Action: c.showMeetings,
+					},
+					{
+						Name:   "meeting",
+						Usage:  "show details for meeting",
+						Action: c.showMeeting,
+						//BashComplete: c.completeMeetings,
+					},
 				},
 			},
 			{
@@ -143,6 +154,12 @@ func NewCli() *Cli {
 						Name:   "frontend",
 						Usage:  "delete frontend",
 						Action: c.deleteFrontend,
+					},
+					{
+						Name:   "meeting",
+						Usage:  "delete meeting",
+						Action: c.deleteMeeting,
+						//BashComplete: c.completeMeetings,
 					},
 				},
 			},

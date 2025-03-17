@@ -1,13 +1,101 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/http/auth"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/urfave/cli/v2"
 )
+
+func (c *Cli) showMeetings(ctx *cli.Context) error {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"Meeting ID", "Meeting Name", "Attendees", "Frontend", "Backend"})
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	meetings, err := client.MeetingsList(ctx.Context, nil)
+	if err != nil {
+		return err
+	}
+
+	meetingCount := 0
+	for i, m := range meetings {
+		meetingCount = i + 1
+		backendName := "<unknown>"
+		if m.BackendID != nil {
+			backend, err := client.BackendRetrieve(ctx.Context, *m.BackendID)
+			if err != nil {
+				return err
+			}
+			backendName = backend.Backend.Host
+		}
+		frontendName := "<unknown>"
+		if m.FrontendID != nil {
+			frontend, err := client.FrontendRetrieve(ctx.Context, *m.FrontendID)
+			if err != nil {
+				return err
+			}
+			frontendName = frontend.Frontend.Key
+		}
+		//t.AppendRow(table.Row{m.Meeting.MeetingID, m.Meeting.MeetingName, len(m.Meeting.Attendees), frontendName, backendName})
+		t.AppendRow(table.Row{m.Meeting.MeetingID, m.Meeting.MeetingName, len(m.Meeting.Attendees), frontendName, backendName})
+	}
+	t.AppendFooter(table.Row{"", "", "Total", meetingCount})
+	t.Render()
+	return nil
+}
+
+func (c *Cli) showMeeting(ctx *cli.Context) error {
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need meeting id for showing info")
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	meeting, err := client.MeetingRetrieve(ctx.Context, key)
+	if err != nil {
+		return err
+	}
+
+	jmeeting, err := json.MarshalIndent(meeting, "", "\t")
+	if err != nil {
+		return err
+	}
+	println(string(jmeeting))
+	return nil
+}
+
+func (c *Cli) deleteMeeting(ctx *cli.Context) error {
+	key := ctx.Args().Get(0)
+	if key == "" {
+		return fmt.Errorf("need meeting id for showing info")
+	}
+
+	client, err := apiClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.MeetingDelete(ctx.Context, key)
+	if err != nil {
+		return err
+	}
+	println("Meeting deleted")
+	return nil
+}
 
 func (c *Cli) createMeeting(ctx *cli.Context) error {
 	name := ctx.String("name")

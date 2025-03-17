@@ -17,15 +17,14 @@ func BackendFromQuery(
 	api *API,
 	tx pgx.Tx,
 ) (*store.BackendState, error) {
-	id := strings.TrimSpace(api.QueryParam("backend_id"))
-	host := strings.TrimSpace(api.QueryParam("backend_host"))
-
 	hasQuery := false
 	q := store.Q()
+	id := strings.TrimSpace(api.QueryParam("backend_id"))
 	if id != "" {
 		q = q.Where("id = ?", id)
 		hasQuery = true
 	}
+	host := strings.TrimSpace(api.QueryParam("backend_host"))
 	if host != "" {
 		q = q.Where("host = ?", host)
 		hasQuery = true

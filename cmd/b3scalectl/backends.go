@@ -29,6 +29,21 @@ func getBackendByHost(
 	return nil, nil
 }
 
+func getBackendByID(
+	ctx context.Context, c api.Client, key string,
+) (*store.BackendState, error) {
+	backends, err := c.BackendsList(ctx, url.Values{
+		"id": []string{key},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(backends) > 0 {
+		return backends[0], nil
+	}
+	return nil, nil
+}
+
 // setBackend manages the backends in the cluster
 func (c *Cli) setBackend(ctx *cli.Context) error {
 	adminState := ctx.String("state")
