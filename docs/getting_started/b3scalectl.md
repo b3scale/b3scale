@@ -7,10 +7,10 @@ features such as testing room creation for frontends, or displaying frontend set
 
 === "Debian/Ubuntu"
 
-    Starting with version 1.0.3, b3scale provides `.deb` packages for use in Ubuntu. Download the `b3scaled-*.deb` asset from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. On an Intel/AMD 64 Bit system, install the `.deb` package like this:
+    Starting with version 1.3.0, b3scale provides `.deb` packages for use in Ubuntu. Download the `b3scaled-*.deb` asset from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. On an Intel/AMD 64 Bit system, install the `.deb` package like this:
 
     ```bash
-    sudo dpkg -i b3scalectl_1.0.3_linux_amd64.deb
+    sudo dpkg -i b3scalectl_1.3.0_linux_amd64.deb
     ```
 
 === "openSUSE"
