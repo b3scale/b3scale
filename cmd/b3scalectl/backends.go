@@ -176,6 +176,13 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	if ctx.Bool("json") {
+		buf, _ := json.MarshalIndent(backends, "", "   ")
+		fmt.Println(string(buf))
+		return nil
+	}
+
 	for _, b := range backends {
 		ratio := 0.0
 		if b.MeetingsCount > 0 {

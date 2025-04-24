@@ -198,6 +198,11 @@ func (c *Cli) showFrontends(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if ctx.Bool("json") {
+		buf, _ := json.MarshalIndent(frontends, "", "   ")
+		fmt.Println(string(buf))
+		return nil
+	}
 
 	for _, f := range frontends {
 		settings, _ := json.Marshal(f.Settings)
