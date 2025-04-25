@@ -4,10 +4,10 @@
 
 === "Debian/Ubuntu"
 
-    Starting with version 1.0.3, b3scale provides `.deb` packages for use in Ubuntu. Download the `b3scaled-*.deb` asset from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. On an Intel/AMD 64 Bit system, install the `.deb` package like this:
+    b3scale provides `.deb` packages for use in Ubuntu. Download the `b3scaled-*.deb` asset from the [release page](https://github.com/b3scale/b3scale/releases) on GitHub. On an Intel/AMD 64 Bit system, install the `.deb` package like this:
 
     ```bash
-    sudo dpkg -i b3scale_1.0.3_linux_amd64.deb
+    sudo dpkg -i b3scale_1.3.0_linux_amd64.deb
     ```
 
 === "openSUSE"
@@ -20,9 +20,9 @@
     zypper install b3scale
     ```
 
-    For openSUSE Leap 15.5 run the following as root:
+    For openSUSE Leap 15.6 run the following as root:
     ```bash
-    zypper addrepo https://download.opensuse.org/repositories/home:dmolkentin:infrarun/15.5/home:dmolkentin:infrarun.repo
+    zypper addrepo https://download.opensuse.org/repositories/home:dmolkentin:infrarun/15.6/home:dmolkentin:infrarun.repo
     zypper refresh
     zypper install b3scale
     ```
@@ -33,10 +33,10 @@
 
 === "Kubernetes/Docker"
 
-    Starting with version 1.0.3, we provide an experimental, scratch-based container image, available from the GitHub Container Registry:
+    We provide an experimental, scratch-based container image, available from the GitHub Container Registry:
 
     ```bash
-    docker pull ghcr.io/b3scale/b3scaled:1.0.3
+    docker pull ghcr.io/b3scale/b3scaled:1.3.0
     ```
 
 ## Configuring the service

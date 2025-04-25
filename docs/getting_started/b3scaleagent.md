@@ -8,7 +8,7 @@ a b3scale cluster. The node agent verifies the health of the BBB node and report
 Retrieve the package from the [GitHub release page](https://github.com/b3scale/b3scale/releases). Install  the `.deb` package like this:
 
 ```bash
-sudo dpkg -i b3scaleagent_1.0.3_linux_amd64.deb
+sudo dpkg -i b3scaleagent_1.3.0_linux_amd64.deb
 ```
 
 Make the following changes to `/etc/default/b3scaleagent`:

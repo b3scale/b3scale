@@ -1,5 +1,6 @@
-1.3.0 - 2025-03
+1.3.0 - 2025-04-24
 * b3scalectl/b3scaleagent: Add custom user agent
+* b3scalectl/b3scaleagent: Support raw JSON output via '--json' 
 * b3scaled: Add recording visibility override per frontend
 * b3scaled/b3scalectl: Allow to set visibility of individual recordings
 * Updated dependencies
