@@ -24,9 +24,10 @@ func TestRewriteMetaCallbackURLs(t *testing.T) {
 	ctx := cluster.ContextWithFrontend(context.Background(), frontend)
 	req := &bbb.Request{
 		Params: bbb.Params{
-			bbb.MetaParamMeetingEndCallbackURL: "originalURL1",
-			bbb.MetaParamRecordingReadyURL:     "originalURL2",
-			bbb.ParamMeetingEndedURL:           "originalURL3",
+			bbb.MetaParamAnalyticsCallbackURL:  "originalURL1",
+			bbb.MetaParamMeetingEndCallbackURL: "originalURL2",
+			bbb.MetaParamRecordingReadyURL:     "originalURL3",
+			bbb.ParamMeetingEndedURL:           "originalURL4",
 		},
 	}
 
@@ -43,6 +44,14 @@ func TestRewriteMetaCallbackURLs(t *testing.T) {
 	}
 	t.Log(newURL)
 
+	if !strings.HasPrefix(
+		newURL,
+		"https://b3s.example.com/api/v1/callbacks/proxy/") {
+		t.Error("unexpected url:", newURL)
+	}
+	t.Log(newURL)
+
+	newURL = req.Params[bbb.MetaParamAnalyticsCallbackURL]
 	if !strings.HasPrefix(
 		newURL,
 		"https://b3s.example.com/api/v1/callbacks/proxy/") {

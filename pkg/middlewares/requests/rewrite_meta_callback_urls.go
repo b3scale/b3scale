@@ -31,6 +31,7 @@ func rewriteCallbacks(
 ) error {
 	callbacks := []string{
 		bbb.MetaParamRecordingReadyURL,
+		bbb.MetaParamAnalyticsCallbackURL,
 		bbb.MetaParamMeetingEndCallbackURL,
 		bbb.ParamMeetingEndedURL,
 	}

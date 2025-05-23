@@ -29,6 +29,7 @@ const (
 	ParamDisabledFeatures = "disabledFeatures"
 	ParamMeetingEndedURL  = "meetingEndedURL"
 
+	MetaParamAnalyticsCallbackURL  = "meta_analytics-callback-url"
 	MetaParamMeetingEndCallbackURL = "meta_endCallbackUrl"
 	MetaParamRecordingReadyURL     = "meta_bbb-recording-ready-url"
 )
