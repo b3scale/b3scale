@@ -143,11 +143,14 @@ func GetBackend(
 func (b *Backend) Stress() float64 {
 	f := b.state.LoadFactor
 
-	// Assume a base load of n attendees. This should come from
-	// some a config or should be set per frontend.
+	// Assume a base load of n attendees per meeting. This should come from
+	// some a config or should be set per frontend or even be hinted from the create() call.
 	attendeeBaseLoad := 15.0
-	attendeeLoad := math.Max(attendeeBaseLoad, float64(b.state.AttendeesCount))
-	return f * (float64(b.state.MeetingsCount) + attendeeLoad)
+
+	// Assume that every Meeting will eventually have attendeeBaseLoad attendees on average,
+	// but use AttendeesCount if bigger. A rough estimate, but cheap to calculate.
+	minAssumedAttendees := math.Max(float64(b.state.MeetingsCount)*attendeeBaseLoad, float64(b.state.AttendeesCount))
+	return f * minAssumedAttendees
 }
 
 // refreshNodeState will fetch all meetings from the backend.

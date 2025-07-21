@@ -13,11 +13,16 @@ func TestBackendStress(t *testing.T) {
 		LoadFactor:     1,
 		AttendeesCount: 12,
 	}}
-	if b.Stress() != 25 {
+	if b.Stress() != 150 {
 		t.Error("unexpected result for stress function:", b.Stress())
 	}
 	b.state.LoadFactor = 1.25
-	if b.Stress() != 31.25 {
+	if b.Stress() != 187.5 {
+		t.Error("unexpected result for stress function:", b.Stress())
+	}
+	b.state.LoadFactor = 1.0
+	b.state.AttendeesCount = 600
+	if b.Stress() != 600 {
 		t.Error("unexpected result for stress function:", b.Stress())
 	}
 }
