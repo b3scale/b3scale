@@ -16,7 +16,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.34.0
 	github.com/urfave/cli/v2 v2.27.7
-	golang.org/x/net v0.44.0
+	golang.org/x/net v0.45.0
 	golang.org/x/term v0.35.0
 )
 
