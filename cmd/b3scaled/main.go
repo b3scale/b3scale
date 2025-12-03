@@ -28,18 +28,27 @@ func main() {
 	quit := make(chan bool)
 	banner() // Most important.
 
+	// Configure logging
+	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
+	logFormat := config.EnvOpt(config.EnvLogFormat, config.EnvLogFormatDefault)
+
+	if err := logging.Setup(&logging.Options{
+		Level:  loglevel,
+		Format: logFormat,
+	}); err != nil {
+		panic(err)
+	}
+
 	// Ensure all required configuration is present
 	if err := config.CheckEnv(); err != nil {
 		log.Fatal().Err(err).Msg("configuration incomplete")
 		return
 	}
 
-	// Config
+	// Confiure database and server settings
 	listenHTTP := config.EnvOpt(config.EnvListenHTTP, config.EnvListenHTTPDefault)
 	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
 	dbPoolSizeStr := config.EnvOpt(config.EnvDbPoolSize, config.EnvDbPoolSizeDefault)
-	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
-	logFormat := config.EnvOpt(config.EnvLogFormat, config.EnvLogFormatDefault)
 	revProxyEnabled := config.IsEnabled(config.EnvOpt(
 		config.EnvReverseProxy, config.EnvReverseProxyDefault))
 
@@ -49,14 +58,7 @@ func main() {
 	}
 	dbPoolSize := int32(dbPoolSize64)
 
-	// Configure logging
-	if err := logging.Setup(&logging.Options{
-		Level:  loglevel,
-		Format: logFormat,
-	}); err != nil {
-		panic(err)
-	}
-
+	// Begin server initialization
 	log.Info().Msg("booting b3scale")
 	log.Debug().Str("url", dbConnStr).Msg("using database")
 
