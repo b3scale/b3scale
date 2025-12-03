@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -114,6 +115,11 @@ func (s *Server) StartCleartextHTTP2(listen string) {
 		Err(s.echo.StartH2CServer(listen, httpServer)).
 		Msg("starting plaintext http2 server")
 
+}
+
+// Shutdown stops the HTTP server.
+func (s *Server) Shutdown() error {
+	return s.echo.Shutdown(context.Background())
 }
 
 // Index / Root Handler
