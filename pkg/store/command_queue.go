@@ -100,7 +100,10 @@ func QueueCommand(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 // Receive will await a command and will block
 // until a command can be processed. If the handler
 // responds with an error, the error will be returned.
-func (q *CommandQueue) Receive(handler CommandHandler) error {
+func (q *CommandQueue) Receive(
+	ctx context.Context,
+	handler CommandHandler,
+) error {
 	for {
 		// Start processing in the background, so we can take
 		// care of the next incomming command.

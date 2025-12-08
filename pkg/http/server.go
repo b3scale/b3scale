@@ -1,7 +1,6 @@
 package http
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	pclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/net/http2"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/cluster"
@@ -59,8 +57,6 @@ func NewServer(
 	// We handle BBB requests in a custom middleware
 	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
 
-	// Serve static assets
-
 	s := &Server{
 		serviceID:  serviceID,
 		echo:       e,
@@ -94,26 +90,6 @@ func (s *Server) Start(listen string) {
 	log.Fatal().
 		Err(s.echo.StartServer(httpServer)).
 		Msg("starting http server")
-}
-
-// StartCleartextHTTP2 starts a HTTP2 interface without
-// any TLS encryption.
-func (s *Server) StartCleartextHTTP2(listen string) {
-	log.Info().Msg("starting interface: CleartextHTTP2")
-	httpServer := &http2.Server{
-		MaxConcurrentStreams: 200,
-		MaxReadFrameSize:     1048576,
-		IdleTimeout:          config.GetHTTPIdleTimeout(),
-	}
-	log.Fatal().
-		Err(s.echo.StartH2CServer(listen, httpServer)).
-		Msg("starting plaintext http2 server")
-
-}
-
-// Shutdown stops the HTTP server.
-func (s *Server) Shutdown() error {
-	return s.echo.Shutdown(context.Background())
 }
 
 // Index / Root Handler

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/logging"
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,6 +20,8 @@ const (
 
 	EnvDbURL      = "B3SCALE_DB_URL"
 	EnvDbPoolSize = "B3SCALE_DB_POOL_SIZE"
+
+	EnvCmdWorkerPoolSize = "B3SCALE_CMD_WORKER_POOL_SIZE"
 
 	EnvLogLevel  = "B3SCALE_LOG_LEVEL"
 	EnvLogFormat = "B3SCALE_LOG_FORMAT"
@@ -49,6 +52,8 @@ const (
 
 	EnvDbPoolSizeDefault = "128"
 	EnvDbURLDefault      = "postgres://postgres:postgres@localhost:5432/b3scale"
+
+	EnvCmdWorkerPoolSizeDefault = "16"
 
 	EnvLogLevelDefault  = "info"
 	EnvLogFormatDefault = "structured"
@@ -239,6 +244,17 @@ func requireEnv(keys ...string) []string {
 	return missing
 }
 
+// checkDbConfig checks the presence of the database configuration
+func checkDbConfig() ([]string, error) {
+	opts := GetDbConnectOpts()
+	log.Info().
+		Int32("pool_connections_min", opts.MinConns).
+		Int32("pool_connections_max", opts.MaxConns).
+		Msg("database")
+
+	return nil, nil
+}
+
 // checkAPIConfig checks API configuration and logs settings.
 func checkAPIConfig() ([]string, error) {
 	missing := requireEnv(EnvAPIURL, EnvJWTSecret)
@@ -298,6 +314,7 @@ func CheckEnv() error {
 	var missing []string
 
 	checks := []func() ([]string, error){
+		checkDbConfig,
 		checkHTTPConfig,
 		checkAPIConfig,
 		checkRecordingsConfig,
@@ -350,4 +367,55 @@ func GetHTTPWriteTimeout() time.Duration {
 // GetHTTPIdleTimeout returns the HTTP idle timeout.
 func GetHTTPIdleTimeout() time.Duration {
 	return getEnvTimeoutSec(EnvHTTPIdleTimeout, EnvHTTPIdleTimeoutDefault)
+}
+
+// GetCmdWorkerPoolSize returns number of workers processing
+// background tasks.
+func GetCmdWorkerPoolSize() int {
+	val := EnvOpt(EnvCmdWorkerPoolSize, EnvCmdWorkerPoolSizeDefault)
+	size, err := strconv.Atoi(val)
+	if err != nil {
+		size, _ = strconv.Atoi(EnvCmdWorkerPoolSizeDefault)
+	}
+	return size
+}
+
+// GetLoggingOpts returns the logging options with
+// log level and format.
+func GetLoggingOpts() *logging.Options {
+	level := EnvOpt(EnvLogLevel, EnvLogLevelDefault)
+	format := EnvOpt(EnvLogFormat, EnvLogFormatDefault)
+
+	return &logging.Options{
+		Level:  level,
+		Format: format,
+	}
+}
+
+// ConnectOpts database connection options
+type ConnectOpts struct {
+	URL      string
+	MaxConns int32
+	MinConns int32
+}
+
+// GetDbConnectOpts return the database configuration
+// from the environment.
+func GetDbConnectOpts() *ConnectOpts {
+	dbConnStr := EnvOpt(EnvDbURL, EnvDbURLDefault)
+	dbPoolSizeStr := EnvOpt(EnvDbPoolSize, EnvDbPoolSizeDefault)
+	dbPoolSize64, err := strconv.ParseInt(dbPoolSizeStr, 10, 32)
+	if err != nil {
+		log.Fatal().Err(err).Msg("database pool size") // panics
+	}
+	dbPoolSize := int32(dbPoolSize64)
+
+	log.Debug().Str("url", dbConnStr).Msg("using database")
+
+	// Initialize postgres connection
+	return &ConnectOpts{
+		URL:      dbConnStr,
+		MaxConns: dbPoolSize,
+		MinConns: 8,
+	}
 }
