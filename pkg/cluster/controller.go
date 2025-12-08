@@ -62,17 +62,8 @@ func (c *Controller) Start(ctx context.Context) {
 		}
 	}()
 
-	// Controller Main Loop
-	for {
-		// Process commands from queue
-		if err := c.cmds.Receive(ctx, c.handleCommand); err != nil {
-			// We will only reach this code when waiting for
-			// commands fails. This can happen when the database
-			// is down. So, we log the error and wait a bit.
-			log.Error().Err(err).Msg("receive next command")
-			time.Sleep(1.0 * time.Second)
-		}
-	}
+	// Controller Main: Handle queued commands.
+	c.cmds.StartReceive(ctx, c.handleCommand)
 }
 
 // StartBackground will be run periodically triggered by
