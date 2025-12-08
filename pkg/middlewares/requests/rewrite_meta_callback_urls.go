@@ -43,7 +43,7 @@ func rewriteCallbacks(
 }
 
 // Rewrite meta callback URLs: Callback URLs are rewritten
-// to point to a b3scale endpoin. The original URL and callback
+// to point to a b3scale endpoint. The original URL and callback
 // is encoded as the AUD attribute of the token.
 func rewriteCallback(
 	ctx context.Context,
