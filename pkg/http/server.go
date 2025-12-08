@@ -44,7 +44,7 @@ func NewServer(
 	// in order of Use.
 	e.Use(middleware.Recover())
 	e.Use(logging.Middleware())
-	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+	e.Use(middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
 		Timeout: config.GetHTTPRequestTimeout(),
 	}))
 
