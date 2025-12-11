@@ -1,7 +1,7 @@
 package main
 
 import (
-	"strconv"
+	"context"
 
 	"github.com/rs/zerolog/log"
 
@@ -15,6 +15,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	// Check if the enviroment was configured, when not try to
 	// load the environment from .env or from a sysconfig env file
 	if chk := config.EnvOpt(config.EnvDbURL, "unconfigured"); chk == "unconfigured" {
@@ -25,8 +27,12 @@ func main() {
 		})
 	}
 
-	quit := make(chan bool)
 	banner() // Most important.
+
+	// Configure logging
+	if err := logging.Setup(config.GetLoggingOpts()); err != nil {
+		panic(err)
+	}
 
 	// Ensure all required configuration is present
 	if err := config.CheckEnv(); err != nil {
@@ -34,52 +40,25 @@ func main() {
 		return
 	}
 
-	// Config
+	// Confiure database and server settings
 	listenHTTP := config.EnvOpt(config.EnvListenHTTP, config.EnvListenHTTPDefault)
-	dbConnStr := config.EnvOpt(config.EnvDbURL, config.EnvDbURLDefault)
-	dbPoolSizeStr := config.EnvOpt(config.EnvDbPoolSize, config.EnvDbPoolSizeDefault)
-	loglevel := config.EnvOpt(config.EnvLogLevel, config.EnvLogLevelDefault)
-	logFormat := config.EnvOpt(config.EnvLogFormat, config.EnvLogFormatDefault)
+
+	// Begin server initialization
+	log.Info().Msg("booting b3scale")
+
 	revProxyEnabled := config.IsEnabled(config.EnvOpt(
 		config.EnvReverseProxy, config.EnvReverseProxyDefault))
-
-	dbPoolSize64, err := strconv.ParseInt(dbPoolSizeStr, 10, 32)
-	if err != nil {
-		log.Fatal().Err(err).Msg("database pool size")
-	}
-	dbPoolSize := int32(dbPoolSize64)
-
-	// Configure logging
-	if err := logging.Setup(&logging.Options{
-		Level:  loglevel,
-		Format: logFormat,
-	}); err != nil {
-		panic(err)
-	}
-
-	log.Info().Msg("booting b3scale")
-	log.Debug().Str("url", dbConnStr).Msg("using database")
-
 	if revProxyEnabled {
 		log.Info().Msg("reverse proxy mode is enabled")
 	}
 
 	// Initialize postgres connection
-	err = store.Connect(&store.ConnectOpts{
-		URL:      dbConnStr,
-		MaxConns: dbPoolSize,
-		MinConns: 8,
-	})
-	if err != nil {
+	if err := store.Connect(config.GetDbConnectOpts()); err != nil {
 		log.Fatal().Err(err).Msg("database connection")
 	}
 
-	log.Info().
-		Int32("maxConnections", dbPoolSize).
-		Msg("database pool")
-
 	// Recordings are an optional feature, so we will treat errors
-	// as warnings.
+	// as warnings for now.
 	recordingsStorage, err := store.NewRecordingsStorageFromEnv()
 	if err != nil {
 		log.Error().Err(err).Msg("could not initialize recordings storage")
@@ -121,11 +100,11 @@ func main() {
 	gateway.Use(requests.RewriteUniqueMeetingID())
 
 	// Start cluster controller
-	go ctrl.Start()
+	go ctrl.Start(ctx)
 
 	// Start HTTP interface
 	httpServer := http.NewServer("http", ctrl, gateway)
 	go httpServer.Start(listenHTTP)
 
-	<-quit
+	<-ctx.Done()
 }

@@ -138,6 +138,9 @@ func writeBBBResponse(c echo.Context, res bbb.Response) error {
 
 	// Update and write headers
 	for key, values := range res.Header() {
+		if key == "Content-Length" {
+			continue
+		}
 		for _, v := range values {
 			c.Response().Header().Add(key, v)
 		}

@@ -7,8 +7,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
+	"github.com/b3scale/b3scale/pkg/logging"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,6 +20,8 @@ const (
 
 	EnvDbURL      = "B3SCALE_DB_URL"
 	EnvDbPoolSize = "B3SCALE_DB_POOL_SIZE"
+
+	EnvCmdWorkerPoolSize = "B3SCALE_CMD_WORKER_POOL_SIZE"
 
 	EnvLogLevel  = "B3SCALE_LOG_LEVEL"
 	EnvLogFormat = "B3SCALE_LOG_FORMAT"
@@ -35,6 +39,11 @@ const (
 	EnvRecordingsUnpublishedPath   = "B3SCALE_RECORDINGS_UNPUBLISHED_PATH"
 	EnvRecordingsPlaybackHost      = "B3SCALE_RECORDINGS_PLAYBACK_HOST"
 	EnvRecordingsDefaultVisibility = "B3SCALE_RECORDINGS_DEFAULT_VISIBILITY"
+
+	EnvHTTPRequestTimeout    = "B3SCALE_HTTP_REQUEST_TIMEOUT"
+	EnvHTTPReadHeaderTimeout = "B3SCALE_HTTP_READ_HEADER_TIMEOUT"
+	EnvHTTPWriteTimeout      = "B3SCALE_HTTP_WRITE_TIMEOUT"
+	EnvHTTPIdleTimeout       = "B3SCALE_HTTP_IDLE_TIMEOUT"
 )
 
 // Defaults
@@ -44,14 +53,23 @@ const (
 	EnvDbPoolSizeDefault = "128"
 	EnvDbURLDefault      = "postgres://postgres:postgres@localhost:5432/b3scale"
 
+	EnvCmdWorkerPoolSizeDefault = "16"
+
 	EnvLogLevelDefault  = "info"
 	EnvLogFormatDefault = "structured"
 
-	EnvListenHTTPDefault   = "127.0.0.1:42353" // :B3S
 	EnvReverseProxyDefault = "false"
 	EnvLoadFactorDefault   = "1.0"
 
 	EnvRecordingsDefaultVisibilityDefault = "published"
+
+	EnvListenHTTPDefault = "127.0.0.1:42353" // :B3S
+
+	// HTTP timeout defaults (in seconds)
+	EnvHTTPRequestTimeoutDefault    = "60"
+	EnvHTTPReadHeaderTimeoutDefault = "5"
+	EnvHTTPWriteTimeoutDefault      = "60"
+	EnvHTTPIdleTimeoutDefault       = "120"
 )
 
 // LoadEnv loads the environment from a file and
@@ -215,36 +233,49 @@ func GetRecordingsInboxPath() string {
 	return p
 }
 
-// CheckEnv checks if the environment is configured
-func CheckEnv() error {
-	missing := []string{}
-
-	// API and Secret
-	if _, ok := GetEnvOpt(EnvAPIURL); !ok {
-		missing = append(missing, EnvAPIURL)
+// requireEnv checks if env vars are set and returns missing ones.
+func requireEnv(keys ...string) []string {
+	var missing []string
+	for _, key := range keys {
+		if _, ok := GetEnvOpt(key); !ok {
+			missing = append(missing, key)
+		}
 	}
+	return missing
+}
 
-	if _, ok := GetEnvOpt(EnvJWTSecret); !ok {
-		missing = append(missing, EnvJWTSecret)
-	}
+// checkDbConfig checks the presence of the database configuration
+func checkDbConfig() ([]string, error) {
+	opts := GetDbConnectOpts()
+	log.Info().
+		Int32("pool_connections_min", opts.MinConns).
+		Int32("pool_connections_max", opts.MaxConns).
+		Msg("database")
 
-	// Recordings Default Visibility
+	return nil, nil
+}
+
+// checkAPIConfig checks API configuration and logs settings.
+func checkAPIConfig() ([]string, error) {
+	missing := requireEnv(EnvAPIURL, EnvJWTSecret)
+	return missing, nil
+}
+
+// checkRecordingsConfig checks recordings configuration and logs settings.
+func checkRecordingsConfig() ([]string, error) {
 	vis, err := envGetRecordingsDefaultVisibility()
 	if err != nil {
-		return err
+		log.Error().Err(err).Msg("invalid recordings visibility config")
+		return nil, err
 	}
 
-	// Recordings paths
-	// In case the Published Path is configured, check that
-	// the configuration is complete.
-	recEnabled := false
 	inPath, _ := GetEnvOpt(EnvRecordingsInboxPath)
 	pubPath, hasPubPath := GetEnvOpt(EnvRecordingsPublishedPath)
 	unpubPath, hasUnpubPath := GetEnvOpt(EnvRecordingsUnpublishedPath)
 
-	if hasPubPath || hasUnpubPath {
-		recEnabled = true
-	}
+	recEnabled := hasPubPath || hasUnpubPath
+
+	var missing []string
 	if !hasPubPath {
 		missing = append(missing, EnvRecordingsPublishedPath)
 	}
@@ -252,7 +283,6 @@ func CheckEnv() error {
 		missing = append(missing, EnvRecordingsUnpublishedPath)
 	}
 
-	// Log recording settings
 	log.Info().
 		Bool("recordings_enabled", recEnabled).
 		Str("inbox_path", inPath).
@@ -261,10 +291,131 @@ func CheckEnv() error {
 		Str("default_visibility", vis.String()).
 		Msg("recordings settings")
 
+	return missing, nil
+}
+
+// checkHTTPConfig checks HTTP configuration and logs settings.
+func checkHTTPConfig() ([]string, error) {
+	listen := EnvOpt(EnvListenHTTP, EnvListenHTTPDefault)
+	log.Info().Str("listen", listen).Msg("http listen address")
+
+	log.Info().
+		Float64("request_timeout", GetHTTPRequestTimeout().Seconds()).
+		Float64("read_header_timeout", GetHTTPReadHeaderTimeout().Seconds()).
+		Float64("write_timeout", GetHTTPWriteTimeout().Seconds()).
+		Float64("idle_timeout", GetHTTPIdleTimeout().Seconds()).
+		Msg("http timeout settings (in seconds)")
+
+	return nil, nil
+}
+
+// CheckEnv checks if the environment is configured
+func CheckEnv() error {
+	var missing []string
+
+	checks := []func() ([]string, error){
+		checkDbConfig,
+		checkHTTPConfig,
+		checkAPIConfig,
+		checkRecordingsConfig,
+	}
+
+	for _, check := range checks {
+		m, err := check()
+		if err != nil {
+			return err
+		}
+		missing = append(missing, m...)
+	}
+
 	if len(missing) > 0 {
 		return fmt.Errorf("missing environment variables: %s",
 			strings.Join(missing, ", "))
 	}
 
 	return nil
+}
+
+// getEnvTimeoutSec parses an environment variable as seconds (int)
+// and returns a time.Duration. Logs error and uses default if invalid.
+func getEnvTimeoutSec(key, fallback string) time.Duration {
+	val := EnvOpt(key, fallback)
+	seconds, err := strconv.Atoi(val)
+	if err != nil {
+		log.Error().Err(err).Str("key", key).Str("value", val).
+			Msg("invalid timeout value (expected seconds), using default")
+		seconds, _ = strconv.Atoi(fallback)
+	}
+	return time.Duration(seconds) * time.Second
+}
+
+// GetHTTPRequestTimeout returns the HTTP request timeout.
+func GetHTTPRequestTimeout() time.Duration {
+	return getEnvTimeoutSec(EnvHTTPRequestTimeout, EnvHTTPRequestTimeoutDefault)
+}
+
+// GetHTTPReadHeaderTimeout returns the HTTP read header timeout.
+func GetHTTPReadHeaderTimeout() time.Duration {
+	return getEnvTimeoutSec(EnvHTTPReadHeaderTimeout, EnvHTTPReadHeaderTimeoutDefault)
+}
+
+// GetHTTPWriteTimeout returns the HTTP write timeout.
+func GetHTTPWriteTimeout() time.Duration {
+	return getEnvTimeoutSec(EnvHTTPWriteTimeout, EnvHTTPWriteTimeoutDefault)
+}
+
+// GetHTTPIdleTimeout returns the HTTP idle timeout.
+func GetHTTPIdleTimeout() time.Duration {
+	return getEnvTimeoutSec(EnvHTTPIdleTimeout, EnvHTTPIdleTimeoutDefault)
+}
+
+// GetCmdWorkerPoolSize returns number of workers processing
+// background tasks.
+func GetCmdWorkerPoolSize() int {
+	val := EnvOpt(EnvCmdWorkerPoolSize, EnvCmdWorkerPoolSizeDefault)
+	size, err := strconv.Atoi(val)
+	if err != nil {
+		size, _ = strconv.Atoi(EnvCmdWorkerPoolSizeDefault)
+	}
+	return size
+}
+
+// GetLoggingOpts returns the logging options with
+// log level and format.
+func GetLoggingOpts() *logging.Options {
+	level := EnvOpt(EnvLogLevel, EnvLogLevelDefault)
+	format := EnvOpt(EnvLogFormat, EnvLogFormatDefault)
+
+	return &logging.Options{
+		Level:  level,
+		Format: format,
+	}
+}
+
+// ConnectOpts database connection options
+type ConnectOpts struct {
+	URL      string
+	MaxConns int32
+	MinConns int32
+}
+
+// GetDbConnectOpts return the database configuration
+// from the environment.
+func GetDbConnectOpts() *ConnectOpts {
+	dbConnStr := EnvOpt(EnvDbURL, EnvDbURLDefault)
+	dbPoolSizeStr := EnvOpt(EnvDbPoolSize, EnvDbPoolSizeDefault)
+	dbPoolSize64, err := strconv.ParseInt(dbPoolSizeStr, 10, 32)
+	if err != nil {
+		log.Fatal().Err(err).Msg("database pool size") // panics
+	}
+	dbPoolSize := int32(dbPoolSize64)
+
+	log.Debug().Str("url", dbConnStr).Msg("using database")
+
+	// Initialize postgres connection
+	return &ConnectOpts{
+		URL:      dbConnStr,
+		MaxConns: dbPoolSize,
+		MinConns: 8,
+	}
 }

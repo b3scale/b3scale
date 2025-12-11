@@ -45,7 +45,7 @@ func NewController() *Controller {
 }
 
 // Start the controller
-func (c *Controller) Start() {
+func (c *Controller) Start(ctx context.Context) {
 	log.Info().Msg("starting cluster controller")
 
 	// Jitter startup in case multiple instances are spawned at the same time
@@ -62,17 +62,8 @@ func (c *Controller) Start() {
 		}
 	}()
 
-	// Controller Main Loop
-	for {
-		// Process commands from queue
-		if err := c.cmds.Receive(c.handleCommand); err != nil {
-			// We will only reach this code when waiting for
-			// commands fails. This can happen when the database
-			// is down. So, we log the error and wait a bit.
-			log.Error().Err(err).Msg("receive next command")
-			time.Sleep(1.0 * time.Second)
-		}
-	}
+	// Controller Main: Handle queued commands.
+	c.cmds.StartReceive(ctx, c.handleCommand)
 }
 
 // StartBackground will be run periodically triggered by

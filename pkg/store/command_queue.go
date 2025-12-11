@@ -15,6 +15,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/rs/zerolog/log"
 
 	"github.com/jackc/pgx/v4"
@@ -97,22 +98,42 @@ func QueueCommand(ctx context.Context, tx pgx.Tx, cmd *Command) error {
 	return nil
 }
 
-// Receive will await a command and will block
-// until a command can be processed. If the handler
-// responds with an error, the error will be returned.
-func (q *CommandQueue) Receive(handler CommandHandler) error {
-	for {
-		// Start processing in the background, so we can take
-		// care of the next incomming command.
-		go func(q *CommandQueue) {
-			err := q.process(handler)
-			if err != nil {
-				log.Error().Err(err).Msg("processing job failed")
-			}
-		}(q)
+// StartReceive spawns command queue workers and triggers periodical
+// polling of the event queue.
+//
+// Each worker awaits a polling event and will then try to process new command
+// within a given deadline.
+func (q *CommandQueue) StartReceive(ctx context.Context, handler CommandHandler) {
+	// Limit the polling interval to 15 Hz
+	ticker := time.NewTicker(66 * time.Millisecond)
+	events := ticker.C
 
-		// Limit polling frequency to 15 Hz
-		time.Sleep(66 * time.Millisecond)
+	// Spawn workers
+	poolSize := config.GetCmdWorkerPoolSize()
+	log.Info().Int("pool_size", poolSize).Msg("starting command queue workers")
+
+	for range poolSize {
+		go q.startReceiveWorker(ctx, events, handler)
+	}
+
+	<-ctx.Done()
+	ticker.Stop()
+}
+
+func (q *CommandQueue) startReceiveWorker(
+	ctx context.Context,
+	poll <-chan time.Time,
+	handler CommandHandler,
+) {
+	for {
+		select {
+		case <-poll:
+			if err := q.receive(ctx, handler); err != nil {
+				log.Error().Err(err).Msg("command queue receive failed")
+			}
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
@@ -212,18 +233,17 @@ func GetCommands(
 	return commands, nil
 }
 
-// Process will dequeue a command and apply the
+// Receive will dequeue a command and apply the
 // handler function to it. If not command was dequeued 'false'
 // will be returned.
-func (q *CommandQueue) process(handler CommandHandler) error {
-	// Begin transaction with a total timelimit
-	// of X seconds for the entire command. The safeExecHandler
-	// will instanciate a child context with a stricter timelimit
-	// of Y < X seconds for the job to complete.
-	startedAt := time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), 70*time.Second)
+func (q *CommandQueue) receive(ctx context.Context, handler CommandHandler) error {
+	// Begin with a total timelimit of X seconds for the entire command. The
+	// safeExecHandler  will instanciate a child context with a stricter
+	// timelimit of Y < X seconds for the job to complete.
+	ctx, cancel := context.WithTimeout(ctx, 70*time.Second)
 	defer cancel()
 
+	startedAt := time.Now().UTC()
 	tx, err := begin(ctx) // Command TX
 	if err != nil {
 		return err
@@ -283,7 +303,7 @@ func (q *CommandQueue) process(handler CommandHandler) error {
 	}
 
 	// We are done
-	stoppedAt := time.Now()
+	stoppedAt := time.Now().UTC()
 	data, err := json.Marshal(result)
 	if err != nil {
 		return err
