@@ -42,5 +42,8 @@ type FrontendSettings struct {
 	CreateDefaultParams  bbb.Params `json:"create_default_params" doc:"Provide key value params, which will be used as a default when a meeting is created. See the BBB api documentation for which params are valid. The param value must be encoded as string."`
 	CreateOverrideParams bbb.Params `json:"create_override_params" doc:"A key value set of params which will override parameters from the frontend when a meeting is created."`
 
+	JoinDefaultParams  bbb.Params `json:"join_default_params" doc:"Provide key value params, which will be used as a default when a meeting is joined. See the BBB api documentation for which params are valid. The param value must be encoded as string."`
+	JoinOverrideParams bbb.Params `json:"join_override_params" doc:"A key value set of params which will override parameters from the frontend when a meeting is joined."`
+
 	Recordings *RecordingsSettings `json:"recordings" doc:"Settings for new and imported recordings."`
 }

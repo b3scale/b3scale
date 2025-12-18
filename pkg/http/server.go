@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo-contrib/echoprometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	pclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/net/http2"
 
 	"github.com/b3scale/b3scale/pkg/bbb"
 	"github.com/b3scale/b3scale/pkg/cluster"
@@ -21,11 +19,6 @@ import (
 	"github.com/b3scale/b3scale/pkg/logging"
 	"github.com/b3scale/b3scale/pkg/metrics"
 	"github.com/b3scale/b3scale/pkg/templates"
-)
-
-const (
-	// RequestTimeout until the request has to be finished
-	RequestTimeout = 60 * time.Second
 )
 
 // Server provides the http server for the application.
@@ -51,8 +44,8 @@ func NewServer(
 	// in order of Use.
 	e.Use(middleware.Recover())
 	e.Use(logging.Middleware())
-	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		Timeout: RequestTimeout,
+	e.Use(middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
+		Timeout: config.GetHTTPRequestTimeout(),
 	}))
 
 	// Prometheus Middleware - Find it under /metrics
@@ -63,8 +56,6 @@ func NewServer(
 
 	// We handle BBB requests in a custom middleware
 	e.Use(BBBRequestMiddleware("/bbb", ctrl, gateway))
-
-	// Serve static assets
 
 	s := &Server{
 		serviceID:  serviceID,
@@ -91,29 +82,14 @@ func (s *Server) Start(listen string) {
 	log.Info().Msg("starting interface: HTTP")
 	httpServer := &http.Server{
 		Addr:              listen,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      60 * time.Second,
-		IdleTimeout:       120 * time.Second,
+		ReadHeaderTimeout: config.GetHTTPReadHeaderTimeout(),
+		WriteTimeout:      config.GetHTTPWriteTimeout(),
+		IdleTimeout:       config.GetHTTPIdleTimeout(),
 	}
 
 	log.Fatal().
 		Err(s.echo.StartServer(httpServer)).
 		Msg("starting http server")
-}
-
-// StartCleartextHTTP2 starts a HTTP2 interface without
-// any TLS encryption.
-func (s *Server) StartCleartextHTTP2(listen string) {
-	log.Info().Msg("starting interface: CleartextHTTP2")
-	httpServer := &http2.Server{
-		MaxConcurrentStreams: 200,
-		MaxReadFrameSize:     1048576,
-		IdleTimeout:          10 * time.Second,
-	}
-	log.Fatal().
-		Err(s.echo.StartH2CServer(listen, httpServer)).
-		Msg("starting plaintext http2 server")
-
 }
 
 // Index / Root Handler

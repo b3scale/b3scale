@@ -76,8 +76,8 @@ func (api *API) ParamID() (string, bool) {
 	return id, false
 }
 
-// ContextMiddleware initializes the context with
-// auth information and a database connection.
+// ContextMiddleware initializes the API, wrapping the echo.Context,
+// adding auth information and a database connection.
 func ContextMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := c.Request().Context()

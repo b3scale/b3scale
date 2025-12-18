@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/b3scale/b3scale/pkg/config"
 	"github.com/b3scale/b3scale/pkg/store/schema"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -30,16 +31,9 @@ var (
 // Database transactions can then be started with store.Begin.
 var pool *pgxpool.Pool
 
-// ConnectOpts database connection options
-type ConnectOpts struct {
-	URL      string
-	MaxConns int32
-	MinConns int32
-}
-
 // Connect initializes the connection pool and
 // checks the schema version of the database.
-func Connect(opts *ConnectOpts) error {
+func Connect(opts *config.ConnectOpts) error {
 	log.Debug().Str("url", opts.URL).Msg("using database")
 
 	// Initialize postgres connection
@@ -86,7 +80,7 @@ func ConnectTest(ctx context.Context) error {
 		return err
 	}
 
-	return Connect(&ConnectOpts{
+	return Connect(&config.ConnectOpts{
 		URL:      url,
 		MinConns: 2,
 		MaxConns: 16})
