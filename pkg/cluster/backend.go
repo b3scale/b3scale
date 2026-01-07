@@ -54,12 +54,15 @@ func NewBackend(state *store.BackendState) *Backend {
 
 // ID retrievs the backend id
 func (b *Backend) ID() string {
+	if b.state == nil {
+		return "unknown"
+	}
 	return b.state.ID
 }
 
 // Host retrievs the backend host
 func (b *Backend) Host() string {
-	if b.state.Backend == nil {
+	if b.state == nil || b.state.Backend == nil {
 		return ""
 	}
 	return b.state.Backend.Host
@@ -379,8 +382,13 @@ func (b *Backend) Create(
 	createRes := res.(*bbb.CreateResponse)
 	if createRes.Meeting == nil {
 		log.Error().
+			Str("backendHost", b.Host()).
+			Str("backendID", b.ID()).
 			Msg("create returned without a meeting")
-		return nil, fmt.Errorf("meeting was not created on server")
+
+		return nil, fmt.Errorf(
+			"meeting was not created on server: %s (ID: %s)",
+			b.Host(), b.ID())
 	}
 
 	conn := store.ConnectionFromContext(ctx)
