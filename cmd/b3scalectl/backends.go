@@ -165,6 +165,38 @@ func (c *Cli) showBackend(ctx *cli.Context) error {
 	return nil
 }
 
+// internal: fmtBackend displays a single backend
+// in the 'showBackends' list view.
+func printBackend(b *store.BackendState) {
+
+	ratio := 0.0
+	if b.MeetingsCount > 0 {
+		ratio = float64(b.AttendeesCount) / float64(b.MeetingsCount)
+	}
+	settings, _ := json.Marshal(b.Settings)
+
+	agentState := fmt.Sprintf("offline (since: %s)", b.AgentHeartbeat)
+	if b.IsAgentAlive() {
+		agentState = fmt.Sprintf("online \t TTL:\t %s", b.GetAgentTTL().String())
+	}
+
+	fmt.Printf("%s\n  Host:\t %s\n", b.ID, b.Backend.Host)
+	fmt.Printf("  Settings:\t %v\n", string(settings))
+	fmt.Printf("  NodeState:\t %s\t", b.NodeState)
+	fmt.Printf("  AdminState:\t %s\n", b.AdminState)
+	fmt.Printf("  NodeAgent:\t %s\n", agentState)
+	fmt.Printf("  MC/AC/R:\t %d/%d/%.02f\n",
+		b.MeetingsCount,
+		b.AttendeesCount,
+		ratio)
+	fmt.Printf("  LoadFactor:\t %v\n", b.LoadFactor)
+	fmt.Printf("  Latency:\t %v\n", b.Latency)
+	if b.NodeState == "error" && b.LastError != nil {
+		fmt.Println("  LastError:", *b.LastError)
+	}
+	fmt.Println("")
+}
+
 // showBackends displays a list of our backends
 func (c *Cli) showBackends(ctx *cli.Context) error {
 	client, err := apiClient(ctx)
@@ -184,25 +216,7 @@ func (c *Cli) showBackends(ctx *cli.Context) error {
 	}
 
 	for _, b := range backends {
-		ratio := 0.0
-		if b.MeetingsCount > 0 {
-			ratio = float64(b.AttendeesCount) / float64(b.MeetingsCount)
-		}
-		settings, _ := json.Marshal(b.Settings)
-		fmt.Printf("%s\n  Host:\t %s\n", b.ID, b.Backend.Host)
-		fmt.Printf("  Settings:\t %v\n", string(settings))
-		fmt.Printf("  NodeState:\t %s\t", b.NodeState)
-		fmt.Printf("  AdminState:\t %s\n", b.AdminState)
-		fmt.Printf("  MC/AC/R:\t %d/%d/%.02f\n",
-			b.MeetingsCount,
-			b.AttendeesCount,
-			ratio)
-		fmt.Printf("  LoadFactor:\t %v\n", b.LoadFactor)
-		fmt.Printf("  Latency:\t %v\n", b.Latency)
-		if b.NodeState == "error" && b.LastError != nil {
-			fmt.Println("  LastError:", *b.LastError)
-		}
-		fmt.Println("")
+		printBackend(b)
 	}
 
 	return nil
