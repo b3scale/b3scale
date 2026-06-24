@@ -49,7 +49,10 @@ func NewServer(
 	}))
 
 	// Prometheus Middleware - Find it under /metrics
-	e.Use(echoprometheus.NewMiddleware(serviceID))
+	e.Use(echoprometheus.NewMiddlewareWithConfig(echoprometheus.MiddlewareConfig{
+		DoNotUseRequestPathFor404: true,
+		Subsystem:                 serviceID,
+	}))
 	e.GET("/metrics", echoprometheus.NewHandler())
 
 	pclient.MustRegister(metrics.Collector{})
