@@ -11,7 +11,7 @@ require (
 	github.com/labstack/echo-contrib v0.50.1
 	github.com/labstack/echo-jwt/v4 v4.4.0
 	github.com/labstack/echo/v4 v4.15.4
-	github.com/prometheus/client_golang v1.23.2
+	github.com/prometheus/client_golang v1.24.0
 	github.com/rs/zerolog v1.35.1
 	github.com/urfave/cli/v2 v2.27.7
 	golang.org/x/term v0.45.0
@@ -37,13 +37,12 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.67.5 // indirect
-	github.com/prometheus/procfs v0.19.2 // indirect
+	github.com/prometheus/common v0.70.0 // indirect
+	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
