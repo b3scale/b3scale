@@ -319,12 +319,18 @@ func (s *BackendState) UpdateAgentHeartbeat(
 	return heartbeat, nil
 }
 
+// GetAgentTTL returns the time in seconds
+// until the node is declared offline.
+func (s *BackendState) GetAgentTTL() time.Duration {
+	ttl := 5 * time.Second
+	now := time.Now().UTC()
+	return ttl - now.Sub(s.AgentHeartbeat)
+}
+
 // IsAgentAlive checks if the heartbeat is older
 // than the threshold
 func (s *BackendState) IsAgentAlive() bool {
-	threshold := 5 * time.Second
-	now := time.Now().UTC()
-	return now.Sub(s.AgentHeartbeat) <= threshold
+	return s.GetAgentTTL() >= 0
 }
 
 // IsNodeReady checks if the agent is alive and the node
